@@ -1,7 +1,6 @@
 package br.com.peladaoficial.config;
 
 import br.com.peladaoficial.security.JwtAuthFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +18,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -35,8 +33,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -50,25 +46,21 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            Map<String, Object> body = new HashMap<>();
-                            body.put("message", "Faça login para continuar");
-                            body.put("status", 401);
-                            mapper.writeValue(response.getOutputStream(), body);
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            Map<String, Object> body = new HashMap<>();
-                            body.put("message", "Faça login para continuar");
-                            body.put("status", 401);
-                            mapper.writeValue(response.getOutputStream(), body);
-                        })
+                        .authenticationEntryPoint((request, response, authException) ->
+                                escreverJson(response, HttpServletResponse.SC_UNAUTHORIZED, "Faça login para continuar"))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                escreverJson(response, HttpServletResponse.SC_UNAUTHORIZED, "Faça login para continuar"))
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    private void escreverJson(HttpServletResponse response, int status, String mensagem) throws java.io.IOException {
+        response.setStatus(status);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        String json = "{\"message\":\"" + mensagem + "\",\"status\":" + status + "}";
+        response.getWriter().write(json);
     }
 
     @Bean
