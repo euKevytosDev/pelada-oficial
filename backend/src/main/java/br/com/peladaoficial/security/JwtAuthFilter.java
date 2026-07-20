@@ -34,19 +34,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        // Evita “resto” de autenticação em thread reutilizada do Tomcat
+        SecurityContextHolder.clearContext();
+
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            if (jwtService.valido(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
-                Long usuarioId = jwtService.extrairUsuarioId(token);
-                Usuario usuario = usuarioRepository.findById(usuarioId).orElse(null);
-                if (usuario != null) {
-                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                            usuario, null, List.of()
-                    );
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+            String token = header.substring(7).trim();
+            try {
+                if (jwtService.valido(token)) {
+                    Long usuarioId = jwtService.extrairUsuarioId(token);
+                    Usuario usuario = usuarioRepository.findById(usuarioId).orElse(null);
+                    if (usuario != null) {
+                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                                usuario, null, List.of()
+                        );
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
                 }
+            } catch (Exception ignored) {
+                // Token inválido: segue sem auth → 401 só se a rota exigir login
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);

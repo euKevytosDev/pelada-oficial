@@ -946,21 +946,19 @@ async function bootAuth() {
     return;
   }
 
-  // Já tem login salvo no celular — entra direto (não pede senha de novo)
+  // Já tem login salvo — mantém sessão mesmo se a API estiver acordando
   atualizarUserBar();
   try {
     await PeladaAPI.ativa();
     await entrarNaHome();
   } catch (err) {
-    // api() só limpa sessão em 401/403 reais
     if (!getToken()) {
       mostrarTela("tela-auth");
       atualizarUserBar();
       toast(err.message || "Faça login para continuar");
       return;
     }
-    // Servidor acordando / rede: mantém login e mostra a home
-    toast("Servidor acordando… se travar, abra de novo em 1 minuto");
+    toast(err.message || "Servidor acordando… tente Continuar de novo");
     await entrarNaHome();
   }
 }
@@ -1022,17 +1020,22 @@ document.getElementById("btn-sair").addEventListener("click", () => {
 
 document.getElementById("btn-continuar").addEventListener("click", async () => {
   try {
-    if (!estado.peladaAtiva) {
-      const ativa = await PeladaAPI.ativa();
-      if (!ativa || !ativa.id) {
-        toast("Nenhuma pelada ativa");
-        return;
-      }
-      estado.peladaAtiva = ativa;
+    // Sempre busca de novo a pelada ativa (evita estado velho)
+    const ativa = await PeladaAPI.ativa();
+    if (!ativa || !ativa.id) {
+      toast("Nenhuma pelada ativa");
+      document.getElementById("box-continuar").classList.add("oculto");
+      return;
     }
-    await retomarPelada(estado.peladaAtiva);
+    estado.peladaAtiva = ativa;
+    await retomarPelada(ativa);
   } catch (err) {
-    toast(err.message);
+    // Não manda pra login se o token ainda está salvo — só avisa
+    if (getToken()) {
+      toast(err.message || "Não deu para continuar. Espere 10s e tente de novo.");
+    } else {
+      toast(err.message);
+    }
   }
 });
 

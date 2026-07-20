@@ -1,8 +1,8 @@
 /**
  * Comunicação com o backend Spring Boot + token JWT.
  *
- * Local: localhost:8080
- * Produção: API na Render (sessão fica salva no celular até expirar / Sair).
+ * A sessão fica no celular. Só desloga se o token estiver de fato inválido
+ * (não por Render acordando / rede instável).
  */
 const API_BASE_PROD = "https://pelada-oficial.onrender.com/api";
 const API_BASE =
@@ -54,19 +54,6 @@ function forcarLogout(mensagem) {
   throw new Error(mensagem || "Faça login para continuar");
 }
 
-/** 401 só desloga se o token existir e a API disser explicitamente para logar. */
-function deveDeslogarPorStatus(resposta, mensagem) {
-  if (resposta.status !== 401 && resposta.status !== 403) return false;
-  // sem token, só erro mesmo
-  if (!getToken()) return true;
-  const msg = (mensagem || "").toLowerCase();
-  return msg.includes("login") || msg.includes("token") || msg.includes("expir");
-}
-
-/**
- * true = Render dormindo / rede (não desloga).
- * false = erro real da API.
- */
 function pareceServidorAcordando(resposta, corpoTexto) {
   if ([502, 503, 504].includes(resposta.status)) return true;
   if (resposta.status === 404) {
@@ -76,8 +63,54 @@ function pareceServidorAcordando(resposta, corpoTexto) {
   return false;
 }
 
+/**
+ * Confirma se o token ainda vale (chamada leve).
+ * Rede/servidor dormindo → assume que ainda vale (não desloga).
+ */
+async function sessaoAindaValida() {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const resposta = await fetch(`${API_BASE}/peladas/ativa`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (resposta.status === 401 || resposta.status === 403) {
+      return false;
+    }
+    // 502/503/404 plain = Render reiniciando — mantém sessão
+    if ([502, 503, 504, 404].includes(resposta.status)) {
+      return true;
+    }
+    return true;
+  } catch (_) {
+    return true;
+  }
+}
+
+async function lerMensagemErro(resposta) {
+  const ct = resposta.headers.get("content-type") || "";
+  if (ct.includes("json")) {
+    try {
+      const erro = await resposta.json();
+      return erro.message || erro.error || `Erro HTTP ${resposta.status}`;
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  try {
+    const texto = await resposta.text();
+    if (texto && texto.length < 160) return texto;
+  } catch (_) {
+    /* ignore */
+  }
+  return `Erro HTTP ${resposta.status}`;
+}
+
 async function api(caminho, opcoes = {}) {
-  const maxTentativas = opcoes.retry === false ? 1 : 5;
+  const maxTentativas = opcoes.retry === false ? 1 : 6;
   let ultimoErro = null;
 
   for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
@@ -92,49 +125,35 @@ async function api(caminho, opcoes = {}) {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      resposta = await fetch(`${API_BASE}${caminho}`, {
-        ...opcoes,
-        headers,
-        retry: undefined,
-      });
+      const fetchOpts = { ...opcoes, headers };
+      delete fetchOpts.retry;
+
+      resposta = await fetch(`${API_BASE}${caminho}`, fetchOpts);
     } catch (_) {
       ultimoErro = new Error("Sem conexão com o servidor");
       if (tentativa < maxTentativas) {
-        await sleep(1500 * tentativa);
+        await sleep(1200 * tentativa);
         continue;
       }
       throw ultimoErro;
     }
 
-    // Só desloga em 401/403 reais da API (JSON), não em falha de cold start
     if (resposta.status === 401 || resposta.status === 403) {
-      const ct = resposta.headers.get("content-type") || "";
-      let mensagem = "Faça login para continuar";
-      if (ct.includes("json")) {
-        try {
-          const erro = await resposta.json();
-          mensagem = erro.message || mensagem;
-        } catch (_) {
-          /* ignore */
-        }
-        if (deveDeslogarPorStatus(resposta, mensagem)) {
-          forcarLogout(mensagem);
-        }
-        throw new Error(mensagem);
-      }
-      // 401 genérico sem JSON → tenta de novo (servidor estranho)
+      // Render reiniciando / instável: tenta de novo ANTES de deslogar
       if (tentativa < maxTentativas) {
         await sleep(1500 * tentativa);
         continue;
       }
-      if (deveDeslogarPorStatus(resposta, mensagem)) {
-        forcarLogout(mensagem);
+      // Só desloga se confirmar que o token morreu de verdade
+      const valida = await sessaoAindaValida();
+      if (!valida) {
+        forcarLogout("Sessão expirada. Entre de novo.");
       }
-      throw new Error(mensagem);
+      throw new Error("Servidor instável. Toque de novo em Continuar / tente outra vez.");
     }
 
     if (!resposta.ok) {
-      const texto = await resposta.text();
+      const texto = await resposta.clone().text();
       if (pareceServidorAcordando(resposta, texto) && tentativa < maxTentativas) {
         await sleep(2000 * tentativa);
         continue;
