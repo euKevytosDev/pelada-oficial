@@ -41,20 +41,23 @@ pelada-oficial/
 
 ## Passo a passo para rodar
 
-### 1) Subir o banco (PostgreSQL)
+### 1) Banco de dados
 
-No terminal, na pasta do projeto:
+**Agora (mais fácil):** o backend sobe com **H2** (banco em memória). Não precisa configurar nada.
+
+**Depois (PostgreSQL 18 que você já tem):**
+1. Abra o **pgAdmin 4**
+2. Rode o script `backend/scripts/criar-banco-postgres.sql`
+3. Em `backend/src/main/resources/application.properties`, troque para:
+   ```properties
+   spring.profiles.active=postgres
+   ```
+
+Ou use Docker (se instalar o Docker Desktop):
 
 ```bash
 docker compose up -d
 ```
-
-Dados do banco:
-- Host: `localhost`
-- Porta: `5432`
-- Banco: `pelada_oficial`
-- Usuário: `pelada`
-- Senha: `pelada123`
 
 ### 2) Rodar o backend (IntelliJ)
 
