@@ -35,6 +35,20 @@ public class PeladaController {
         return toPeladaMap(peladaService.criar(request));
     }
 
+    @GetMapping
+    public List<Map<String, Object>> listarMinhas() {
+        return peladaService.listarMinhas().stream()
+                .map(this::toPeladaMap)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/ativa")
+    public Map<String, Object> ativa() {
+        return peladaService.buscarAtiva()
+                .map(this::toPeladaMap)
+                .orElseGet(HashMap::new);
+    }
+
     @GetMapping("/{id}")
     public Map<String, Object> buscar(@PathVariable Long id) {
         return toPeladaMap(peladaService.buscar(id));

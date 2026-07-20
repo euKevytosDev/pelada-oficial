@@ -88,6 +88,49 @@ body {
   font-size: 0.92rem;
 }
 
+.user-bar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.88rem;
+}
+
+.oculto {
+  display: none !important;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.auth-tab {
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font: inherit;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+
+.auth-tab.ativa {
+  background: #fff;
+  color: var(--verde-campo);
+}
+
+.continuar-txt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--texto);
+}
+
 .tela {
   display: none;
   animation: sobe 0.28s ease;

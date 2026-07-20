@@ -39,6 +39,11 @@ public class Pelada {
 
     private LocalDateTime encerradaEm;
 
+    /** Dono da pelada (conta logada). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     @OneToMany(mappedBy = "pelada", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Jogador> jogadores = new ArrayList<>();
 

@@ -4,6 +4,7 @@ import br.com.peladaoficial.dto.IniciarPartidaRequest;
 import br.com.peladaoficial.dto.RegistrarEventoRequest;
 import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.*;
+import br.com.peladaoficial.security.AuthSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,23 +25,30 @@ public class PartidaService {
     private final TimeRepository timeRepository;
     private final JogadorRepository jogadorRepository;
     private final EventoPartidaRepository eventoRepository;
+    private final AuthSupport authSupport;
 
     public PartidaService(PeladaRepository peladaRepository,
                           PartidaRepository partidaRepository,
                           TimeRepository timeRepository,
                           JogadorRepository jogadorRepository,
-                          EventoPartidaRepository eventoRepository) {
+                          EventoPartidaRepository eventoRepository,
+                          AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.partidaRepository = partidaRepository;
         this.timeRepository = timeRepository;
         this.jogadorRepository = jogadorRepository;
         this.eventoRepository = eventoRepository;
+        this.authSupport = authSupport;
+    }
+
+    private Pelada buscarPeladaDoUsuario(Long peladaId) {
+        return peladaRepository.findByIdAndUsuario(peladaId, authSupport.usuarioAtual())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
     }
 
     @Transactional
     public Partida iniciar(Long peladaId, IniciarPartidaRequest request) {
-        Pelada pelada = peladaRepository.findById(peladaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
+        Pelada pelada = buscarPeladaDoUsuario(peladaId);
 
         if (pelada.getStatus() != StatusPelada.EM_ANDAMENTO) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sorteie os times antes de iniciar a partida");
@@ -72,6 +80,8 @@ public class PartidaService {
     public Partida buscar(Long partidaId) {
         Partida partida = partidaRepository.findById(partidaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partida não encontrada"));
+        // garante que a partida é do usuário logado
+        buscarPeladaDoUsuario(partida.getPelada().getId());
         partida.getEventos().size();
         partida.getTimeA().getJogadores().size();
         partida.getTimeB().getJogadores().size();
@@ -80,6 +90,7 @@ public class PartidaService {
 
     @Transactional(readOnly = true)
     public List<Partida> listarPorPelada(Long peladaId) {
+        buscarPeladaDoUsuario(peladaId);
         List<Partida> partidas = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(peladaId);
         partidas.forEach(p -> {
             p.getTimeA().getNome();
@@ -218,6 +229,7 @@ public class PartidaService {
     /** Lista todos os goleiros da pelada (para emprestar entre times). */
     @Transactional(readOnly = true)
     public List<Jogador> listarGoleirosDaPelada(Long peladaId) {
+        buscarPeladaDoUsuario(peladaId);
         return jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId).stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
                 .peek(j -> {

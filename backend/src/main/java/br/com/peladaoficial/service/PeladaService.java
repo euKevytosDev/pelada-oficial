@@ -7,6 +7,7 @@ import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.JogadorRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
+import br.com.peladaoficial.security.AuthSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 
 /**
  * Regras da pelada: criar, jogadores/goleiros, sorteio, nomes dos times e encerrar.
+ * Cada pelada pertence ao usuário logado.
  */
 @Service
 public class PeladaService {
@@ -29,27 +31,46 @@ public class PeladaService {
     private final PeladaRepository peladaRepository;
     private final JogadorRepository jogadorRepository;
     private final TimeRepository timeRepository;
+    private final AuthSupport authSupport;
 
     public PeladaService(PeladaRepository peladaRepository,
                          JogadorRepository jogadorRepository,
-                         TimeRepository timeRepository) {
+                         TimeRepository timeRepository,
+                         AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
+        this.authSupport = authSupport;
     }
 
     @Transactional
     public Pelada criar(CriarPeladaRequest request) {
+        Usuario dono = authSupport.usuarioAtual();
         Pelada pelada = new Pelada();
         pelada.setNome(request.getNome());
         pelada.setQuantidadeTimes(request.getQuantidadeTimes());
         pelada.setStatus(StatusPelada.AGUARDANDO);
+        pelada.setUsuario(dono);
         return peladaRepository.save(pelada);
     }
 
     @Transactional(readOnly = true)
+    public List<Pelada> listarMinhas() {
+        return peladaRepository.findByUsuarioOrderByCriadaEmDesc(authSupport.usuarioAtual());
+    }
+
+    /** Pelada em andamento (ou aguardando) para retomar sem perder o jogo. */
+    @Transactional(readOnly = true)
+    public Optional<Pelada> buscarAtiva() {
+        return peladaRepository.findFirstByUsuarioAndStatusInOrderByCriadaEmDesc(
+                authSupport.usuarioAtual(),
+                List.of(StatusPelada.AGUARDANDO, StatusPelada.EM_ANDAMENTO)
+        );
+    }
+
+    @Transactional(readOnly = true)
     public Pelada buscar(Long id) {
-        return peladaRepository.findById(id)
+        return peladaRepository.findByIdAndUsuario(id, authSupport.usuarioAtual())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
     }
 

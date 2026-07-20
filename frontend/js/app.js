@@ -9,6 +9,7 @@
 
 const estado = {
   peladaId: null,
+  peladaAtiva: null,
   estrelasSelecionadas: 5,
   times: [],
   goleiros: [],
@@ -21,6 +22,7 @@ function mostrarTela(id) {
   document.getElementById(id).classList.add("ativa");
 
   const titulos = {
+    "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
     "tela-jogadores": "Jogadores e goleiros",
     "tela-times": "Times sorteados",
@@ -483,7 +485,159 @@ async function encerrarPelada() {
 
 /* ---------- eventos ---------- */
 
+function atualizarUserBar() {
+  const bar = document.getElementById("user-bar");
+  const usuario = getUsuario();
+  if (!usuario) {
+    bar.classList.add("oculto");
+    return;
+  }
+  bar.classList.remove("oculto");
+  document.getElementById("user-nome").textContent = usuario.nome;
+}
+
+async function entrarNaHome() {
+  atualizarUserBar();
+  mostrarTela("tela-inicio");
+  try {
+    const ativa = await PeladaAPI.ativa();
+    const box = document.getElementById("box-continuar");
+    if (ativa && ativa.id) {
+      estado.peladaAtiva = ativa;
+      box.classList.remove("oculto");
+    } else {
+      estado.peladaAtiva = null;
+      box.classList.add("oculto");
+    }
+  } catch (_) {
+    document.getElementById("box-continuar").classList.add("oculto");
+  }
+}
+
+async function retomarPelada(pelada) {
+  estado.peladaId = pelada.id;
+  localStorage.setItem(PELADA_KEY, String(pelada.id));
+
+  if (pelada.status === "AGUARDANDO") {
+    await carregarCadastro();
+    mostrarTela("tela-jogadores");
+    toast("Pelada retomada — cadastro");
+    return;
+  }
+
+  if (pelada.status === "EM_ANDAMENTO") {
+    const times = await PeladaAPI.listarTimes(estado.peladaId);
+    estado.times = times;
+    const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+    const aberta = (partidas || []).find((p) => p.status === "EM_ANDAMENTO");
+    if (aberta) {
+      const completa = await PeladaAPI.buscarPartida(aberta.id);
+      renderPartida(completa);
+      mostrarTela("tela-partida");
+      toast("Partida retomada!");
+      return;
+    }
+    if (times.length) {
+      renderTimes(times);
+      mostrarTela("tela-times");
+      toast("Pelada retomada — times");
+      return;
+    }
+  }
+
+  if (pelada.status === "ENCERRADA") {
+    const resumo = await PeladaAPI.resumo(estado.peladaId);
+    estado.resumoAtual = resumo;
+    renderResumoOficial(resumo);
+    mostrarTela("tela-fim");
+    return;
+  }
+
+  mostrarTela("tela-inicio");
+}
+
+async function bootAuth() {
+  if (!getToken()) {
+    mostrarTela("tela-auth");
+    atualizarUserBar();
+    return;
+  }
+  await entrarNaHome();
+}
+
+/* ---------- eventos auth ---------- */
+
+document.querySelectorAll(".auth-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".auth-tab").forEach((t) => t.classList.remove("ativa"));
+    tab.classList.add("ativa");
+    const modo = tab.dataset.auth;
+    document.getElementById("form-login").classList.toggle("oculto", modo !== "login");
+    document.getElementById("form-cadastro").classList.toggle("oculto", modo !== "cadastro");
+  });
+});
+
+document.getElementById("form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await AuthAPI.login({
+      email: document.getElementById("login-email").value.trim(),
+      senha: document.getElementById("login-senha").value,
+    });
+    salvarSessao(data.token, data.usuario);
+    toast(`Olá, ${data.usuario.nome}!`);
+    await entrarNaHome();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("form-cadastro").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const data = await AuthAPI.cadastro({
+      nome: document.getElementById("cadastro-nome").value.trim(),
+      email: document.getElementById("cadastro-email").value.trim(),
+      senha: document.getElementById("cadastro-senha").value,
+    });
+    salvarSessao(data.token, data.usuario);
+    toast("Conta criada!");
+    await entrarNaHome();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-sair").addEventListener("click", () => {
+  limparSessao();
+  estado.peladaId = null;
+  estado.times = [];
+  estado.partidaAtual = null;
+  estado.resumoAtual = null;
+  estado.peladaAtiva = null;
+  atualizarUserBar();
+  mostrarTela("tela-auth");
+  toast("Você saiu");
+});
+
+document.getElementById("btn-continuar").addEventListener("click", async () => {
+  try {
+    if (!estado.peladaAtiva) {
+      const ativa = await PeladaAPI.ativa();
+      if (!ativa || !ativa.id) {
+        toast("Nenhuma pelada ativa");
+        return;
+      }
+      estado.peladaAtiva = ativa;
+    }
+    await retomarPelada(estado.peladaAtiva);
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
 montarSeletorEstrelas();
+bootAuth();
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -493,10 +647,10 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       quantidadeTimes: Number(document.getElementById("qtd-times").value),
     });
     estado.peladaId = pelada.id;
-    localStorage.setItem("peladaId", String(pelada.id));
+    localStorage.setItem(PELADA_KEY, String(pelada.id));
     renderListasCadastro([]);
     mostrarTela("tela-jogadores");
-    toast("Pelada criada!");
+    toast("Pelada criada e salva na sua conta!");
   } catch (err) {
     toast(err.message);
   }
@@ -631,14 +785,14 @@ document.getElementById("btn-encerrar-pelada-2").addEventListener("click", async
   }
 });
 
-document.getElementById("btn-nova-pelada").addEventListener("click", () => {
-  localStorage.removeItem("peladaId");
+document.getElementById("btn-nova-pelada").addEventListener("click", async () => {
+  localStorage.removeItem(PELADA_KEY);
   estado.peladaId = null;
   estado.times = [];
   estado.goleiros = [];
   estado.partidaAtual = null;
   estado.resumoAtual = null;
-  mostrarTela("tela-inicio");
+  await entrarNaHome();
 });
 
 document.getElementById("btn-whatsapp").addEventListener("click", async () => {

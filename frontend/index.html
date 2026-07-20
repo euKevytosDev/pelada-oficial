@@ -20,12 +20,60 @@
         <h1>Pelada Oficial</h1>
       </div>
       <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
+      <div class="user-bar oculto" id="user-bar">
+        <span id="user-nome"></span>
+        <button type="button" class="btn-mini" id="btn-sair">Sair</button>
+      </div>
     </header>
 
     <main id="conteudo">
-      <section class="tela ativa" id="tela-inicio">
+      <section class="tela ativa" id="tela-auth">
+        <div class="hero-copy">
+          <p>Entre na sua conta para não perder a pelada no meio do jogo.</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab ativa" data-auth="login">Entrar</button>
+          <button type="button" class="auth-tab" data-auth="cadastro">Criar conta</button>
+        </div>
+
+        <form id="form-login" class="card-form">
+          <label>
+            E-mail
+            <input type="email" id="login-email" placeholder="voce@email.com" required />
+          </label>
+          <label>
+            Senha
+            <input type="password" id="login-senha" placeholder="mínimo 6 caracteres" minlength="6" required />
+          </label>
+          <button type="submit" class="btn btn-principal">Entrar</button>
+        </form>
+
+        <form id="form-cadastro" class="card-form oculto">
+          <label>
+            Seu nome
+            <input type="text" id="cadastro-nome" placeholder="Ex: Kevin" maxlength="80" required />
+          </label>
+          <label>
+            E-mail
+            <input type="email" id="cadastro-email" placeholder="voce@email.com" required />
+          </label>
+          <label>
+            Senha
+            <input type="password" id="cadastro-senha" placeholder="mínimo 6 caracteres" minlength="6" required />
+          </label>
+          <button type="submit" class="btn btn-principal">Criar conta</button>
+        </form>
+        <p class="dica">Seus resultados ficam salvos na sua conta.</p>
+      </section>
+
+      <section class="tela" id="tela-inicio">
         <div class="hero-copy">
           <p>Monte os times, sorteie equilibrado e marque o jogo ao vivo.</p>
+        </div>
+        <div id="box-continuar" class="card-form oculto">
+          <p class="continuar-txt">Você tem uma pelada em andamento.</p>
+          <button type="button" class="btn btn-principal" id="btn-continuar">Continuar pelada</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>

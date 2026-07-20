@@ -11,6 +11,7 @@ Thumbs.db
 
 # Backend Java / Maven
 backend/target/
+backend/data/
 backend/.mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar

@@ -5,6 +5,7 @@ import br.com.peladaoficial.repository.JogadorRepository;
 import br.com.peladaoficial.repository.PartidaRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
+import br.com.peladaoficial.security.AuthSupport;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,20 +24,23 @@ public class ResumoService {
     private final TimeRepository timeRepository;
     private final JogadorRepository jogadorRepository;
     private final PartidaRepository partidaRepository;
+    private final AuthSupport authSupport;
 
     public ResumoService(PeladaRepository peladaRepository,
                          TimeRepository timeRepository,
                          JogadorRepository jogadorRepository,
-                         PartidaRepository partidaRepository) {
+                         PartidaRepository partidaRepository,
+                         AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.timeRepository = timeRepository;
         this.jogadorRepository = jogadorRepository;
         this.partidaRepository = partidaRepository;
+        this.authSupport = authSupport;
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> montar(Long peladaId) {
-        Pelada pelada = peladaRepository.findById(peladaId)
+        Pelada pelada = peladaRepository.findByIdAndUsuario(peladaId, authSupport.usuarioAtual())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
 
         List<Time> times = timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId);

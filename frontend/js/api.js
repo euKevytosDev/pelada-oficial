@@ -1,17 +1,55 @@
 /**
- * Comunicação com o backend Spring Boot.
- * Backend precisa estar rodando em http://localhost:8080
+ * Comunicação com o backend Spring Boot + token JWT.
  */
 const API_BASE = "http://localhost:8080/api";
+const TOKEN_KEY = "pelada_token";
+const USER_KEY = "pelada_usuario";
+const PELADA_KEY = "peladaId";
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function getUsuario() {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+function salvarSessao(token, usuario) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(usuario));
+}
+
+function limparSessao() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(PELADA_KEY);
+}
 
 async function api(caminho, opcoes = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(opcoes.headers || {}),
+  };
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const resposta = await fetch(`${API_BASE}${caminho}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(opcoes.headers || {}),
-    },
     ...opcoes,
+    headers,
   });
+
+  if (resposta.status === 401) {
+    limparSessao();
+    throw new Error("Sessão expirada. Faça login de novo.");
+  }
 
   if (!resposta.ok) {
     let mensagem = "Erro na API";
@@ -36,8 +74,15 @@ async function api(caminho, opcoes = {}) {
   return JSON.parse(texto);
 }
 
+const AuthAPI = {
+  cadastro: (dados) => api("/auth/cadastro", { method: "POST", body: JSON.stringify(dados) }),
+  login: (dados) => api("/auth/login", { method: "POST", body: JSON.stringify(dados) }),
+};
+
 const PeladaAPI = {
   criar: (dados) => api("/peladas", { method: "POST", body: JSON.stringify(dados) }),
+  listarMinhas: () => api("/peladas"),
+  ativa: () => api("/peladas/ativa"),
   buscar: (id) => api(`/peladas/${id}`),
   adicionarJogador: (peladaId, dados) =>
     api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
@@ -53,6 +98,7 @@ const PeladaAPI = {
   resumo: (peladaId) => api(`/peladas/${peladaId}/resumo`),
   iniciarPartida: (peladaId, dados) =>
     api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),
+  listarPartidas: (peladaId) => api(`/peladas/${peladaId}/partidas`),
   buscarPartida: (partidaId) => api(`/partidas/${partidaId}`),
   registrarEvento: (partidaId, dados) =>
     api(`/partidas/${partidaId}/eventos`, { method: "POST", body: JSON.stringify(dados) }),

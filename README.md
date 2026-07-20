@@ -28,6 +28,17 @@ pelada-oficial/
 
 ---
 
+## Conta (SaaS / login)
+
+1. Abra o frontend e **crie uma conta** (e-mail + senha)
+2. Faça login — a pelada fica salva no seu usuário
+3. Se fechar o app no meio do jogo, entre de novo e clique em **Continuar pelada**
+4. O banco local (H2 em arquivo) também guarda os dados mesmo reiniciando o Spring
+
+> GitHub Pages mostra o visual; para login/API funcionar, o backend precisa estar rodando (ou publicado na nuvem depois).
+
+---
+
 ## Regras do jogo (já no código)
 
 - Cada jogador de linha tem **estrelas (nível 1 a 10)**
