@@ -13,6 +13,7 @@ import br.com.peladaoficial.model.Pelada;
 import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PeladaService;
 import br.com.peladaoficial.service.ResumoService;
+import br.com.peladaoficial.service.RetomarService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -30,10 +31,12 @@ public class PeladaController {
 
     private final PeladaService peladaService;
     private final ResumoService resumoService;
+    private final RetomarService retomarService;
 
-    public PeladaController(PeladaService peladaService, ResumoService resumoService) {
+    public PeladaController(PeladaService peladaService, ResumoService resumoService, RetomarService retomarService) {
         this.peladaService = peladaService;
         this.resumoService = resumoService;
+        this.retomarService = retomarService;
     }
 
     @PostMapping
@@ -53,6 +56,12 @@ public class PeladaController {
         return peladaService.buscarAtiva()
                 .map(this::toPeladaMap)
                 .orElseGet(HashMap::new);
+    }
+
+    /** Um único payload para o botão Continuar (pelada + times + partida aberta). */
+    @GetMapping({"/ativa/retomar", "/retomar"})
+    public Map<String, Object> retomar() {
+        return retomarService.montar();
     }
 
     /** Elenco permanente da conta (nomes/estrelas da última pelada encerrada). */

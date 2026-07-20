@@ -969,6 +969,60 @@ async function retomarPelada(pelada) {
   mostrarTela("tela-inicio");
 }
 
+/** Abre a pelada usando o payload único de /ativa/retomar (mais estável no celular). */
+async function aplicarRetomada(payload) {
+  const pelada = payload?.pelada;
+  if (!pelada || !pelada.id) {
+    throw new Error("Nenhuma pelada ativa");
+  }
+
+  estado.peladaId = pelada.id;
+  estado.peladaAtiva = pelada;
+  localStorage.setItem(PELADA_KEY, String(pelada.id));
+
+  if (pelada.status === "AGUARDANDO") {
+    if (Array.isArray(payload.jogadores) && payload.jogadores.length) {
+      // reusa o fluxo visual do cadastro
+      await carregarCadastro();
+    } else {
+      await carregarCadastro();
+    }
+    mostrarTela("tela-jogadores");
+    toast("Pelada retomada — cadastro");
+    return;
+  }
+
+  if (pelada.status === "EM_ANDAMENTO") {
+    if (Array.isArray(payload.times)) {
+      estado.times = payload.times;
+    }
+
+    if (payload.partidaAberta && payload.partidaAberta.id) {
+      renderPartida(payload.partidaAberta);
+      mostrarTela("tela-partida");
+      toast("Partida retomada!");
+      return;
+    }
+
+    const partidas = payload.partidas || [];
+    if (partidas.length) {
+      await irParaClassificacao();
+      toast("Pelada retomada — classificação");
+      return;
+    }
+
+    if ((estado.times || []).length) {
+      renderTimes(estado.times);
+      mostrarTela("tela-times");
+      toast("Pelada retomada — times");
+      return;
+    }
+  }
+
+  // fallback antigo se o payload vier incompleto
+  await retomarPelada(pelada);
+}
+
 async function bootAuth() {
   if (!getToken() || !getUsuario()) {
     limparSessao();
@@ -1069,6 +1123,20 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
     let ultimoErro = null;
     for (let t = 1; t <= 3; t++) {
       try {
+        // Preferência: 1 chamada só (mais estável no celular)
+        let payload = null;
+        try {
+          payload = await PeladaAPI.retomar();
+        } catch (_) {
+          payload = null;
+        }
+
+        if (payload && payload.pelada && payload.pelada.id) {
+          await aplicarRetomada(payload);
+          return;
+        }
+
+        // Backend antigo / payload vazio → fluxo anterior
         const ativa = await PeladaAPI.ativa();
         if (!ativa || !ativa.id) {
           toast("Nenhuma pelada ativa");
@@ -1083,7 +1151,7 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
         if (!getToken()) throw err;
         if (t < 3) {
           toast(`Tentativa ${t}/3… aguarde`);
-          await new Promise((r) => setTimeout(r, 1500 * t));
+          await new Promise((r) => setTimeout(r, 1200 * t));
         }
       }
     }

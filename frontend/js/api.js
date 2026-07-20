@@ -196,6 +196,7 @@ const PeladaAPI = {
   criar: (dados) => api("/peladas", { method: "POST", body: JSON.stringify(dados) }),
   listarMinhas: () => api("/peladas"),
   ativa: () => api("/peladas/ativa"),
+  retomar: () => api("/peladas/ativa/retomar"),
   buscar: (id) => api(`/peladas/${id}`),
   adicionarJogador: (peladaId, dados) =>
     api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
