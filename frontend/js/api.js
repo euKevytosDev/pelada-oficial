@@ -225,7 +225,11 @@ const PeladaAPI = {
     try {
       return await api(`/peladas/${peladaId}/sumula`);
     } catch (_) {
-      return api(`/peladas/${peladaId}/relatorio`);
+      try {
+        return await api(`/peladas/${peladaId}/resumo`);
+      } catch (_) {
+        return api(`/peladas/${peladaId}/relatorio`);
+      }
     }
   },
   iniciarPartida: (peladaId, dados) =>
