@@ -80,6 +80,29 @@ public class PeladaService {
         return jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
     }
 
+    /** Remove jogador ou goleiro antes (ou depois) do sorteio, se a pelada não estiver encerrada. */
+    @Transactional
+    public void removerJogador(Long peladaId, Long jogadorId) {
+        Pelada pelada = buscar(peladaId);
+        if (pelada.getStatus() == StatusPelada.ENCERRADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pelada já encerrada");
+        }
+
+        Jogador jogador = jogadorRepository.findById(jogadorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
+
+        if (!jogador.getPelada().getId().equals(peladaId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+        }
+
+        if (jogador.getTime() != null) {
+            jogador.getTime().getJogadores().remove(jogador);
+            jogador.setTime(null);
+        }
+
+        jogadorRepository.delete(jogador);
+    }
+
     /**
      * Sorteia só jogadores de linha.
      * Goleiros são distribuídos (1 por time quando possível).

@@ -149,12 +149,42 @@ function renderListasCadastro(todos) {
   const listaG = document.getElementById("lista-goleiros");
 
   listaJ.innerHTML = linha.length
-    ? linha.map((j) => `<li><span>${j.nome}</span><span class="meta">${estrelasTexto(j.estrelas)}</span></li>`).join("")
+    ? linha
+        .map(
+          (j) => `
+      <li>
+        <span>${j.nome}</span>
+        <span class="meta-acoes">
+          <span class="meta">${estrelasTexto(j.estrelas)}</span>
+          <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
+        </span>
+      </li>`
+        )
+        .join("")
     : `<li><span>Nenhum jogador ainda</span><span class="meta">adicione acima</span></li>`;
 
   listaG.innerHTML = goleiros.length
-    ? goleiros.map((j) => `<li><span>${j.nome}</span><span class="meta">goleiro</span></li>`).join("")
+    ? goleiros
+        .map(
+          (j) => `
+      <li>
+        <span>${j.nome}</span>
+        <span class="meta-acoes">
+          <span class="meta">goleiro</span>
+          <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
+        </span>
+      </li>`
+        )
+        .join("")
     : `<li><span>Nenhum goleiro ainda</span><span class="meta">adicione acima</span></li>`;
+}
+
+async function apagarJogador(jogadorId) {
+  const ok = confirm("Apagar esta pessoa da lista?");
+  if (!ok) return;
+  await PeladaAPI.removerJogador(estado.peladaId, jogadorId);
+  await carregarCadastro();
+  toast("Removido da lista");
 }
 
 function renderTimes(times) {
@@ -498,6 +528,26 @@ document.getElementById("form-goleiro").addEventListener("submit", async (e) => 
     document.getElementById("nome-goleiro").value = "";
     await carregarCadastro();
     toast("Goleiro adicionado");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("lista-jogadores").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-apagar-id]");
+  if (!btn) return;
+  try {
+    await apagarJogador(Number(btn.dataset.apagarId));
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("lista-goleiros").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-apagar-id]");
+  if (!btn) return;
+  try {
+    await apagarJogador(Number(btn.dataset.apagarId));
   } catch (err) {
     toast(err.message);
   }

@@ -8,7 +8,9 @@ import br.com.peladaoficial.model.Pelada;
 import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PeladaService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +48,12 @@ public class PeladaController {
         return peladaService.listarJogadores(id).stream()
                 .map(this::toJogadorMap)
                 .collect(Collectors.toList());
+    }
+
+    @DeleteMapping("/{id}/jogadores/{jogadorId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removerJogador(@PathVariable Long id, @PathVariable Long jogadorId) {
+        peladaService.removerJogador(id, jogadorId);
     }
 
     @PostMapping("/{id}/sortear")

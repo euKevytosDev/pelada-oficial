@@ -28,7 +28,12 @@ async function api(caminho, opcoes = {}) {
     return null;
   }
 
-  return resposta.json();
+  const texto = await resposta.text();
+  if (!texto) {
+    return null;
+  }
+
+  return JSON.parse(texto);
 }
 
 const PeladaAPI = {
@@ -37,6 +42,8 @@ const PeladaAPI = {
   adicionarJogador: (peladaId, dados) =>
     api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
   listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
+  removerJogador: (peladaId, jogadorId) =>
+    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),
   listarTimes: (peladaId) => api(`/peladas/${peladaId}/times`),
   atualizarTime: (peladaId, timeId, dados) =>

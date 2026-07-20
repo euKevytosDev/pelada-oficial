@@ -319,6 +319,24 @@ input:focus, select:focus {
   font-size: 0.85rem;
 }
 
+.meta-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-apagar {
+  border: none;
+  background: #ffe4e4;
+  color: var(--vermelho);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .acoes-fixas {
   display: grid;
   gap: 10px;
