@@ -159,13 +159,40 @@
         <ul class="lista eventos" id="lista-eventos"></ul>
 
         <div class="acoes-fixas">
+          <button type="button" class="btn btn-secundario" id="btn-desfazer-evento">Desfazer último toque</button>
           <button type="button" class="btn btn-secundario" id="btn-finalizar-partida">Finalizar partida</button>
+          <button type="button" class="btn btn-perigo" id="btn-cancelar-partida-atual">Cancelar esta partida</button>
           <button type="button" class="btn btn-perigo" id="btn-encerrar-pelada">Encerrar pelada</button>
         </div>
       </section>
 
       <section class="tela" id="tela-classificacao">
         <div id="tabela-classificacao" class="tabela-wrap"></div>
+
+        <div class="card-form" id="box-corrigir-partidas">
+          <h2 class="lista-titulo" style="margin-top:0">Corrigir partidas</h2>
+          <p class="dica">Cancele a 1ª, a última ou qualquer partida anotada errado. Pontos e gols são desfeitos.</p>
+          <ul class="lista" id="lista-partidas-corrigir"></ul>
+        </div>
+
+        <div class="card-form" id="box-atraso">
+          <h2 class="lista-titulo" style="margin-top:0">Observação / atraso</h2>
+          <label>
+            Jogador
+            <select id="atraso-jogador"></select>
+          </label>
+          <label>
+            Horário
+            <input type="time" id="atraso-horario" />
+          </label>
+          <label>
+            Nota (opcional)
+            <input type="text" id="atraso-texto" maxlength="200" placeholder="Ex: chegou atrasado" />
+          </label>
+          <button type="button" class="btn btn-secundario" id="btn-salvar-atraso">Salvar atraso</button>
+          <ul class="lista" id="lista-observacoes"></ul>
+        </div>
+
         <div class="acoes-fixas">
           <button type="button" class="btn btn-principal" id="btn-nova-rodada">Nova rodada</button>
           <button type="button" class="btn btn-perigo" id="btn-encerrar-pelada-2">Encerrar pelada</button>
@@ -177,6 +204,23 @@
           <button type="button" class="btn btn-whats" id="btn-whatsapp">WhatsApp</button>
           <button type="button" class="btn btn-secundario" id="btn-pdf">Baixar PDF</button>
           <button type="button" class="btn btn-secundario" id="btn-compartilhar">Compartilhar</button>
+        </div>
+
+        <div class="card-form no-print" id="box-atraso-fim">
+          <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
+          <label>
+            Jogador
+            <select id="atraso-jogador-fim"></select>
+          </label>
+          <label>
+            Horário
+            <input type="time" id="atraso-horario-fim" />
+          </label>
+          <label>
+            Nota (opcional)
+            <input type="text" id="atraso-texto-fim" maxlength="200" placeholder="Ex: chegou atrasado" />
+          </label>
+          <button type="button" class="btn btn-secundario" id="btn-salvar-atraso-fim">Incluir na súmula</button>
         </div>
 
         <div id="resumo-oficial" class="resumo-oficial">

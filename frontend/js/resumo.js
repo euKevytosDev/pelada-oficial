@@ -62,13 +62,29 @@ function listaSimples(itens, vazio) {
     .join("")}</ul>`;
 }
 
+function listaObservacoes(itens) {
+  if (!itens || !itens.length) return `<p class="vazio">Nenhuma observação.</p>`;
+  return `<ul class="lista-resumo">${itens
+    .map((o) => {
+      const hora = o.horario ? ` às ${o.horario}` : "";
+      const extra = o.texto ? ` — ${o.texto}` : "";
+      const tipo = o.tipo === "ATRASO" ? "Atraso" : o.tipo || "Obs.";
+      return `<li><span><strong>${tipo}:</strong> ${o.jogadorNome || "?"}${hora}${extra}</span></li>`;
+    })
+    .join("")}</ul>`;
+}
+
 function premioCard(titulo, premio) {
   if (!premio) {
     return `<article class="premio"><h4>${titulo}</h4><p class="vazio">—</p></article>`;
   }
+  const nomes = premio.nomes && premio.nomes.length ? premio.nomes : [premio.nome];
+  const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
+  const empateLabel = premio.empate ? `<p class="premio-empate">Empate</p>` : "";
   return `<article class="premio">
     <h4>${titulo}</h4>
-    <p class="premio-nome">${premio.nome}</p>
+    ${empateLabel}
+    ${nomesHtml}
     <p class="premio-detalhe">${premio.detalhe || ""}</p>
   </article>`;
 }
@@ -82,7 +98,9 @@ function renderResumoOficial(resumo) {
 
   const timesHtml = (resumo.times || [])
     .map((t) => {
-      const gk = t.goleiro ? t.goleiro.nome : "sem goleiro";
+      const gk = t.goleiro
+        ? `${t.goleiro.nome} <span class="meta">(${t.goleiro.golsSofridos ?? 0} sofridos)</span>`
+        : "sem goleiro";
       const jogadores = (t.jogadores || [])
         .map(
           (j) =>
@@ -150,6 +168,11 @@ function renderResumoOficial(resumo) {
       ${listaSimples(resumo.artilharia, "Nenhum gol marcado.")}
     </section>
 
+    <section class="resumo-bloco">
+      <h3>Gols sofridos (goleiros)</h3>
+      ${listaSimples(resumo.golsSofridos, "Nenhum goleiro cadastrado.")}
+    </section>
+
     <section class="resumo-bloco duas-cols">
       <div>
         <h3>Cartão amarelo <span class="badge-qtd">${resumo.totalAmarelos || 0}</span></h3>
@@ -164,6 +187,11 @@ function renderResumoOficial(resumo) {
     <section class="resumo-bloco">
       <h3>Gols contra</h3>
       ${listaSimples(resumo.golsContra, "Nenhum gol contra.")}
+    </section>
+
+    <section class="resumo-bloco">
+      <h3>Observações</h3>
+      ${listaObservacoes(resumo.observacoes)}
     </section>
 
     <section class="resumo-bloco">
@@ -190,9 +218,27 @@ function textoResumoWhatsApp(resumo) {
   linhas.push("");
   linhas.push("*Premiação*");
   if (premios.campeao) linhas.push(`🏆 Campeão: ${premios.campeao.nome}`);
-  if (premios.bolaDeOuro) linhas.push(`⚽ Bola de Ouro: ${premios.bolaDeOuro.nome} (${premios.bolaDeOuro.detalhe})`);
-  if (premios.luvaDeOuro) linhas.push(`🧤 Luva de Ouro: ${premios.luvaDeOuro.nome}`);
+  if (premios.bolaDeOuro) {
+    const label = premios.bolaDeOuro.empate ? "Bola de Ouro (empate)" : "Bola de Ouro";
+    linhas.push(`⚽ ${label}: ${premios.bolaDeOuro.nome} (${premios.bolaDeOuro.detalhe})`);
+  }
+  if (premios.luvaDeOuro) {
+    const label = premios.luvaDeOuro.empate ? "Luva de Ouro (empate)" : "Luva de Ouro";
+    linhas.push(`🧤 ${label}: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
+  }
   if (premios.bolaMurcha) linhas.push(`😅 Bola Murcha: ${premios.bolaMurcha.nome}`);
+
+  if ((resumo.artilharia || []).length) {
+    linhas.push("");
+    linhas.push("*Artilharia*");
+    resumo.artilharia.forEach((a) => linhas.push(`• ${a.nome}: ${a.gols || a.quantidade}`));
+  }
+
+  if ((resumo.golsSofridos || []).length) {
+    linhas.push("");
+    linhas.push("*Gols sofridos (GK)*");
+    resumo.golsSofridos.forEach((g) => linhas.push(`• ${g.nome}: ${g.quantidade}`));
+  }
 
   if ((resumo.cartoesAmarelos || []).length) {
     linhas.push("");
@@ -208,6 +254,15 @@ function textoResumoWhatsApp(resumo) {
     linhas.push("");
     linhas.push("*Gols contra*");
     resumo.golsContra.forEach((c) => linhas.push(`• ${c.nome}: ${c.quantidade}`));
+  }
+  if ((resumo.observacoes || []).length) {
+    linhas.push("");
+    linhas.push("*Observações*");
+    resumo.observacoes.forEach((o) => {
+      const hora = o.horario ? ` às ${o.horario}` : "";
+      const extra = o.texto ? ` — ${o.texto}` : "";
+      linhas.push(`• ${o.tipo === "ATRASO" ? "Atraso" : o.tipo}: ${o.jogadorNome}${hora}${extra}`);
+    });
   }
 
   linhas.push("");

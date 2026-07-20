@@ -552,11 +552,129 @@ async function registrarEventoAoVivo(tipo) {
 async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
   await PeladaAPI.finalizarPartida(estado.partidaAtual.id);
+  estado.partidaAtual = null;
+  await irParaClassificacao();
+  toast("Partida finalizada · pontos atualizados");
+}
+
+async function irParaClassificacao() {
   const times = await PeladaAPI.listarTimes(estado.peladaId);
   estado.times = times;
   renderClassificacao(times, "tabela-classificacao");
+  await carregarPainelCorrecao();
+  await carregarObservacoes("lista-observacoes", "atraso-jogador");
   mostrarTela("tela-classificacao");
-  toast("Partida finalizada · pontos atualizados");
+}
+
+async function carregarPainelCorrecao() {
+  const lista = document.getElementById("lista-partidas-corrigir");
+  if (!lista) return;
+  const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+  const ordenadas = [...(partidas || [])].sort((a, b) => a.numeroRodada - b.numeroRodada);
+  if (!ordenadas.length) {
+    lista.innerHTML = `<li><span>Nenhuma partida ainda</span><span class="meta">—</span></li>`;
+    return;
+  }
+  lista.innerHTML = ordenadas
+    .map(
+      (p) => `
+    <li>
+      <span>${String(p.numeroRodada).padStart(2, "0")}ª · ${p.timeA.nome} ${p.golsTimeA} x ${p.golsTimeB} ${p.timeB.nome}</span>
+      <span class="meta-acoes">
+        <span class="meta">${p.status === "EM_ANDAMENTO" ? "aberta" : "ok"}</span>
+        <button type="button" class="btn-apagar" data-cancelar-partida="${p.id}" aria-label="Cancelar partida ${p.numeroRodada}">Cancelar</button>
+      </span>
+    </li>`
+    )
+    .join("");
+}
+
+async function cancelarPartidaPorId(partidaId) {
+  const ok = confirm("Cancelar esta partida? Placar, gols, cartões e pontos serão desfeitos.");
+  if (!ok) return;
+  await PeladaAPI.cancelarPartida(partidaId);
+  if (estado.partidaAtual && estado.partidaAtual.id === partidaId) {
+    estado.partidaAtual = null;
+  }
+  await irParaClassificacao();
+  toast("Partida cancelada");
+}
+
+async function desfazerUltimoEvento() {
+  if (!estado.partidaAtual) return;
+  const ok = confirm("Desfazer o último gol/cartão?");
+  if (!ok) return;
+  const atualizada = await PeladaAPI.desfazerUltimoEvento(estado.partidaAtual.id);
+  renderPartida(atualizada);
+  toast("Último toque desfeito");
+}
+
+async function cancelarPartidaAtual() {
+  if (!estado.partidaAtual) return;
+  await cancelarPartidaPorId(estado.partidaAtual.id);
+}
+
+async function carregarObservacoes(listaId, selectId) {
+  const lista = document.getElementById(listaId);
+  const select = document.getElementById(selectId);
+  const jogadores = await PeladaAPI.listarJogadores(estado.peladaId);
+  const observacoes = await PeladaAPI.listarObservacoes(estado.peladaId);
+
+  if (select) {
+    select.innerHTML = jogadores
+      .map((j) => `<option value="${j.id}">${j.nome}${j.goleiro ? " (GK)" : ""}</option>`)
+      .join("");
+  }
+
+  if (lista) {
+    if (!observacoes.length) {
+      lista.innerHTML = `<li><span>Nenhuma observação</span><span class="meta">—</span></li>`;
+    } else {
+      lista.innerHTML = observacoes
+        .map((o) => {
+          const hora = o.horario ? ` às ${o.horario}` : "";
+          const extra = o.texto ? ` — ${o.texto}` : "";
+          return `
+        <li>
+          <span>${o.tipo === "ATRASO" ? "Atraso" : o.tipo}: ${o.jogadorNome}${hora}${extra}</span>
+          <button type="button" class="btn-apagar" data-obs-id="${o.id}">Apagar</button>
+        </li>`;
+        })
+        .join("");
+    }
+  }
+}
+
+async function salvarAtraso(sufixo = "") {
+  const jogadorId = Number(document.getElementById(`atraso-jogador${sufixo}`).value);
+  const horario = document.getElementById(`atraso-horario${sufixo}`).value;
+  const texto = document.getElementById(`atraso-texto${sufixo}`).value.trim();
+  if (!jogadorId) {
+    toast("Escolha o jogador");
+    return;
+  }
+  if (!horario && !texto) {
+    toast("Informe o horário ou uma nota");
+    return;
+  }
+  await PeladaAPI.adicionarObservacao(estado.peladaId, {
+    jogadorId,
+    tipo: "ATRASO",
+    horario: horario || null,
+    texto: texto || null,
+  });
+  document.getElementById(`atraso-horario${sufixo}`).value = "";
+  document.getElementById(`atraso-texto${sufixo}`).value = "";
+  toast("Atraso registrado");
+
+  if (sufixo === "-fim") {
+    const resumo = await PeladaAPI.resumo(estado.peladaId);
+    estado.resumoAtual = resumo;
+    renderResumoOficial(resumo);
+    await carregarObservacoes(null, "atraso-jogador-fim");
+  } else {
+    await carregarObservacoes("lista-observacoes", "atraso-jogador");
+  }
 }
 
 async function encerrarPelada() {
@@ -565,6 +683,7 @@ async function encerrarPelada() {
   const resumo = await PeladaAPI.encerrar(estado.peladaId);
   estado.resumoAtual = resumo;
   renderResumoOficial(resumo);
+  await carregarObservacoes(null, "atraso-jogador-fim");
   mostrarTela("tela-fim");
   toast("Pelada encerrada · elenco salvo na conta");
 }
@@ -623,6 +742,11 @@ async function retomarPelada(pelada) {
       toast("Partida retomada!");
       return;
     }
+    if ((partidas || []).length) {
+      await irParaClassificacao();
+      toast("Pelada retomada — classificação");
+      return;
+    }
     if (times.length) {
       renderTimes(times);
       mostrarTela("tela-times");
@@ -635,6 +759,7 @@ async function retomarPelada(pelada) {
     const resumo = await PeladaAPI.resumo(estado.peladaId);
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
+    await carregarObservacoes(null, "atraso-jogador-fim");
     mostrarTela("tela-fim");
     return;
   }
@@ -875,6 +1000,60 @@ document.querySelectorAll(".acoes-evento [data-evento]").forEach((btn) => {
 document.getElementById("btn-finalizar-partida").addEventListener("click", async () => {
   try {
     await finalizarPartidaAtual();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-desfazer-evento").addEventListener("click", async () => {
+  try {
+    await desfazerUltimoEvento();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-cancelar-partida-atual").addEventListener("click", async () => {
+  try {
+    await cancelarPartidaAtual();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("lista-partidas-corrigir").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-cancelar-partida]");
+  if (!btn) return;
+  try {
+    await cancelarPartidaPorId(Number(btn.dataset.cancelarPartida));
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-salvar-atraso").addEventListener("click", async () => {
+  try {
+    await salvarAtraso("");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-salvar-atraso-fim").addEventListener("click", async () => {
+  try {
+    await salvarAtraso("-fim");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("lista-observacoes").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-obs-id]");
+  if (!btn) return;
+  try {
+    await PeladaAPI.removerObservacao(estado.peladaId, Number(btn.dataset.obsId));
+    await carregarObservacoes("lista-observacoes", "atraso-jogador");
+    toast("Observação removida");
   } catch (err) {
     toast(err.message);
   }

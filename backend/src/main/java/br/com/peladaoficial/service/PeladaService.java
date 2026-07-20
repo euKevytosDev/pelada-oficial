@@ -4,9 +4,11 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.ElencoJogadorRepository;
 import br.com.peladaoficial.repository.JogadorRepository;
+import br.com.peladaoficial.repository.ObservacaoPeladaRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
 import br.com.peladaoficial.security.AuthSupport;
@@ -35,17 +37,20 @@ public class PeladaService {
     private final JogadorRepository jogadorRepository;
     private final TimeRepository timeRepository;
     private final ElencoJogadorRepository elencoRepository;
+    private final ObservacaoPeladaRepository observacaoRepository;
     private final AuthSupport authSupport;
 
     public PeladaService(PeladaRepository peladaRepository,
                          JogadorRepository jogadorRepository,
                          TimeRepository timeRepository,
                          ElencoJogadorRepository elencoRepository,
+                         ObservacaoPeladaRepository observacaoRepository,
                          AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
         this.elencoRepository = elencoRepository;
+        this.observacaoRepository = observacaoRepository;
         this.authSupport = authSupport;
     }
 
@@ -376,5 +381,53 @@ public class PeladaService {
         // guarda nomes + estrelas para a próxima pelada
         salvarElencoDaPelada(peladaId);
         return pelada;
+    }
+
+    @Transactional
+    public ObservacaoPelada adicionarObservacao(Long peladaId, ObservacaoRequest request) {
+        Pelada pelada = buscar(peladaId);
+        Jogador jogador = jogadorRepository.findById(request.getJogadorId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
+        if (!jogador.getPelada().getId().equals(peladaId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+        }
+
+        String horario = request.getHorario() != null ? request.getHorario().trim() : null;
+        if (horario != null && horario.isEmpty()) {
+            horario = null;
+        }
+        String texto = request.getTexto() != null ? request.getTexto().trim() : null;
+        if (texto != null && texto.isEmpty()) {
+            texto = null;
+        }
+        if (horario == null && texto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o horário ou uma observação");
+        }
+
+        String tipo = request.getTipo() != null && !request.getTipo().isBlank()
+                ? request.getTipo().trim().toUpperCase()
+                : "ATRASO";
+
+        return observacaoRepository.save(new ObservacaoPelada(pelada, jogador, tipo, horario, texto));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ObservacaoPelada> listarObservacoes(Long peladaId) {
+        buscar(peladaId);
+        List<ObservacaoPelada> lista = observacaoRepository.findByPeladaIdOrderByCriadaEmAsc(peladaId);
+        lista.forEach(o -> {
+            if (o.getJogador() != null) {
+                o.getJogador().getNome();
+            }
+        });
+        return lista;
+    }
+
+    @Transactional
+    public void removerObservacao(Long peladaId, Long observacaoId) {
+        buscar(peladaId);
+        ObservacaoPelada obs = observacaoRepository.findByIdAndPeladaId(observacaoId, peladaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Observação não encontrada"));
+        observacaoRepository.delete(obs);
     }
 }

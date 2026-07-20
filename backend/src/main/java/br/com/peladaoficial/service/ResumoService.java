@@ -2,6 +2,7 @@ package br.com.peladaoficial.service;
 
 import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.JogadorRepository;
+import br.com.peladaoficial.repository.ObservacaoPeladaRepository;
 import br.com.peladaoficial.repository.PartidaRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
@@ -24,17 +25,20 @@ public class ResumoService {
     private final TimeRepository timeRepository;
     private final JogadorRepository jogadorRepository;
     private final PartidaRepository partidaRepository;
+    private final ObservacaoPeladaRepository observacaoRepository;
     private final AuthSupport authSupport;
 
     public ResumoService(PeladaRepository peladaRepository,
                          TimeRepository timeRepository,
                          JogadorRepository jogadorRepository,
                          PartidaRepository partidaRepository,
+                         ObservacaoPeladaRepository observacaoRepository,
                          AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.timeRepository = timeRepository;
         this.jogadorRepository = jogadorRepository;
         this.partidaRepository = partidaRepository;
+        this.observacaoRepository = observacaoRepository;
         this.authSupport = authSupport;
     }
 
@@ -103,6 +107,27 @@ public class ResumoService {
                 })
                 .collect(Collectors.toList());
 
+        List<Map<String, Object>> golsSofridos = jogadores.stream()
+                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .sorted((a, b) -> Integer.compare(a.getGolsSofridos(), b.getGolsSofridos()))
+                .map(j -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("nome", j.getNome());
+                    m.put("quantidade", j.getGolsSofridos());
+                    m.put("golsSofridos", j.getGolsSofridos());
+                    m.put("time", j.getTime() != null ? j.getTime().getNome() : "-");
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        List<ObservacaoPelada> obs = observacaoRepository.findByPeladaIdOrderByCriadaEmAsc(peladaId);
+        obs.forEach(o -> {
+            if (o.getJogador() != null) {
+                o.getJogador().getNome();
+            }
+        });
+        List<Map<String, Object>> observacoes = obs.stream().map(this::toObservacaoMap).collect(Collectors.toList());
+
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("pelada", Map.of(
                 "id", pelada.getId(),
@@ -116,11 +141,13 @@ public class ResumoService {
         body.put("times", timesDetalhe);
         body.put("partidas", historico);
         body.put("artilharia", artilharia);
+        body.put("golsSofridos", golsSofridos);
         body.put("cartoesAmarelos", amarelos);
         body.put("cartoesVermelhos", vermelhos);
         body.put("totalAmarelos", amarelos.stream().mapToInt(m -> (Integer) m.get("quantidade")).sum());
         body.put("totalVermelhos", vermelhos.stream().mapToInt(m -> (Integer) m.get("quantidade")).sum());
         body.put("golsContra", golsContra);
+        body.put("observacoes", observacoes);
         body.put("premios", montarPremios(classificacao, jogadores));
         return body;
     }
@@ -200,6 +227,7 @@ public class ResumoService {
 
     private Map<String, Object> toPartidaResumo(Partida p) {
         Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", p.getId());
         map.put("numero", p.getNumeroRodada());
         map.put("status", p.getStatus().name());
         map.put("timeA", p.getTimeA().getNome());
@@ -208,6 +236,17 @@ public class ResumoService {
         map.put("golsB", p.getGolsTimeB());
         map.put("corA", p.getTimeA().getCor());
         map.put("corB", p.getTimeB().getCor());
+        return map;
+    }
+
+    private Map<String, Object> toObservacaoMap(ObservacaoPelada o) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", o.getId());
+        map.put("tipo", o.getTipo());
+        map.put("horario", o.getHorario());
+        map.put("texto", o.getTexto());
+        map.put("jogadorId", o.getJogador() != null ? o.getJogador().getId() : null);
+        map.put("jogadorNome", o.getJogador() != null ? o.getJogador().getNome() : null);
         return map;
     }
 
@@ -232,41 +271,41 @@ public class ResumoService {
             premios.put("campeao", null);
         }
 
-        Optional<Jogador> bolaOuro = jogadores.stream()
+        List<Jogador> linha = jogadores.stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
-                .max(Comparator.comparingInt(Jogador::getGols)
-                        .thenComparingInt(Jogador::getPontos));
-        if (bolaOuro.isPresent() && bolaOuro.get().getGols() > 0) {
-            Jogador j = bolaOuro.get();
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("nome", j.getNome());
-            m.put("detalhe", j.getGols() + " gols");
-            premios.put("bolaDeOuro", m);
+                .collect(Collectors.toList());
+
+        int maxGols = linha.stream().mapToInt(Jogador::getGols).max().orElse(0);
+        if (maxGols > 0) {
+            List<Jogador> artilheiros = linha.stream()
+                    .filter(j -> j.getGols() == maxGols)
+                    .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
+                    .collect(Collectors.toList());
+            premios.put("bolaDeOuro", premioEmpate(artilheiros, maxGols + " gol" + (maxGols == 1 ? "" : "s")));
         } else {
             premios.put("bolaDeOuro", null);
         }
 
-        Optional<Jogador> luva = jogadores.stream()
+        List<Jogador> goleiros = jogadores.stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
-                .min(Comparator.comparingInt(Jogador::getGolsSofridos)
-                        .thenComparing(Jogador::getNome));
-        if (luva.isPresent()) {
-            Jogador j = luva.get();
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("nome", j.getNome());
-            m.put("detalhe", j.getGolsSofridos() + " sofridos");
-            premios.put("luvaDeOuro", m);
+                .collect(Collectors.toList());
+        if (!goleiros.isEmpty()) {
+            int minSofridos = goleiros.stream().mapToInt(Jogador::getGolsSofridos).min().orElse(0);
+            List<Jogador> luvas = goleiros.stream()
+                    .filter(j -> j.getGolsSofridos() == minSofridos)
+                    .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
+                    .collect(Collectors.toList());
+            premios.put("luvaDeOuro", premioEmpate(luvas, minSofridos + " sofrido" + (minSofridos == 1 ? "" : "s")));
         } else {
             premios.put("luvaDeOuro", null);
         }
 
-        Optional<Jogador> murcha = jogadores.stream()
-                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+        Optional<Jogador> murcha = linha.stream()
                 .filter(j -> j.getGolsContra() > 0)
                 .max(Comparator.comparingInt(Jogador::getGolsContra));
         if (murcha.isEmpty()) {
-            murcha = jogadores.stream()
-                    .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && j.getTime() != null)
+            murcha = linha.stream()
+                    .filter(j -> j.getTime() != null)
                     .min(Comparator.comparingInt(Jogador::getPontos)
                             .thenComparingInt(Jogador::getGols)
                             .thenComparing(Jogador::getNome));
@@ -275,6 +314,8 @@ public class ResumoService {
             Jogador j = murcha.get();
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("nome", j.getNome());
+            m.put("nomes", List.of(j.getNome()));
+            m.put("empate", false);
             m.put("detalhe", j.getGolsContra() > 0
                     ? j.getGolsContra() + " gol(s) contra"
                     : j.getPontos() + " pts");
@@ -284,5 +325,16 @@ public class ResumoService {
         }
 
         return premios;
+    }
+
+    /** Monta prêmio com um ou vários nomes em caso de empate. */
+    private Map<String, Object> premioEmpate(List<Jogador> vencedores, String detalhe) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        List<String> nomes = vencedores.stream().map(Jogador::getNome).collect(Collectors.toList());
+        m.put("nomes", nomes);
+        m.put("nome", String.join(" / ", nomes));
+        m.put("empate", nomes.size() > 1);
+        m.put("detalhe", detalhe);
+        return m;
     }
 }

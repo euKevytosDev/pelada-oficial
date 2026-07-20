@@ -7,7 +7,9 @@ import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Partida;
 import br.com.peladaoficial.service.PartidaService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +60,17 @@ public class PartidaController {
     @PostMapping("/partidas/{id}/finalizar")
     public Map<String, Object> finalizar(@PathVariable Long id) {
         return toPartidaMap(partidaService.finalizar(id));
+    }
+
+    @PostMapping("/partidas/{id}/desfazer-evento")
+    public Map<String, Object> desfazerUltimoEvento(@PathVariable Long id) {
+        return toPartidaMap(partidaService.desfazerUltimoEvento(id));
+    }
+
+    @DeleteMapping("/partidas/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelarPartida(@PathVariable Long id) {
+        partidaService.cancelarPartida(id);
     }
 
     private Map<String, Object> toPartidaResumo(Partida partida) {

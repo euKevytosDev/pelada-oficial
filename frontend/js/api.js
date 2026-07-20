@@ -124,4 +124,12 @@ const PeladaAPI = {
     api(`/partidas/${partidaId}/eventos`, { method: "POST", body: JSON.stringify(dados) }),
   finalizarPartida: (partidaId) =>
     api(`/partidas/${partidaId}/finalizar`, { method: "POST", body: "{}" }),
+  desfazerUltimoEvento: (partidaId) =>
+    api(`/partidas/${partidaId}/desfazer-evento`, { method: "POST", body: "{}" }),
+  cancelarPartida: (partidaId) => api(`/partidas/${partidaId}`, { method: "DELETE" }),
+  adicionarObservacao: (peladaId, dados) =>
+    api(`/peladas/${peladaId}/observacoes`, { method: "POST", body: JSON.stringify(dados) }),
+  listarObservacoes: (peladaId) => api(`/peladas/${peladaId}/observacoes`),
+  removerObservacao: (peladaId, observacaoId) =>
+    api(`/peladas/${peladaId}/observacoes/${observacaoId}`, { method: "DELETE" }),
 };

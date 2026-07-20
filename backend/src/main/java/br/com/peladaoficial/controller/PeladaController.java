@@ -4,8 +4,10 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.ElencoJogador;
 import br.com.peladaoficial.model.Jogador;
+import br.com.peladaoficial.model.ObservacaoPelada;
 import br.com.peladaoficial.model.Pelada;
 import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PeladaService;
@@ -120,6 +122,36 @@ public class PeladaController {
     @GetMapping("/{id}/resumo")
     public Map<String, Object> resumo(@PathVariable Long id) {
         return resumoService.montar(id);
+    }
+
+    @PostMapping("/{id}/observacoes")
+    public Map<String, Object> adicionarObservacao(@PathVariable Long id,
+                                                   @Valid @RequestBody ObservacaoRequest request) {
+        return toObservacaoMap(peladaService.adicionarObservacao(id, request));
+    }
+
+    @GetMapping("/{id}/observacoes")
+    public List<Map<String, Object>> listarObservacoes(@PathVariable Long id) {
+        return peladaService.listarObservacoes(id).stream()
+                .map(this::toObservacaoMap)
+                .collect(Collectors.toList());
+    }
+
+    @DeleteMapping("/{id}/observacoes/{observacaoId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removerObservacao(@PathVariable Long id, @PathVariable Long observacaoId) {
+        peladaService.removerObservacao(id, observacaoId);
+    }
+
+    private Map<String, Object> toObservacaoMap(ObservacaoPelada o) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", o.getId());
+        map.put("tipo", o.getTipo());
+        map.put("horario", o.getHorario());
+        map.put("texto", o.getTexto());
+        map.put("jogadorId", o.getJogador() != null ? o.getJogador().getId() : null);
+        map.put("jogadorNome", o.getJogador() != null ? o.getJogador().getNome() : null);
+        return map;
     }
 
     private Map<String, Object> toPeladaMap(Pelada pelada) {

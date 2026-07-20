@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -190,6 +192,120 @@ public class PartidaService {
         return partida;
     }
 
+    /**
+     * Cancela uma partida (a 1ª, a última ou qualquer outra) e desfaz placar,
+     * gols, cartões, gols sofridos e pontuação se já estava finalizada.
+     */
+    @Transactional
+    public void cancelarPartida(Long partidaId) {
+        Partida partida = buscar(partidaId);
+        Pelada pelada = partida.getPelada();
+        if (pelada.getStatus() == StatusPelada.ENCERRADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pelada já encerrada");
+        }
+
+        if (partida.getStatus() == StatusPartida.FINALIZADA) {
+            reverterResultadoFinalizado(partida);
+        }
+
+        List<EventoPartida> eventos = new ArrayList<>(partida.getEventos());
+        // reverte do mais recente para o mais antigo
+        eventos.sort((a, b) -> b.getOcorridoEm().compareTo(a.getOcorridoEm()));
+        for (EventoPartida evento : eventos) {
+            reverterEventoStats(partida, evento);
+        }
+
+        partida.getEventos().clear();
+        partidaRepository.delete(partida);
+    }
+
+    /** Desfaz o último evento da partida em andamento (toque acidental). */
+    @Transactional
+    public Partida desfazerUltimoEvento(Long partidaId) {
+        Partida partida = buscar(partidaId);
+        if (partida.getStatus() != StatusPartida.EM_ANDAMENTO) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Só dá para desfazer em partida aberta");
+        }
+        if (partida.getEventos().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nenhum evento para desfazer");
+        }
+
+        EventoPartida ultimo = partida.getEventos().stream()
+                .max(Comparator.comparing(EventoPartida::getOcorridoEm)
+                        .thenComparing(EventoPartida::getId))
+                .orElseThrow();
+
+        reverterEventoStats(partida, ultimo);
+        partida.getEventos().remove(ultimo);
+        eventoRepository.delete(ultimo);
+        return partida;
+    }
+
+    private void reverterResultadoFinalizado(Partida partida) {
+        Time timeA = partida.getTimeA();
+        Time timeB = partida.getTimeB();
+        int golsA = partida.getGolsTimeA();
+        int golsB = partida.getGolsTimeB();
+
+        timeA.setGolsPro(Math.max(0, timeA.getGolsPro() - golsA));
+        timeA.setGolsContra(Math.max(0, timeA.getGolsContra() - golsB));
+        timeB.setGolsPro(Math.max(0, timeB.getGolsPro() - golsB));
+        timeB.setGolsContra(Math.max(0, timeB.getGolsContra() - golsA));
+
+        if (golsA > golsB) {
+            reverterResultado(timeA, timeB, false);
+        } else if (golsB > golsA) {
+            reverterResultado(timeB, timeA, false);
+        } else {
+            reverterResultado(timeA, timeB, true);
+        }
+    }
+
+    private void reverterResultado(Time vencedorOuA, Time perdedorOuB, boolean empate) {
+        if (empate) {
+            vencedorOuA.setEmpates(Math.max(0, vencedorOuA.getEmpates() - 1));
+            perdedorOuB.setEmpates(Math.max(0, perdedorOuB.getEmpates() - 1));
+            vencedorOuA.setPontos(Math.max(0, vencedorOuA.getPontos() - 1));
+            perdedorOuB.setPontos(Math.max(0, perdedorOuB.getPontos() - 1));
+            somarPontosLinha(vencedorOuA, -1);
+            somarPontosLinha(perdedorOuB, -1);
+            return;
+        }
+        vencedorOuA.setVitorias(Math.max(0, vencedorOuA.getVitorias() - 1));
+        vencedorOuA.setPontos(Math.max(0, vencedorOuA.getPontos() - 3));
+        perdedorOuB.setDerrotas(Math.max(0, perdedorOuB.getDerrotas() - 1));
+        somarPontosLinha(vencedorOuA, -3);
+    }
+
+    private void reverterEventoStats(Partida partida, EventoPartida evento) {
+        Jogador jogador = evento.getJogador();
+        Time time = evento.getTime();
+
+        if (evento.getTipo() == TipoEvento.GOL) {
+            if (time.getId().equals(partida.getTimeA().getId())) {
+                partida.setGolsTimeA(Math.max(0, partida.getGolsTimeA() - 1));
+            } else {
+                partida.setGolsTimeB(Math.max(0, partida.getGolsTimeB() - 1));
+            }
+            jogador.setGols(Math.max(0, jogador.getGols() - 1));
+            if (evento.getGoleiro() != null) {
+                Jogador gk = evento.getGoleiro();
+                gk.setGolsSofridos(Math.max(0, gk.getGolsSofridos() - 1));
+            }
+        } else if (evento.getTipo() == TipoEvento.GOL_CONTRA) {
+            if (time.getId().equals(partida.getTimeA().getId())) {
+                partida.setGolsTimeB(Math.max(0, partida.getGolsTimeB() - 1));
+            } else {
+                partida.setGolsTimeA(Math.max(0, partida.getGolsTimeA() - 1));
+            }
+            jogador.setGolsContra(Math.max(0, jogador.getGolsContra() - 1));
+        } else if (evento.getTipo() == TipoEvento.CARTAO_AMARELO) {
+            jogador.setCartoesAmarelos(Math.max(0, jogador.getCartoesAmarelos() - 1));
+        } else if (evento.getTipo() == TipoEvento.CARTAO_VERMELHO) {
+            jogador.setCartoesVermelhos(Math.max(0, jogador.getCartoesVermelhos() - 1));
+        }
+    }
+
     private void aplicarResultado(Time timeA, Time timeB, boolean empate) {
         if (empate) {
             timeA.setEmpates(timeA.getEmpates() + 1);
@@ -211,7 +327,8 @@ public class PartidaService {
     private void somarPontosLinha(Time time, int pontos) {
         for (Jogador jogador : time.getJogadores()) {
             if (!Boolean.TRUE.equals(jogador.getGoleiro())) {
-                jogador.setPontos(jogador.getPontos() + pontos);
+                int novo = jogador.getPontos() + pontos;
+                jogador.setPontos(Math.max(0, novo));
             }
         }
     }
