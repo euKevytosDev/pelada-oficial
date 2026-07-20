@@ -5,6 +5,7 @@ package br.com.peladaoficial.model;
  */
 public enum TipoEvento {
     GOL,
+    GOL_CONTRA,
     CARTAO_AMARELO,
     CARTAO_VERMELHO
 }

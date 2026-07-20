@@ -22,7 +22,6 @@
     </header>
 
     <main id="conteudo">
-      <!-- Tela inicial -->
       <section class="tela ativa" id="tela-inicio">
         <div class="hero-copy">
           <p>Monte os times, sorteie equilibrado e marque o jogo ao vivo.</p>
@@ -45,34 +44,39 @@
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
       </section>
 
-      <!-- Cadastro de jogadores -->
       <section class="tela" id="tela-jogadores">
         <form id="form-jogador" class="card-form">
           <label>
-            Nome do jogador
+            Nome do jogador de linha
             <input type="text" id="nome-jogador" placeholder="Ex: Kevin" maxlength="80" required />
           </label>
           <label>
-            Estrelas (nível)
-            <div class="estrelas" id="seletor-estrelas" role="group" aria-label="Nível de 1 a 5">
-              <button type="button" data-estrela="1" class="estrela ativa">★</button>
-              <button type="button" data-estrela="2" class="estrela ativa">★</button>
-              <button type="button" data-estrela="3" class="estrela ativa">★</button>
-              <button type="button" data-estrela="4" class="estrela">★</button>
-              <button type="button" data-estrela="5" class="estrela">★</button>
-            </div>
+            Estrelas (1 a 10)
+            <div class="estrelas nivel-10" id="seletor-estrelas" role="group" aria-label="Nível de 1 a 10"></div>
+            <span class="nivel-num" id="nivel-num">5 ★</span>
           </label>
           <button type="submit" class="btn btn-principal">Adicionar jogador</button>
         </form>
 
+        <form id="form-goleiro" class="card-form">
+          <label>
+            Nome do goleiro
+            <input type="text" id="nome-goleiro" placeholder="Ex: Fabão" maxlength="80" required />
+          </label>
+          <button type="submit" class="btn btn-secundario">Adicionar goleiro</button>
+        </form>
+
+        <h2 class="lista-titulo">Jogadores</h2>
         <ul class="lista" id="lista-jogadores"></ul>
+
+        <h2 class="lista-titulo">Goleiros</h2>
+        <ul class="lista" id="lista-goleiros"></ul>
 
         <div class="acoes-fixas">
           <button type="button" class="btn btn-secundario" id="btn-sortear">Sortear times</button>
         </div>
       </section>
 
-      <!-- Times sorteados -->
       <section class="tela" id="tela-times">
         <div id="grade-times" class="grade-times"></div>
         <div class="acoes-fixas">
@@ -81,7 +85,6 @@
         </div>
       </section>
 
-      <!-- Partida ao vivo -->
       <section class="tela" id="tela-partida">
         <div class="placar" id="placar">
           <div class="lado" id="lado-a">
@@ -96,8 +99,9 @@
         </div>
         <p class="rodada" id="texto-rodada">Rodada 1</p>
 
-        <div class="acoes-evento">
+        <div class="acoes-evento quatro">
           <button type="button" class="btn btn-gol" data-evento="GOL">Gol</button>
+          <button type="button" class="btn btn-contra" data-evento="GOL_CONTRA">Gol contra</button>
           <button type="button" class="btn btn-amarelo" data-evento="CARTAO_AMARELO">Amarelo</button>
           <button type="button" class="btn btn-vermelho" data-evento="CARTAO_VERMELHO">Vermelho</button>
         </div>
@@ -110,7 +114,6 @@
         </div>
       </section>
 
-      <!-- Classificação -->
       <section class="tela" id="tela-classificacao">
         <div id="tabela-classificacao" class="tabela-wrap"></div>
         <div class="acoes-fixas">
@@ -119,7 +122,6 @@
         </div>
       </section>
 
-      <!-- Fim -->
       <section class="tela" id="tela-fim">
         <div class="fim-box">
           <h2>Pelada encerrada</h2>
@@ -133,7 +135,6 @@
     </main>
   </div>
 
-  <!-- Modal genérico para escolher time/jogador -->
   <div class="modal oculto" id="modal" role="dialog" aria-modal="true">
     <div class="modal-fundo" id="modal-fundo"></div>
     <div class="modal-caixa">

@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Jogador cadastrado na pelada.
- * "estrelas" = nível de 1 a 5 (usado no sorteio equilibrado).
+ * Jogador ou goleiro cadastrado na pelada.
+ * Estrelas = nível de 1 a 10 (goleiros usam 0).
  */
 @Entity
 @Table(name = "jogadores")
@@ -23,16 +23,23 @@ public class Jogador {
     @Column(nullable = false, length = 80)
     private String nome;
 
-    /** Nível do jogador: 1 (mais fraco) até 5 (mais forte). */
+    /** Nível do jogador de linha: 1 a 10. Goleiro fica 0. */
     @Column(nullable = false)
     private Integer estrelas = 3;
 
-    /** Pontos acumulados na pelada (vitória 3, empate 1, derrota 0). */
+    /** Se true, é goleiro fixo (não entra no sorteio de linha). */
+    @Column(nullable = false)
+    private Boolean goleiro = false;
+
     @Column(nullable = false)
     private Integer pontos = 0;
 
     @Column(nullable = false)
     private Integer gols = 0;
+
+    /** Gols contra (próprios). */
+    @Column(nullable = false)
+    private Integer golsContra = 0;
 
     @Column(nullable = false)
     private Integer assistencias = 0;
@@ -50,14 +57,14 @@ public class Jogador {
     @JoinColumn(name = "pelada_id")
     private Pelada pelada;
 
-    /** Time atual do jogador (preenchido depois do sorteio). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "time_id")
     private Time time;
 
-    public Jogador(String nome, Integer estrelas, Pelada pelada) {
+    public Jogador(String nome, Integer estrelas, boolean goleiro, Pelada pelada) {
         this.nome = nome;
-        this.estrelas = estrelas;
+        this.estrelas = goleiro ? 0 : estrelas;
+        this.goleiro = goleiro;
         this.pelada = pelada;
     }
 }

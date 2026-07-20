@@ -30,10 +30,12 @@ pelada-oficial/
 
 ## Regras do jogo (já no código)
 
-- Cada jogador tem **estrelas (nível 1 a 5)**
-- Sorteio **aleatório + equilibrado** (distribui os mais fortes entre os times)
-- Durante a partida: **gol**, **cartão amarelo**, **cartão vermelho**
-- No gol: quem fez + **goleiro que sofreu**
+- Cada jogador de linha tem **estrelas (nível 1 a 10)**
+- **Goleiros** são cadastrados à parte e ficam fixos no time (podem ser emprestados se o time não tiver)
+- Sorteio **aleatório + equilibrado** só com jogadores de linha
+- Nome do time: editável; se ficar vazio, usa o **jogador com mais estrelas**
+- Durante a partida: **gol**, **gol contra**, **cartão amarelo/vermelho**
+- Gol contra: escolhe o time que sofreu e o jogador desse time (placar sobe para o adversário)
 - Pontos: **vitória 3** · **empate 1** · **derrota 0**
 - Rodadas continuam até clicar em **Encerrar pelada**
 

@@ -3,6 +3,7 @@ package br.com.peladaoficial.controller;
 import br.com.peladaoficial.dto.IniciarPartidaRequest;
 import br.com.peladaoficial.dto.RegistrarEventoRequest;
 import br.com.peladaoficial.model.EventoPartida;
+import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Partida;
 import br.com.peladaoficial.service.PartidaService;
 import jakarta.validation.Valid;
@@ -13,9 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Endpoints das partidas ao vivo.
- */
 @RestController
 @RequestMapping("/api")
 public class PartidaController {
@@ -36,6 +34,13 @@ public class PartidaController {
     public List<Map<String, Object>> listar(@PathVariable Long peladaId) {
         return partidaService.listarPorPelada(peladaId).stream()
                 .map(this::toPartidaResumo)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/peladas/{peladaId}/goleiros")
+    public List<Map<String, Object>> listarGoleiros(@PathVariable Long peladaId) {
+        return partidaService.listarGoleirosDaPelada(peladaId).stream()
+                .map(this::toJogadorSimples)
                 .collect(Collectors.toList());
     }
 
@@ -62,20 +67,42 @@ public class PartidaController {
         map.put("status", partida.getStatus().name());
         map.put("golsTimeA", partida.getGolsTimeA());
         map.put("golsTimeB", partida.getGolsTimeB());
-        map.put("timeA", Map.of("id", partida.getTimeA().getId(), "nome", partida.getTimeA().getNome(), "cor", partida.getTimeA().getCor()));
-        map.put("timeB", Map.of("id", partida.getTimeB().getId(), "nome", partida.getTimeB().getNome(), "cor", partida.getTimeB().getCor()));
+        map.put("timeA", Map.of(
+                "id", partida.getTimeA().getId(),
+                "nome", partida.getTimeA().getNome(),
+                "cor", partida.getTimeA().getCor()
+        ));
+        map.put("timeB", Map.of(
+                "id", partida.getTimeB().getId(),
+                "nome", partida.getTimeB().getNome(),
+                "cor", partida.getTimeB().getCor()
+        ));
         return map;
     }
 
     private Map<String, Object> toPartidaMap(Partida partida) {
         Map<String, Object> map = toPartidaResumo(partida);
         map.put("eventos", partida.getEventos().stream().map(this::toEventoMap).collect(Collectors.toList()));
-        map.put("jogadoresTimeA", partida.getTimeA().getJogadores().stream()
-                .map(j -> Map.of("id", j.getId(), "nome", j.getNome(), "estrelas", j.getEstrelas()))
-                .collect(Collectors.toList()));
-        map.put("jogadoresTimeB", partida.getTimeB().getJogadores().stream()
-                .map(j -> Map.of("id", j.getId(), "nome", j.getNome(), "estrelas", j.getEstrelas()))
-                .collect(Collectors.toList()));
+
+        List<Jogador> linhaA = partida.getTimeA().getJogadores().stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro())).collect(Collectors.toList());
+        List<Jogador> linhaB = partida.getTimeB().getJogadores().stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro())).collect(Collectors.toList());
+
+        map.put("jogadoresTimeA", linhaA.stream().map(this::toJogadorSimples).collect(Collectors.toList()));
+        map.put("jogadoresTimeB", linhaB.stream().map(this::toJogadorSimples).collect(Collectors.toList()));
+        map.put("goleirosPelada", partidaService.listarGoleirosDaPelada(partida.getPelada().getId())
+                .stream().map(this::toJogadorSimples).collect(Collectors.toList()));
+        return map;
+    }
+
+    private Map<String, Object> toJogadorSimples(Jogador j) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", j.getId());
+        map.put("nome", j.getNome());
+        map.put("estrelas", j.getEstrelas());
+        map.put("goleiro", Boolean.TRUE.equals(j.getGoleiro()));
+        map.put("timeId", j.getTime() != null ? j.getTime().getId() : null);
         return map;
     }
 

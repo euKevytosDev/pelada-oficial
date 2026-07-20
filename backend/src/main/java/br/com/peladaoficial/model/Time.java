@@ -6,10 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Time formado no sorteio (ex.: Time A, Time B).
+ * Time formado no sorteio.
+ * Se o nome não for definido manualmente, usa o jogador de linha com mais estrelas.
  */
 @Entity
 @Table(name = "times")
@@ -25,7 +28,10 @@ public class Time {
     @Column(nullable = false, length = 40)
     private String nome;
 
-    /** Cor para mostrar no celular (ex.: #1B5E20). */
+    /** true = usuário escolheu o nome; false = nome automático pelo jogador mais estrelado. */
+    @Column(nullable = false)
+    private Boolean nomeManual = false;
+
     @Column(nullable = false, length = 20)
     private String cor = "#1B5E20";
 
@@ -60,8 +66,31 @@ public class Time {
         this.pelada = pelada;
     }
 
-    /** Soma das estrelas dos jogadores (útil para ver se o sorteio ficou equilibrado). */
     public int getTotalEstrelas() {
-        return jogadores.stream().mapToInt(Jogador::getEstrelas).sum();
+        return jogadores.stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .mapToInt(Jogador::getEstrelas)
+                .sum();
+    }
+
+    public Optional<Jogador> getJogadorMaisEstrelado() {
+        return jogadores.stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .max(Comparator.comparingInt(Jogador::getEstrelas)
+                        .thenComparing(Jogador::getNome));
+    }
+
+    public Optional<Jogador> getGoleiroDoTime() {
+        return jogadores.stream()
+                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .findFirst();
+    }
+
+    /** Atualiza o nome automático se o usuário não definiu manualmente. */
+    public void atualizarNomeAutomaticoSePreciso() {
+        if (Boolean.TRUE.equals(nomeManual)) {
+            return;
+        }
+        getJogadorMaisEstrelado().ifPresent(j -> this.nome = j.getNome());
     }
 }

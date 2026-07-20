@@ -1,6 +1,7 @@
 package br.com.peladaoficial.controller;
 
 import br.com.peladaoficial.dto.AdicionarJogadorRequest;
+import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
 import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Pelada;
@@ -14,10 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Endpoints da pelada (criar, jogadores, sorteio, encerrar).
- * Base: http://localhost:8080/api/peladas
- */
 @RestController
 @RequestMapping("/api/peladas")
 public class PeladaController {
@@ -65,6 +62,13 @@ public class PeladaController {
                 .collect(Collectors.toList());
     }
 
+    @PatchMapping("/{id}/times/{timeId}")
+    public Map<String, Object> atualizarTime(@PathVariable Long id,
+                                             @PathVariable Long timeId,
+                                             @Valid @RequestBody AtualizarTimeRequest request) {
+        return toTimeMap(peladaService.atualizarTime(id, timeId, request));
+    }
+
     @PostMapping("/{id}/encerrar")
     public Map<String, Object> encerrar(@PathVariable Long id) {
         return toPeladaMap(peladaService.encerrar(id));
@@ -86,8 +90,10 @@ public class PeladaController {
         map.put("id", jogador.getId());
         map.put("nome", jogador.getNome());
         map.put("estrelas", jogador.getEstrelas());
+        map.put("goleiro", Boolean.TRUE.equals(jogador.getGoleiro()));
         map.put("pontos", jogador.getPontos());
         map.put("gols", jogador.getGols());
+        map.put("golsContra", jogador.getGolsContra());
         map.put("cartoesAmarelos", jogador.getCartoesAmarelos());
         map.put("cartoesVermelhos", jogador.getCartoesVermelhos());
         map.put("golsSofridos", jogador.getGolsSofridos());
@@ -99,6 +105,7 @@ public class PeladaController {
         Map<String, Object> map = new HashMap<>();
         map.put("id", time.getId());
         map.put("nome", time.getNome());
+        map.put("nomeManual", Boolean.TRUE.equals(time.getNomeManual()));
         map.put("cor", time.getCor());
         map.put("pontos", time.getPontos());
         map.put("vitorias", time.getVitorias());
@@ -107,7 +114,17 @@ public class PeladaController {
         map.put("golsPro", time.getGolsPro());
         map.put("golsContra", time.getGolsContra());
         map.put("totalEstrelas", time.getTotalEstrelas());
-        map.put("jogadores", time.getJogadores().stream().map(this::toJogadorMap).collect(Collectors.toList()));
+
+        List<Jogador> linha = time.getJogadores().stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .collect(Collectors.toList());
+        List<Jogador> goleiros = time.getJogadores().stream()
+                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .collect(Collectors.toList());
+
+        map.put("jogadores", linha.stream().map(this::toJogadorMap).collect(Collectors.toList()));
+        map.put("goleiros", goleiros.stream().map(this::toJogadorMap).collect(Collectors.toList()));
+        map.put("goleiro", goleiros.isEmpty() ? null : toJogadorMap(goleiros.get(0)));
         return map;
     }
 }

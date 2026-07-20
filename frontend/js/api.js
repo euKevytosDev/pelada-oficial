@@ -39,6 +39,9 @@ const PeladaAPI = {
   listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),
   listarTimes: (peladaId) => api(`/peladas/${peladaId}/times`),
+  atualizarTime: (peladaId, timeId, dados) =>
+    api(`/peladas/${peladaId}/times/${timeId}`, { method: "PATCH", body: JSON.stringify(dados) }),
+  listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
   iniciarPartida: (peladaId, dados) =>
     api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),

@@ -11,10 +11,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Partidas ao vivo: iniciar rodada, registrar gol/cartão e finalizar com pontuação.
- * Vitória = 3 pts | Empate = 1 pt cada | Derrota = 0.
+ * Partidas ao vivo: gol, gol contra, cartões e pontuação.
  */
 @Service
 public class PartidaService {
@@ -88,6 +88,10 @@ public class PartidaService {
         return partidas;
     }
 
+    /**
+     * GOL: time que fez o gol + autor + goleiro que sofreu (pode ser emprestado de outro time).
+     * GOL_CONTRA: time que sofreu + jogador desse time que fez o gol contra → placar sobe para o adversário.
+     */
     @Transactional
     public EventoPartida registrarEvento(Long partidaId, RegistrarEventoRequest request) {
         Partida partida = buscar(partidaId);
@@ -104,22 +108,36 @@ public class PartidaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
 
         Jogador goleiro = null;
+
         if (request.getTipo() == TipoEvento.GOL) {
             if (request.getGoleiroId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o goleiro que sofreu o gol");
             }
             goleiro = jogadorRepository.findById(request.getGoleiroId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goleiro não encontrado"));
+            if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione um goleiro cadastrado");
+            }
 
-            // Atualiza placar
+            // Placar sobe para o time que fez o gol
             if (time.getId().equals(partida.getTimeA().getId())) {
                 partida.setGolsTimeA(partida.getGolsTimeA() + 1);
             } else {
                 partida.setGolsTimeB(partida.getGolsTimeB() + 1);
             }
-
             jogador.setGols(jogador.getGols() + 1);
             goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
+
+        } else if (request.getTipo() == TipoEvento.GOL_CONTRA) {
+            // time = time que sofreu (onde está o jogador do gol contra)
+            // placar sobe para o adversário
+            if (time.getId().equals(partida.getTimeA().getId())) {
+                partida.setGolsTimeB(partida.getGolsTimeB() + 1);
+            } else {
+                partida.setGolsTimeA(partida.getGolsTimeA() + 1);
+            }
+            jogador.setGolsContra(jogador.getGolsContra() + 1);
+
         } else if (request.getTipo() == TipoEvento.CARTAO_AMARELO) {
             jogador.setCartoesAmarelos(jogador.getCartoesAmarelos() + 1);
         } else if (request.getTipo() == TipoEvento.CARTAO_VERMELHO) {
@@ -149,11 +167,11 @@ public class PartidaService {
         timeB.setGolsContra(timeB.getGolsContra() + golsA);
 
         if (golsA > golsB) {
-            aplicarResultado(timeA, timeB, 3, 0, true, false);
+            aplicarResultado(timeA, timeB, false);
         } else if (golsB > golsA) {
-            aplicarResultado(timeB, timeA, 3, 0, true, false);
+            aplicarResultado(timeB, timeA, false);
         } else {
-            aplicarResultado(timeA, timeB, 1, 1, false, true);
+            aplicarResultado(timeA, timeB, true);
         }
 
         partida.setStatus(StatusPartida.FINALIZADA);
@@ -161,30 +179,29 @@ public class PartidaService {
         return partida;
     }
 
-    private void aplicarResultado(Time vencedorOuA, Time perdedorOuB,
-                                  int ptsA, int ptsB, boolean temVencedor, boolean empate) {
+    private void aplicarResultado(Time timeA, Time timeB, boolean empate) {
         if (empate) {
-            vencedorOuA.setEmpates(vencedorOuA.getEmpates() + 1);
-            perdedorOuB.setEmpates(perdedorOuB.getEmpates() + 1);
-            vencedorOuA.setPontos(vencedorOuA.getPontos() + 1);
-            perdedorOuB.setPontos(perdedorOuB.getPontos() + 1);
-            somarPontosJogadores(vencedorOuA, 1);
-            somarPontosJogadores(perdedorOuB, 1);
+            timeA.setEmpates(timeA.getEmpates() + 1);
+            timeB.setEmpates(timeB.getEmpates() + 1);
+            timeA.setPontos(timeA.getPontos() + 1);
+            timeB.setPontos(timeB.getPontos() + 1);
+            somarPontosLinha(timeA, 1);
+            somarPontosLinha(timeB, 1);
             return;
         }
-
-        // vencedorOuA ganhou, perdedorOuB perdeu
-        vencedorOuA.setVitorias(vencedorOuA.getVitorias() + 1);
-        vencedorOuA.setPontos(vencedorOuA.getPontos() + ptsA);
-        perdedorOuB.setDerrotas(perdedorOuB.getDerrotas() + 1);
-        perdedorOuB.setPontos(perdedorOuB.getPontos() + ptsB);
-        somarPontosJogadores(vencedorOuA, 3);
-        somarPontosJogadores(perdedorOuB, 0);
+        // timeA = vencedor, timeB = perdedor
+        timeA.setVitorias(timeA.getVitorias() + 1);
+        timeA.setPontos(timeA.getPontos() + 3);
+        timeB.setDerrotas(timeB.getDerrotas() + 1);
+        somarPontosLinha(timeA, 3);
+        somarPontosLinha(timeB, 0);
     }
 
-    private void somarPontosJogadores(Time time, int pontos) {
+    private void somarPontosLinha(Time time, int pontos) {
         for (Jogador jogador : time.getJogadores()) {
-            jogador.setPontos(jogador.getPontos() + pontos);
+            if (!Boolean.TRUE.equals(jogador.getGoleiro())) {
+                jogador.setPontos(jogador.getPontos() + pontos);
+            }
         }
     }
 
@@ -196,5 +213,18 @@ public class PartidaService {
         }
         time.getJogadores().size();
         return time;
+    }
+
+    /** Lista todos os goleiros da pelada (para emprestar entre times). */
+    @Transactional(readOnly = true)
+    public List<Jogador> listarGoleirosDaPelada(Long peladaId) {
+        return jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId).stream()
+                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .peek(j -> {
+                    if (j.getTime() != null) {
+                        j.getTime().getId();
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

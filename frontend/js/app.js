@@ -1,23 +1,19 @@
 /**
- * Pelada Oficial — lógica das telas no celular
+ * Pelada Oficial — telas no celular
  *
- * Fluxo:
- * 1) Criar pelada
- * 2) Adicionar jogadores + estrelas
- * 3) Sortear times equilibrados
- * 4) Jogar rodadas ao vivo (gol / cartões)
- * 5) Encerrar pelada
+ * - Estrelas 1 a 10
+ * - Goleiros fixos (emprestáveis entre times)
+ * - Nome do time editável (padrão = jogador com mais estrelas)
+ * - Gol contra (invertido: time que sofreu escolhe o autor)
  */
 
 const estado = {
   peladaId: null,
-  estrelasSelecionadas: 3,
+  estrelasSelecionadas: 5,
   times: [],
+  goleiros: [],
   partidaAtual: null,
-  tipoEventoPendente: null,
 };
-
-/* ---------- helpers de tela ---------- */
 
 function mostrarTela(id) {
   document.querySelectorAll(".tela").forEach((tela) => tela.classList.remove("ativa"));
@@ -25,7 +21,7 @@ function mostrarTela(id) {
 
   const titulos = {
     "tela-inicio": "Controle da pelada no celular",
-    "tela-jogadores": "Cadastre os jogadores",
+    "tela-jogadores": "Jogadores e goleiros",
     "tela-times": "Times sorteados",
     "tela-partida": "Partida ao vivo",
     "tela-classificacao": "Classificação",
@@ -43,7 +39,30 @@ function toast(mensagem) {
 }
 
 function estrelasTexto(n) {
-  return "★".repeat(n) + "☆".repeat(5 - n);
+  const nivel = Number(n) || 0;
+  if (nivel <= 0) return "GK";
+  return `${nivel}★`;
+}
+
+function montarSeletorEstrelas() {
+  const box = document.getElementById("seletor-estrelas");
+  box.innerHTML = "";
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "estrela" + (i <= estado.estrelasSelecionadas ? " ativa" : "");
+    btn.dataset.estrela = String(i);
+    btn.textContent = "★";
+    btn.addEventListener("click", () => {
+      estado.estrelasSelecionadas = i;
+      box.querySelectorAll(".estrela").forEach((b) => {
+        b.classList.toggle("ativa", Number(b.dataset.estrela) <= i);
+      });
+      document.getElementById("nivel-num").textContent = `${i} ★`;
+    });
+    box.appendChild(btn);
+  }
+  document.getElementById("nivel-num").textContent = `${estado.estrelasSelecionadas} ★`;
 }
 
 function abrirModal(titulo, corpoHtml) {
@@ -59,13 +78,15 @@ function fecharModal() {
 
 function escolherOpcao(titulo, opcoes) {
   return new Promise((resolve) => {
+    if (!opcoes.length) {
+      toast("Nenhuma opção disponível");
+      resolve(null);
+      return;
+    }
     const html = `
       <div class="opcoes">
         ${opcoes
-          .map(
-            (o) =>
-              `<button type="button" class="opcao" data-id="${o.id}">${o.label}</button>`
-          )
+          .map((o) => `<button type="button" class="opcao" data-id="${o.id}">${o.label}</button>`)
           .join("")}
       </div>
     `;
@@ -81,14 +102,36 @@ function escolherOpcao(titulo, opcoes) {
     };
     corpo.addEventListener("click", onClick);
 
-    const cancelar = () => {
-      document.getElementById("modal-fechar").removeEventListener("click", onCancel);
-      document.getElementById("modal-fundo").removeEventListener("click", onCancel);
-      resolve(null);
-    };
     const onCancel = () => {
       fecharModal();
-      cancelar();
+      resolve(null);
+    };
+    document.getElementById("modal-fechar").addEventListener("click", onCancel, { once: true });
+    document.getElementById("modal-fundo").addEventListener("click", onCancel, { once: true });
+  });
+}
+
+function pedirTexto(titulo, valorInicial = "") {
+  return new Promise((resolve) => {
+    abrirModal(
+      titulo,
+      `<input type="text" id="modal-input" maxlength="40" value="${valorInicial.replace(/"/g, "&quot;")}" />
+       <button type="button" class="btn btn-principal" id="modal-ok">Salvar</button>
+       <p class="dica-modal">Deixe vazio para usar o jogador com mais estrelas.</p>`
+    );
+    const input = document.getElementById("modal-input");
+    input.focus();
+    const ok = () => {
+      fecharModal();
+      resolve(input.value.trim());
+    };
+    document.getElementById("modal-ok").addEventListener("click", ok, { once: true });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ok();
+    });
+    const onCancel = () => {
+      fecharModal();
+      resolve(null);
     };
     document.getElementById("modal-fechar").addEventListener("click", onCancel, { once: true });
     document.getElementById("modal-fundo").addEventListener("click", onCancel, { once: true });
@@ -97,39 +140,46 @@ function escolherOpcao(titulo, opcoes) {
 
 /* ---------- render ---------- */
 
-function renderJogadores(jogadores) {
-  const lista = document.getElementById("lista-jogadores");
-  if (!jogadores.length) {
-    lista.innerHTML = `<li><span>Nenhum jogador ainda</span><span class="meta">adicione acima</span></li>`;
-    return;
-  }
-  lista.innerHTML = jogadores
-    .map(
-      (j) => `
-      <li>
-        <span>${j.nome}</span>
-        <span class="meta">${estrelasTexto(j.estrelas)}</span>
-      </li>`
-    )
-    .join("");
+function renderListasCadastro(todos) {
+  const linha = todos.filter((j) => !j.goleiro);
+  const goleiros = todos.filter((j) => j.goleiro);
+  estado.goleiros = goleiros;
+
+  const listaJ = document.getElementById("lista-jogadores");
+  const listaG = document.getElementById("lista-goleiros");
+
+  listaJ.innerHTML = linha.length
+    ? linha.map((j) => `<li><span>${j.nome}</span><span class="meta">${estrelasTexto(j.estrelas)}</span></li>`).join("")
+    : `<li><span>Nenhum jogador ainda</span><span class="meta">adicione acima</span></li>`;
+
+  listaG.innerHTML = goleiros.length
+    ? goleiros.map((j) => `<li><span>${j.nome}</span><span class="meta">goleiro</span></li>`).join("")
+    : `<li><span>Nenhum goleiro ainda</span><span class="meta">adicione acima</span></li>`;
 }
 
 function renderTimes(times) {
   estado.times = times;
   const grade = document.getElementById("grade-times");
   grade.innerHTML = times
-    .map(
-      (t) => `
-      <article class="time-card" style="border-left-color:${t.cor}">
-        <h3>${t.nome}</h3>
-        <p class="estrelas-total">${t.totalEstrelas} estrelas no total · ${t.jogadores.length} jogadores</p>
+    .map((t) => {
+      const gk = t.goleiro ? t.goleiro.nome : "sem goleiro";
+      return `
+      <article class="time-card" style="border-left-color:${t.cor}" data-time-id="${t.id}">
+        <div class="time-topo">
+          <h3>${t.nome}</h3>
+          <button type="button" class="btn-mini" data-acao="renomear" data-time-id="${t.id}">Renomear</button>
+        </div>
+        <p class="estrelas-total">${t.totalEstrelas}★ linha · ${t.jogadores.length} jogadores</p>
+        <p class="gk-linha">Goleiro: <strong>${gk}</strong>
+          <button type="button" class="btn-mini" data-acao="goleiro" data-time-id="${t.id}">Trocar</button>
+        </p>
         <ul>
           ${t.jogadores
             .map((j) => `<li>${j.nome} <span class="meta">${estrelasTexto(j.estrelas)}</span></li>`)
             .join("")}
         </ul>
-      </article>`
-    )
+      </article>`;
+    })
     .join("");
 }
 
@@ -154,7 +204,9 @@ function renderPartida(partida) {
     .map((e) => {
       let texto = "";
       if (e.tipo === "GOL") {
-        texto = `Gol de ${e.jogadorNome} (${e.timeNome}) · goleiro ${e.goleiroNome}`;
+        texto = `Gol de ${e.jogadorNome} (${e.timeNome}) · GK ${e.goleiroNome}`;
+      } else if (e.tipo === "GOL_CONTRA") {
+        texto = `Gol contra de ${e.jogadorNome} (${e.timeNome})`;
       } else if (e.tipo === "CARTAO_AMARELO") {
         texto = `Amarelo para ${e.jogadorNome}`;
       } else {
@@ -204,17 +256,53 @@ function renderClassificacao(times, destinoId) {
 
 /* ---------- ações ---------- */
 
-async function carregarJogadores() {
-  const jogadores = await PeladaAPI.listarJogadores(estado.peladaId);
-  renderJogadores(jogadores);
-  return jogadores;
+async function carregarCadastro() {
+  const todos = await PeladaAPI.listarJogadores(estado.peladaId);
+  renderListasCadastro(todos);
+  return todos;
 }
 
 async function sortearTimes() {
   const times = await PeladaAPI.sortear(estado.peladaId);
+  estado.goleiros = await PeladaAPI.listarGoleiros(estado.peladaId);
   renderTimes(times);
   mostrarTela("tela-times");
   toast("Times sorteados!");
+}
+
+async function renomearTime(timeId) {
+  const time = estado.times.find((t) => t.id === timeId);
+  const novo = await pedirTexto("Nome do time", time ? time.nome : "");
+  if (novo === null) return;
+
+  const atualizado = await PeladaAPI.atualizarTime(estado.peladaId, timeId, {
+    nome: novo,
+    usarNomeAutomatico: novo === "",
+  });
+  const times = await PeladaAPI.listarTimes(estado.peladaId);
+  renderTimes(times);
+  toast(atualizado.nomeManual ? "Nome atualizado" : "Nome automático (mais estrelas)");
+}
+
+async function trocarGoleiroTime(timeId) {
+  const goleiros = await PeladaAPI.listarGoleiros(estado.peladaId);
+  if (!goleiros.length) {
+    toast("Cadastre goleiros antes");
+    return;
+  }
+
+  const opcoes = goleiros.map((g) => ({
+    id: g.id,
+    label: g.timeId ? `${g.nome} (time ${g.timeId === timeId ? "deste" : "outro"})` : `${g.nome} (livre)`,
+  }));
+
+  const goleiroId = await escolherOpcao("Goleiro deste time", opcoes);
+  if (!goleiroId) return;
+
+  await PeladaAPI.atualizarTime(estado.peladaId, timeId, { goleiroId });
+  const times = await PeladaAPI.listarTimes(estado.peladaId);
+  renderTimes(times);
+  toast("Goleiro definido (pode ser emprestado)");
 }
 
 async function iniciarPartidaComEscolha() {
@@ -253,6 +341,30 @@ async function registrarEventoAoVivo(tipo) {
   const partida = estado.partidaAtual;
   if (!partida) return;
 
+  if (tipo === "GOL_CONTRA") {
+    // Invertido: escolhe o time que SOFREU, depois o jogador desse time
+    const timeId = await escolherOpcao("Time que sofreu o gol contra?", [
+      { id: partida.timeA.id, label: partida.timeA.nome },
+      { id: partida.timeB.id, label: partida.timeB.nome },
+    ]);
+    if (!timeId) return;
+
+    const jogadoresDoTime =
+      timeId === partida.timeA.id ? partida.jogadoresTimeA : partida.jogadoresTimeB;
+
+    const jogadorId = await escolherOpcao(
+      "Quem fez o gol contra?",
+      jogadoresDoTime.map((j) => ({ id: j.id, label: j.nome }))
+    );
+    if (!jogadorId) return;
+
+    await PeladaAPI.registrarEvento(partida.id, { tipo, timeId, jogadorId });
+    const atualizada = await PeladaAPI.buscarPartida(partida.id);
+    renderPartida(atualizada);
+    toast("Gol contra! Placar para o adversário");
+    return;
+  }
+
   const timeId = await escolherOpcao("Qual time?", [
     { id: partida.timeA.id, label: partida.timeA.nome },
     { id: partida.timeB.id, label: partida.timeB.nome },
@@ -270,11 +382,32 @@ async function registrarEventoAoVivo(tipo) {
 
   let goleiroId = null;
   if (tipo === "GOL") {
-    const adversarios =
-      timeId === partida.timeA.id ? partida.jogadoresTimeB : partida.jogadoresTimeA;
+    const timeDefensorId = timeId === partida.timeA.id ? partida.timeB.id : partida.timeA.id;
+    const goleiros = partida.goleirosPelada || [];
+
+    if (!goleiros.length) {
+      toast("Cadastre goleiros para marcar o gol");
+      return;
+    }
+
+    // Prioriza goleiro do time defensor; mostra todos (empréstimo)
+    const ordenados = [...goleiros].sort((a, b) => {
+      const aDoTime = a.timeId === timeDefensorId ? 0 : 1;
+      const bDoTime = b.timeId === timeDefensorId ? 0 : 1;
+      return aDoTime - bDoTime;
+    });
+
     goleiroId = await escolherOpcao(
-      "Goleiro que sofreu?",
-      adversarios.map((j) => ({ id: j.id, label: j.nome }))
+      "Goleiro que sofreu? (pode emprestar)",
+      ordenados.map((g) => ({
+        id: g.id,
+        label:
+          g.timeId === timeDefensorId
+            ? `${g.nome} (do time)`
+            : g.timeId
+              ? `${g.nome} (emprestado)`
+              : `${g.nome} (livre)`,
+      }))
     );
     if (!goleiroId) return;
   }
@@ -304,7 +437,9 @@ async function encerrarPelada() {
   mostrarTela("tela-fim");
 }
 
-/* ---------- eventos da página ---------- */
+/* ---------- eventos ---------- */
+
+montarSeletorEstrelas();
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -315,21 +450,12 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
     });
     estado.peladaId = pelada.id;
     localStorage.setItem("peladaId", String(pelada.id));
-    renderJogadores([]);
+    renderListasCadastro([]);
     mostrarTela("tela-jogadores");
     toast("Pelada criada!");
   } catch (err) {
     toast(err.message);
   }
-});
-
-document.querySelectorAll("#seletor-estrelas .estrela").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    estado.estrelasSelecionadas = Number(btn.dataset.estrela);
-    document.querySelectorAll("#seletor-estrelas .estrela").forEach((b) => {
-      b.classList.toggle("ativa", Number(b.dataset.estrela) <= estado.estrelasSelecionadas);
-    });
-  });
 });
 
 document.getElementById("form-jogador").addEventListener("submit", async (e) => {
@@ -338,10 +464,26 @@ document.getElementById("form-jogador").addEventListener("submit", async (e) => 
     await PeladaAPI.adicionarJogador(estado.peladaId, {
       nome: document.getElementById("nome-jogador").value.trim(),
       estrelas: estado.estrelasSelecionadas,
+      goleiro: false,
     });
     document.getElementById("nome-jogador").value = "";
-    await carregarJogadores();
+    await carregarCadastro();
     toast("Jogador adicionado");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("form-goleiro").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await PeladaAPI.adicionarJogador(estado.peladaId, {
+      nome: document.getElementById("nome-goleiro").value.trim(),
+      goleiro: true,
+    });
+    document.getElementById("nome-goleiro").value = "";
+    await carregarCadastro();
+    toast("Goleiro adicionado");
   } catch (err) {
     toast(err.message);
   }
@@ -358,6 +500,18 @@ document.getElementById("btn-sortear").addEventListener("click", async () => {
 document.getElementById("btn-re-sortear").addEventListener("click", async () => {
   try {
     await sortearTimes();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("grade-times").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-acao]");
+  if (!btn) return;
+  const timeId = Number(btn.dataset.timeId);
+  try {
+    if (btn.dataset.acao === "renomear") await renomearTime(timeId);
+    if (btn.dataset.acao === "goleiro") await trocarGoleiroTime(timeId);
   } catch (err) {
     toast(err.message);
   }
@@ -417,6 +571,7 @@ document.getElementById("btn-nova-pelada").addEventListener("click", () => {
   localStorage.removeItem("peladaId");
   estado.peladaId = null;
   estado.times = [];
+  estado.goleiros = [];
   estado.partidaAtual = null;
   mostrarTela("tela-inicio");
 });

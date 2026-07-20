@@ -153,7 +153,77 @@ input:focus, select:focus {
 
 .estrelas {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.estrelas.nivel-10 .estrela {
+  flex: 0 0 calc(20% - 4px);
+  font-size: 1.05rem;
+  padding: 8px 0;
+}
+
+.nivel-num {
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+  font-weight: 700;
+}
+
+.lista-titulo {
+  margin: 18px 0 8px;
+  font-family: var(--fonte-titulo);
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  color: var(--verde-campo);
+}
+
+.time-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gk-linha {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+}
+
+.btn-mini {
+  border: none;
+  background: #e8f6ee;
+  color: var(--verde-campo);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.acoes-evento.quatro {
+  grid-template-columns: 1fr 1fr;
+}
+
+.btn-contra {
+  background: #2f4858;
+  color: #fff;
+}
+
+.dica-modal {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+#modal-input {
+  width: 100%;
+  border: 1px solid var(--linha);
+  border-radius: 12px;
+  padding: 14px 12px;
+  font: inherit;
 }
 
 .estrela {
