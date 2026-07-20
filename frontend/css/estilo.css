@@ -194,6 +194,48 @@ input:focus, select:focus {
   border-color: var(--verde-vivo);
 }
 
+.campo-senha {
+  position: relative;
+  display: block;
+}
+
+.campo-senha input {
+  padding-right: 48px;
+}
+
+.btn-olho {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.btn-olho:hover,
+.btn-olho[aria-pressed="true"] {
+  color: var(--verde-campo);
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.icone-olho {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.btn-olho[aria-pressed="true"] .icone-olho {
+  opacity: 0.85;
+}
+
 .estrelas {
   display: flex;
   gap: 4px;

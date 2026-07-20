@@ -44,7 +44,12 @@
           </label>
           <label>
             Senha
-            <input type="password" id="login-senha" placeholder="mínimo 6 caracteres" minlength="6" required />
+            <span class="campo-senha">
+              <input type="password" id="login-senha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="current-password" />
+              <button type="button" class="btn-olho" data-senha="login-senha" aria-label="Mostrar senha" title="Mostrar senha" aria-pressed="false">
+                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
+              </button>
+            </span>
           </label>
           <button type="submit" class="btn btn-principal">Entrar</button>
         </form>
@@ -60,7 +65,12 @@
           </label>
           <label>
             Senha
-            <input type="password" id="cadastro-senha" placeholder="mínimo 6 caracteres" minlength="6" required />
+            <span class="campo-senha">
+              <input type="password" id="cadastro-senha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="new-password" />
+              <button type="button" class="btn-olho" data-senha="cadastro-senha" aria-label="Mostrar senha" title="Mostrar senha" aria-pressed="false">
+                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
+              </button>
+            </span>
           </label>
           <button type="submit" class="btn btn-principal">Criar conta</button>
         </form>
