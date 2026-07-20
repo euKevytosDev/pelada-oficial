@@ -159,11 +159,19 @@ function renderListasCadastro(todos) {
 
 function renderTimes(times) {
   estado.times = times;
+  const comGoleiro = times.filter((t) => t.goleiro).length;
+  const semGoleiro = times.length - comGoleiro;
   const grade = document.getElementById("grade-times");
-  grade.innerHTML = times
-    .map((t) => {
-      const gk = t.goleiro ? t.goleiro.nome : "sem goleiro";
-      return `
+  grade.innerHTML = `
+    <p class="dica-times">
+      Goleiros no 1º sorteio: vão para os primeiros times
+      (ex.: 2 goleiros → Time A e Time B).
+      ${semGoleiro > 0 ? `Os ${semGoleiro} sem goleiro emprestam na hora do gol.` : "Todos os times têm goleiro."}
+    </p>
+    ${times
+      .map((t) => {
+        const gk = t.goleiro ? t.goleiro.nome : "sem goleiro — empresta na partida";
+        return `
       <article class="time-card" style="border-left-color:${t.cor}" data-time-id="${t.id}">
         <div class="time-topo">
           <h3>${t.nome}</h3>
@@ -179,8 +187,9 @@ function renderTimes(times) {
             .join("")}
         </ul>
       </article>`;
-    })
-    .join("");
+      })
+      .join("")}
+  `;
 }
 
 function renderPartida(partida) {
@@ -267,7 +276,12 @@ async function sortearTimes() {
   estado.goleiros = await PeladaAPI.listarGoleiros(estado.peladaId);
   renderTimes(times);
   mostrarTela("tela-times");
-  toast("Times sorteados!");
+  const comGk = times.filter((t) => t.goleiro).length;
+  toast(
+    comGk
+      ? `Sorteado! ${comGk} goleiro(s) nos primeiros times`
+      : "Times sorteados! Sem goleiros cadastrados"
+  );
 }
 
 async function renomearTime(timeId) {

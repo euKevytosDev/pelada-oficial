@@ -107,7 +107,7 @@ public class PeladaService {
         for (Jogador j : todos) {
             j.setTime(null);
         }
-        timeRepository.deleteAll(timeRepository.findByPeladaIdOrderByPontosDesc(peladaId));
+        timeRepository.deleteAll(timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId));
         timeRepository.flush();
 
         List<Time> times = new ArrayList<>();
@@ -134,12 +134,16 @@ public class PeladaService {
             qtdJogadores[melhorIndice]++;
         }
 
-        // Distribui goleiros: 1 por time na ordem; extras ficam sem time (podem ser emprestados depois)
+        // Goleiros também entram no primeiro sorteio:
+        // vão para os PRIMEIROS times (A, B, C...).
+        // Ex.: 4 times e 2 goleiros → 1 no Time A e 1 no Time B.
+        // Times sem goleiro (C, D...) emprestam na hora do gol.
         List<Jogador> goleirosEmbaralhados = new ArrayList<>(goleiros);
         Collections.shuffle(goleirosEmbaralhados);
-        for (int i = 0; i < goleirosEmbaralhados.size() && i < times.size(); i++) {
+        int qtdGoleirosParaTimes = Math.min(goleirosEmbaralhados.size(), times.size());
+        for (int i = 0; i < qtdGoleirosParaTimes; i++) {
             Jogador gk = goleirosEmbaralhados.get(i);
-            Time time = times.get(i);
+            Time time = times.get(i); // i=0 Time A, i=1 Time B, ...
             gk.setTime(time);
             time.getJogadores().add(gk);
         }
@@ -169,7 +173,7 @@ public class PeladaService {
     @Transactional(readOnly = true)
     public List<Time> listarTimes(Long peladaId) {
         buscar(peladaId);
-        List<Time> times = timeRepository.findByPeladaIdOrderByPontosDesc(peladaId);
+        List<Time> times = timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId);
         times.forEach(t -> t.getJogadores().size());
         return times;
     }

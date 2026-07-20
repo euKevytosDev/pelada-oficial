@@ -169,12 +169,15 @@ input:focus, select:focus {
   font-weight: 700;
 }
 
-.lista-titulo {
-  margin: 18px 0 8px;
-  font-family: var(--fonte-titulo);
-  font-size: 1.25rem;
-  text-transform: uppercase;
-  color: var(--verde-campo);
+.dica-times {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 14px;
+  border: 1px solid var(--linha);
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+  line-height: 1.35;
 }
 
 .time-topo {
