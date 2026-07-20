@@ -174,26 +174,26 @@ const PeladaAPI = {
   ativa: () => api("/peladas/ativa"),
   buscar: (id) => api(`/peladas/${id}`),
   adicionarJogador: (peladaId, dados) =>
-    api(`/peladas/${peladaId}/atletas`, { method: "POST", body: JSON.stringify(dados) }),
+    api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
   atualizarJogador: (peladaId, jogadorId, dados) =>
-    api(`/peladas/${peladaId}/atletas/${jogadorId}`, {
+    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, {
       method: "PATCH",
       body: JSON.stringify(dados),
     }),
-  listarJogadores: (peladaId) => api(`/peladas/${peladaId}/atletas`),
+  listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
   listarElenco: () => api("/peladas/elenco"),
   removerJogador: (peladaId, jogadorId) =>
-    api(`/peladas/${peladaId}/atletas/${jogadorId}`, { method: "DELETE" }),
+    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),
   listarTimes: (peladaId) => api(`/peladas/${peladaId}/times`),
   atualizarTime: (peladaId, timeId, dados) =>
     api(`/peladas/${peladaId}/times/${timeId}`, { method: "PATCH", body: JSON.stringify(dados) }),
   moverJogador: (peladaId, jogadorId, timeDestinoId) =>
-    api(`/peladas/${peladaId}/atletas/${jogadorId}/mover`, {
+    api(`/peladas/${peladaId}/jogadores/${jogadorId}/mover`, {
       method: "POST",
       body: JSON.stringify({ timeDestinoId }),
     }),
-  listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/keepers`),
+  listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
   resumo: (peladaId) => api(`/peladas/${peladaId}/resumo`),
   iniciarPartida: (peladaId, dados) =>
