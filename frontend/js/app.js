@@ -975,6 +975,18 @@ document.querySelectorAll(".auth-tab").forEach((tab) => {
   });
 });
 
+document.querySelectorAll(".btn-olho").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const input = document.getElementById(btn.dataset.senha);
+    if (!input) return;
+    const mostrar = input.type === "password";
+    input.type = mostrar ? "text" : "password";
+    btn.setAttribute("aria-pressed", mostrar ? "true" : "false");
+    btn.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+    btn.title = mostrar ? "Ocultar senha" : "Mostrar senha";
+  });
+});
+
 document.getElementById("form-login").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
