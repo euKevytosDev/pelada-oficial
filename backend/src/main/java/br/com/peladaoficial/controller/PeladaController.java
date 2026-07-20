@@ -74,11 +74,25 @@ public class PeladaController {
         return toJogadorMap(peladaService.adicionarJogador(id, request));
     }
 
+    /** Alias sem a palavra "jogadores" (alguns proxies bloqueiam essa URL e devolvem 401). */
+    @PostMapping("/{id}/atletas")
+    public Map<String, Object> adicionarAtleta(@PathVariable Long id,
+                                               @Valid @RequestBody AdicionarJogadorRequest request) {
+        return adicionarJogador(id, request);
+    }
+
     @PatchMapping("/{id}/jogadores/{jogadorId}")
     public Map<String, Object> atualizarJogador(@PathVariable Long id,
                                                 @PathVariable Long jogadorId,
                                                 @Valid @RequestBody AtualizarJogadorRequest request) {
         return toJogadorMap(peladaService.atualizarJogador(id, jogadorId, request));
+    }
+
+    @PatchMapping("/{id}/atletas/{jogadorId}")
+    public Map<String, Object> atualizarAtleta(@PathVariable Long id,
+                                               @PathVariable Long jogadorId,
+                                               @Valid @RequestBody AtualizarJogadorRequest request) {
+        return atualizarJogador(id, jogadorId, request);
     }
 
     @GetMapping("/{id}/jogadores")
@@ -88,10 +102,21 @@ public class PeladaController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/{id}/atletas")
+    public List<Map<String, Object>> listarAtletas(@PathVariable Long id) {
+        return listarJogadores(id);
+    }
+
     @DeleteMapping("/{id}/jogadores/{jogadorId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removerJogador(@PathVariable Long id, @PathVariable Long jogadorId) {
         peladaService.removerJogador(id, jogadorId);
+    }
+
+    @DeleteMapping("/{id}/atletas/{jogadorId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removerAtleta(@PathVariable Long id, @PathVariable Long jogadorId) {
+        removerJogador(id, jogadorId);
     }
 
     @PostMapping("/{id}/sortear")
@@ -122,6 +147,13 @@ public class PeladaController {
         return peladaService.moverJogador(id, jogadorId, request).stream()
                 .map(this::toTimeMap)
                 .collect(Collectors.toList());
+    }
+
+    @PostMapping("/{id}/atletas/{jogadorId}/mover")
+    public List<Map<String, Object>> moverAtleta(@PathVariable Long id,
+                                                 @PathVariable Long jogadorId,
+                                                 @Valid @RequestBody MoverJogadorRequest request) {
+        return moverJogador(id, jogadorId, request);
     }
 
     @PostMapping("/{id}/encerrar")

@@ -46,6 +46,11 @@ public class PartidaController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/peladas/{peladaId}/keepers")
+    public List<Map<String, Object>> listarKeepers(@PathVariable Long peladaId) {
+        return listarGoleiros(peladaId);
+    }
+
     @GetMapping("/partidas/{id}")
     public Map<String, Object> buscar(@PathVariable Long id) {
         return toPartidaMap(partidaService.buscar(id));

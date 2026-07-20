@@ -54,6 +54,15 @@ function forcarLogout(mensagem) {
   throw new Error(mensagem || "Faça login para continuar");
 }
 
+/** 401 só desloga se o token existir e a API disser explicitamente para logar. */
+function deveDeslogarPorStatus(resposta, mensagem) {
+  if (resposta.status !== 401 && resposta.status !== 403) return false;
+  // sem token, só erro mesmo
+  if (!getToken()) return true;
+  const msg = (mensagem || "").toLowerCase();
+  return msg.includes("login") || msg.includes("token") || msg.includes("expir");
+}
+
 /**
  * true = Render dormindo / rede (não desloga).
  * false = erro real da API.
@@ -100,22 +109,28 @@ async function api(caminho, opcoes = {}) {
     // Só desloga em 401/403 reais da API (JSON), não em falha de cold start
     if (resposta.status === 401 || resposta.status === 403) {
       const ct = resposta.headers.get("content-type") || "";
+      let mensagem = "Faça login para continuar";
       if (ct.includes("json")) {
-        let mensagem = "Faça login para continuar";
         try {
           const erro = await resposta.json();
           mensagem = erro.message || mensagem;
         } catch (_) {
           /* ignore */
         }
-        forcarLogout(mensagem);
+        if (deveDeslogarPorStatus(resposta, mensagem)) {
+          forcarLogout(mensagem);
+        }
+        throw new Error(mensagem);
       }
       // 401 genérico sem JSON → tenta de novo (servidor estranho)
       if (tentativa < maxTentativas) {
         await sleep(1500 * tentativa);
         continue;
       }
-      forcarLogout("Faça login para continuar");
+      if (deveDeslogarPorStatus(resposta, mensagem)) {
+        forcarLogout(mensagem);
+      }
+      throw new Error(mensagem);
     }
 
     if (!resposta.ok) {
@@ -159,26 +174,26 @@ const PeladaAPI = {
   ativa: () => api("/peladas/ativa"),
   buscar: (id) => api(`/peladas/${id}`),
   adicionarJogador: (peladaId, dados) =>
-    api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
+    api(`/peladas/${peladaId}/atletas`, { method: "POST", body: JSON.stringify(dados) }),
   atualizarJogador: (peladaId, jogadorId, dados) =>
-    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, {
+    api(`/peladas/${peladaId}/atletas/${jogadorId}`, {
       method: "PATCH",
       body: JSON.stringify(dados),
     }),
-  listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
+  listarJogadores: (peladaId) => api(`/peladas/${peladaId}/atletas`),
   listarElenco: () => api("/peladas/elenco"),
   removerJogador: (peladaId, jogadorId) =>
-    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
+    api(`/peladas/${peladaId}/atletas/${jogadorId}`, { method: "DELETE" }),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),
   listarTimes: (peladaId) => api(`/peladas/${peladaId}/times`),
   atualizarTime: (peladaId, timeId, dados) =>
     api(`/peladas/${peladaId}/times/${timeId}`, { method: "PATCH", body: JSON.stringify(dados) }),
   moverJogador: (peladaId, jogadorId, timeDestinoId) =>
-    api(`/peladas/${peladaId}/jogadores/${jogadorId}/mover`, {
+    api(`/peladas/${peladaId}/atletas/${jogadorId}/mover`, {
       method: "POST",
       body: JSON.stringify({ timeDestinoId }),
     }),
-  listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
+  listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/keepers`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
   resumo: (peladaId) => api(`/peladas/${peladaId}/resumo`),
   iniciarPartida: (peladaId, dados) =>
