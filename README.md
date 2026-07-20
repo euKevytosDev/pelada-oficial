@@ -4,6 +4,10 @@ Site **mobile-first** para controlar pelada entre amigos: cadastrar jogadores, s
 
 > Futuro: virar app na Play Store (base web mobile já pensada para isso).
 
+**GitHub Pages (frontend):** https://eukevytosdev.github.io/pelada-oficial/
+
+> O site no Pages é só a parte visual (HTML/CSS/JS). Para cadastrar jogadores e sortear de verdade, o backend Spring Boot precisa estar rodando (hoje a API aponta para `localhost:8080`).
+
 ---
 
 ## Como o projeto está organizado
