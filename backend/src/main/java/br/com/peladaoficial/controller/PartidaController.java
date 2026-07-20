@@ -71,7 +71,13 @@ public class PartidaController {
         return toPartidaMap(partidaService.buscar(id));
     }
 
-    @PostMapping({"/partidas/{id}/finalizar", "/jogos/{id}/finalizar"})
+    @PostMapping({
+            "/partidas/{id}/finalizar",
+            "/jogos/{id}/finalizar",
+            "/partidas/{id}/fechar",
+            "/jogos/{id}/fechar",
+            "/partidas/{id}/encerrar-rodada"
+    })
     public Map<String, Object> finalizar(@PathVariable Long id) {
         Partida partida = partidaService.finalizar(id);
         Map<String, Object> map = new HashMap<>();

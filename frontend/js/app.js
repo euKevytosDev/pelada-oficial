@@ -843,27 +843,128 @@ function aplicarRespostaPartida(resposta, partidaId, contexto) {
 
 async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
-  const resultado = await PeladaAPI.finalizarPartida(estado.partidaAtual.id);
-  estado.partidaAtual = null;
+  const partida = estado.partidaAtual;
+  const partidaId = partida.id;
 
-  if (resultado && Array.isArray(resultado.times) && resultado.times.length) {
-    estado.times = resultado.times;
-    renderClassificacao(resultado.times, "tabela-classificacao");
-    mostrarTela("tela-classificacao");
-    // painéis extras sem bloquear a troca de tela
-    carregarPainelCorrecao().catch(() => {});
-    carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
-    toast("Partida finalizada · pontos atualizados");
-    return;
+  // Garante gols locais pendentes antes de fechar
+  if (filaLancesPendentes.length) {
+    toast("Sincronizando lances…");
+    await sincronizarLancesPendentes();
   }
+
+  // Atualiza classificação na hora (mesmo se a API oscilar)
+  const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
+  estado.partidaAtual = null;
+  if (timesLocais.length) {
+    estado.times = timesLocais;
+    renderClassificacao(timesLocais, "tabela-classificacao");
+  }
+  mostrarTela("tela-classificacao");
+  toast("Partida finalizada");
 
   try {
-    await irParaClassificacao();
-    toast("Partida finalizada · pontos atualizados");
+    const resultado = await PeladaAPI.finalizarPartida(partidaId);
+    if (resultado && Array.isArray(resultado.times) && resultado.times.length) {
+      estado.times = resultado.times;
+      renderClassificacao(resultado.times, "tabela-classificacao");
+    } else {
+      await irParaClassificacao().catch(() => {});
+    }
+    carregarPainelCorrecao().catch(() => {});
+    carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
+    toast("Pontos atualizados");
   } catch (_) {
-    mostrarTela("tela-classificacao");
-    toast("Partida finalizada — atualize se a tabela não mudar");
+    toast("Tela ok — sincronizando finalização…");
+    enfileirarFinalizacaoPendente(partidaId);
   }
+}
+
+const filaFinalizacoesPendentes = [];
+let sincronizandoFinalizacoes = false;
+
+function enfileirarFinalizacaoPendente(partidaId) {
+  if (!filaFinalizacoesPendentes.includes(partidaId)) {
+    filaFinalizacoesPendentes.push(partidaId);
+  }
+  sincronizarFinalizacoesPendentes();
+}
+
+async function sincronizarFinalizacoesPendentes() {
+  if (sincronizandoFinalizacoes) return;
+  sincronizandoFinalizacoes = true;
+  try {
+    while (filaFinalizacoesPendentes.length) {
+      const id = filaFinalizacoesPendentes[0];
+      try {
+        const resultado = await PeladaAPI.finalizarPartida(id);
+        if (resultado?.times?.length) {
+          estado.times = resultado.times;
+          renderClassificacao(resultado.times, "tabela-classificacao");
+        }
+        filaFinalizacoesPendentes.shift();
+        toast("Finalização sincronizada");
+      } catch (err) {
+        // Já estava finalizada no servidor
+        if (String(err.message || "").toLowerCase().includes("finalizada")) {
+          filaFinalizacoesPendentes.shift();
+          await irParaClassificacao().catch(() => {});
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2500));
+        // evita loop infinito: tenta no máx ~8 vezes nesta rodada
+        if (!filaFinalizacoesPendentes._tentativas) filaFinalizacoesPendentes._tentativas = 0;
+        filaFinalizacoesPendentes._tentativas += 1;
+        if (filaFinalizacoesPendentes._tentativas > 8) {
+          filaFinalizacoesPendentes.shift();
+          filaFinalizacoesPendentes._tentativas = 0;
+          toast("Finalize de novo se a classificação estiver estranha");
+          break;
+        }
+      }
+    }
+  } finally {
+    sincronizandoFinalizacoes = false;
+  }
+}
+
+/** Aplica 3/1/0 e gols da partida atual nos times em memória (para a tela não depender da API). */
+function aplicarResultadoLocalNosTimes(times, partida) {
+  if (!Array.isArray(times) || !times.length || !partida?.timeA || !partida?.timeB) {
+    return Array.isArray(times) ? times : [];
+  }
+
+  const golsA = Number(partida.golsTimeA) || 0;
+  const golsB = Number(partida.golsTimeB) || 0;
+
+  return times.map((t) => {
+    const copia = { ...t };
+    if (t.id === partida.timeA.id) {
+      copia.golsPro = (t.golsPro || 0) + golsA;
+      copia.golsContra = (t.golsContra || 0) + golsB;
+      if (golsA > golsB) {
+        copia.pontos = (t.pontos || 0) + 3;
+        copia.vitorias = (t.vitorias || 0) + 1;
+      } else if (golsA === golsB) {
+        copia.pontos = (t.pontos || 0) + 1;
+        copia.empates = (t.empates || 0) + 1;
+      } else {
+        copia.derrotas = (t.derrotas || 0) + 1;
+      }
+    } else if (t.id === partida.timeB.id) {
+      copia.golsPro = (t.golsPro || 0) + golsB;
+      copia.golsContra = (t.golsContra || 0) + golsA;
+      if (golsB > golsA) {
+        copia.pontos = (t.pontos || 0) + 3;
+        copia.vitorias = (t.vitorias || 0) + 1;
+      } else if (golsA === golsB) {
+        copia.pontos = (t.pontos || 0) + 1;
+        copia.empates = (t.empates || 0) + 1;
+      } else {
+        copia.derrotas = (t.derrotas || 0) + 1;
+      }
+    }
+    return copia;
+  });
 }
 
 async function irParaClassificacao() {

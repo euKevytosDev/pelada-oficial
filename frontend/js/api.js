@@ -270,11 +270,23 @@ const PeladaAPI = {
     throw ultimoErro || new Error("Não deu para salvar o lance");
   },
   finalizarPartida: async (partidaId) => {
-    try {
-      return await api(`/partidas/${partidaId}/finalizar`, { method: "POST", body: "{}" });
-    } catch (_) {
-      return api(`/jogos/${partidaId}/finalizar`, { method: "POST", body: "{}" });
+    const opts = { method: "POST", body: "{}", retry: 2 };
+    const caminhos = [
+      `/partidas/${partidaId}/fechar`,
+      `/partidas/${partidaId}/encerrar-rodada`,
+      `/jogos/${partidaId}/fechar`,
+      `/partidas/${partidaId}/finalizar`,
+      `/jogos/${partidaId}/finalizar`,
+    ];
+    let ultimoErro = null;
+    for (const caminho of caminhos) {
+      try {
+        return await api(caminho, opts);
+      } catch (err) {
+        ultimoErro = err;
+      }
     }
+    throw ultimoErro || new Error("Não deu para finalizar a partida");
   },
   desfazerUltimoEvento: (partidaId) =>
     api(`/partidas/${partidaId}/desfazer-evento`, { method: "POST", body: "{}" }),
