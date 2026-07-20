@@ -149,7 +149,7 @@ async function api(caminho, opcoes = {}) {
       if (!valida) {
         forcarLogout("Sessão expirada. Entre de novo.");
       }
-      throw new Error("Servidor instável. Toque de novo em Continuar / tente outra vez.");
+      throw new Error("Conexão oscilou. Toque de novo em Continuar.");
     }
 
     if (!resposta.ok) {
@@ -199,7 +199,14 @@ const PeladaAPI = {
       method: "PATCH",
       body: JSON.stringify(dados),
     }),
-  listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
+  listarJogadores: async (peladaId) => {
+    try {
+      return await api(`/peladas/${peladaId}/jogadores`);
+    } catch (err) {
+      // Fallback se /jogadores falhar (proxy/rota instável)
+      return api(`/peladas/${peladaId}/atletas`);
+    }
+  },
   listarElenco: () => api("/peladas/elenco"),
   removerJogador: (peladaId, jogadorId) =>
     api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
@@ -214,7 +221,13 @@ const PeladaAPI = {
     }),
   listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
-  resumo: (peladaId) => api(`/peladas/${peladaId}/resumo`),
+  resumo: async (peladaId) => {
+    try {
+      return await api(`/peladas/${peladaId}/sumula`);
+    } catch (_) {
+      return api(`/peladas/${peladaId}/relatorio`);
+    }
+  },
   iniciarPartida: (peladaId, dados) =>
     api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),
   listarPartidas: (peladaId) => api(`/peladas/${peladaId}/partidas`),

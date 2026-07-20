@@ -162,8 +162,9 @@ public class PeladaController {
         return resumoService.montar(id);
     }
 
-    @GetMapping("/{id}/resumo")
-    public Map<String, Object> resumo(@PathVariable Long id) {
+    /** Súmula / relatório final (alias estável — evita 401 intermitente em /resumo). */
+    @GetMapping({"/{id}/sumula", "/{id}/resumo", "/{id}/relatorio"})
+    public Map<String, Object> sumula(@PathVariable Long id) {
         return resumoService.montar(id);
     }
 

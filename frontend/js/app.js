@@ -1031,23 +1031,34 @@ document.getElementById("btn-sair").addEventListener("click", () => {
 });
 
 document.getElementById("btn-continuar").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-continuar");
+  btn.disabled = true;
   try {
-    // Sempre busca de novo a pelada ativa (evita estado velho)
-    const ativa = await PeladaAPI.ativa();
-    if (!ativa || !ativa.id) {
-      toast("Nenhuma pelada ativa");
-      document.getElementById("box-continuar").classList.add("oculto");
-      return;
+    toast("Abrindo pelada…");
+    let ultimoErro = null;
+    for (let t = 1; t <= 3; t++) {
+      try {
+        const ativa = await PeladaAPI.ativa();
+        if (!ativa || !ativa.id) {
+          toast("Nenhuma pelada ativa");
+          document.getElementById("box-continuar").classList.add("oculto");
+          return;
+        }
+        estado.peladaAtiva = ativa;
+        await retomarPelada(ativa);
+        return;
+      } catch (err) {
+        ultimoErro = err;
+        if (!getToken()) throw err;
+        if (t < 3) {
+          toast(`Tentativa ${t}/3… aguarde`);
+          await new Promise((r) => setTimeout(r, 1500 * t));
+        }
+      }
     }
-    estado.peladaAtiva = ativa;
-    await retomarPelada(ativa);
-  } catch (err) {
-    // Não manda pra login se o token ainda está salvo — só avisa
-    if (getToken()) {
-      toast(err.message || "Não deu para continuar. Espere 10s e tente de novo.");
-    } else {
-      toast(err.message);
-    }
+    toast(ultimoErro?.message || "Não deu para continuar. Espere 10s e tente de novo.");
+  } finally {
+    btn.disabled = false;
   }
 });
 
