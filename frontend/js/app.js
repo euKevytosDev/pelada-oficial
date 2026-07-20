@@ -914,21 +914,29 @@ async function retomarPelada(pelada) {
 }
 
 async function bootAuth() {
-  if (!getToken()) {
+  if (!getToken() || !getUsuario()) {
     limparSessao();
     mostrarTela("tela-auth");
     atualizarUserBar();
     return;
   }
+
+  // Já tem login salvo no celular — entra direto (não pede senha de novo)
+  atualizarUserBar();
   try {
-    // valida o token com uma chamada leve
     await PeladaAPI.ativa();
     await entrarNaHome();
-  } catch (_) {
-    limparSessao();
-    mostrarTela("tela-auth");
-    atualizarUserBar();
-    toast("Faça login para continuar");
+  } catch (err) {
+    // api() só limpa sessão em 401/403 reais
+    if (!getToken()) {
+      mostrarTela("tela-auth");
+      atualizarUserBar();
+      toast(err.message || "Faça login para continuar");
+      return;
+    }
+    // Servidor acordando / rede: mantém login e mostra a home
+    toast("Servidor acordando… se travar, abra de novo em 1 minuto");
+    await entrarNaHome();
   }
 }
 

@@ -2,8 +2,7 @@
  * Comunicação com o backend Spring Boot + token JWT.
  *
  * Local: localhost:8080
- * Produção: defina API_BASE_PROD após o deploy na Render
- * (ou localStorage.setItem("pelada_api", "https://....onrender.com/api"))
+ * Produção: API na Render (sessão fica salva no celular até expirar / Sair).
  */
 const API_BASE_PROD = "https://pelada-oficial.onrender.com/api";
 const API_BASE =
@@ -40,66 +39,118 @@ function limparSessao() {
   localStorage.removeItem(PELADA_KEY);
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function forcarLogout(mensagem) {
+  limparSessao();
+  if (typeof mostrarTela === "function") {
+    mostrarTela("tela-auth");
+  }
+  if (typeof atualizarUserBar === "function") {
+    atualizarUserBar();
+  }
+  throw new Error(mensagem || "Faça login para continuar");
+}
+
+/**
+ * true = Render dormindo / rede (não desloga).
+ * false = erro real da API.
+ */
+function pareceServidorAcordando(resposta, corpoTexto) {
+  if ([502, 503, 504].includes(resposta.status)) return true;
+  if (resposta.status === 404) {
+    const ct = resposta.headers.get("content-type") || "";
+    if (!ct.includes("json") && (corpoTexto || "").trim() === "Not Found") return true;
+  }
+  return false;
+}
+
 async function api(caminho, opcoes = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(opcoes.headers || {}),
-  };
-  const token = getToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  const maxTentativas = opcoes.retry === false ? 1 : 5;
+  let ultimoErro = null;
 
-  const resposta = await fetch(`${API_BASE}${caminho}`, {
-    ...opcoes,
-    headers,
-  });
-
-  // 401/403 = precisa logar de novo
-  if (resposta.status === 401 || resposta.status === 403) {
-    limparSessao();
-    if (typeof mostrarTela === "function") {
-      mostrarTela("tela-auth");
-    }
-    if (typeof atualizarUserBar === "function") {
-      atualizarUserBar();
-    }
-    let mensagem = "Faça login para continuar";
+  for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+    let resposta;
     try {
-      const erro = await resposta.json();
-      mensagem = erro.message || mensagem;
+      const headers = {
+        "Content-Type": "application/json",
+        ...(opcoes.headers || {}),
+      };
+      const token = getToken();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      resposta = await fetch(`${API_BASE}${caminho}`, {
+        ...opcoes,
+        headers,
+        retry: undefined,
+      });
     } catch (_) {
-      /* ignore */
+      ultimoErro = new Error("Sem conexão com o servidor");
+      if (tentativa < maxTentativas) {
+        await sleep(1500 * tentativa);
+        continue;
+      }
+      throw ultimoErro;
     }
-    throw new Error(mensagem);
-  }
 
-  if (!resposta.ok) {
-    let mensagem = "Erro na API";
-    try {
-      const erro = await resposta.json();
-      mensagem = erro.message || erro.error || mensagem;
-    } catch (_) {
-      mensagem = `Erro HTTP ${resposta.status}`;
+    // Só desloga em 401/403 reais da API (JSON), não em falha de cold start
+    if (resposta.status === 401 || resposta.status === 403) {
+      const ct = resposta.headers.get("content-type") || "";
+      if (ct.includes("json")) {
+        let mensagem = "Faça login para continuar";
+        try {
+          const erro = await resposta.json();
+          mensagem = erro.message || mensagem;
+        } catch (_) {
+          /* ignore */
+        }
+        forcarLogout(mensagem);
+      }
+      // 401 genérico sem JSON → tenta de novo (servidor estranho)
+      if (tentativa < maxTentativas) {
+        await sleep(1500 * tentativa);
+        continue;
+      }
+      forcarLogout("Faça login para continuar");
     }
-    throw new Error(mensagem);
+
+    if (!resposta.ok) {
+      const texto = await resposta.text();
+      if (pareceServidorAcordando(resposta, texto) && tentativa < maxTentativas) {
+        await sleep(2000 * tentativa);
+        continue;
+      }
+      let mensagem = `Erro HTTP ${resposta.status}`;
+      try {
+        const erro = JSON.parse(texto);
+        mensagem = erro.message || erro.error || mensagem;
+      } catch (_) {
+        if (texto && texto.length < 120) mensagem = texto;
+      }
+      throw new Error(mensagem);
+    }
+
+    if (resposta.status === 204) {
+      return null;
+    }
+
+    const texto = await resposta.text();
+    if (!texto) {
+      return null;
+    }
+    return JSON.parse(texto);
   }
 
-  if (resposta.status === 204) {
-    return null;
-  }
-
-  const texto = await resposta.text();
-  if (!texto) {
-    return null;
-  }
-
-  return JSON.parse(texto);
+  throw ultimoErro || new Error("Servidor indisponível. Tente de novo.");
 }
 
 const AuthAPI = {
-  cadastro: (dados) => api("/auth/cadastro", { method: "POST", body: JSON.stringify(dados) }),
-  login: (dados) => api("/auth/login", { method: "POST", body: JSON.stringify(dados) }),
+  cadastro: (dados) => api("/auth/cadastro", { method: "POST", body: JSON.stringify(dados), retry: false }),
+  login: (dados) => api("/auth/login", { method: "POST", body: JSON.stringify(dados), retry: false }),
 };
 
 const PeladaAPI = {
