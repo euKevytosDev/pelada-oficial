@@ -46,9 +46,23 @@ async function api(caminho, opcoes = {}) {
     headers,
   });
 
-  if (resposta.status === 401) {
+  // 401/403 = precisa logar de novo
+  if (resposta.status === 401 || resposta.status === 403) {
     limparSessao();
-    throw new Error("Sessão expirada. Faça login de novo.");
+    if (typeof mostrarTela === "function") {
+      mostrarTela("tela-auth");
+    }
+    if (typeof atualizarUserBar === "function") {
+      atualizarUserBar();
+    }
+    let mensagem = "Faça login para continuar";
+    try {
+      const erro = await resposta.json();
+      mensagem = erro.message || mensagem;
+    } catch (_) {
+      /* ignore */
+    }
+    throw new Error(mensagem);
   }
 
   if (!resposta.ok) {

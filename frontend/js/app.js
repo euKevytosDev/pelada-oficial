@@ -558,11 +558,21 @@ async function retomarPelada(pelada) {
 
 async function bootAuth() {
   if (!getToken()) {
+    limparSessao();
     mostrarTela("tela-auth");
     atualizarUserBar();
     return;
   }
-  await entrarNaHome();
+  try {
+    // valida o token com uma chamada leve
+    await PeladaAPI.ativa();
+    await entrarNaHome();
+  } catch (_) {
+    limparSessao();
+    mostrarTela("tela-auth");
+    atualizarUserBar();
+    toast("Faça login para continuar");
+  }
 }
 
 /* ---------- eventos auth ---------- */
