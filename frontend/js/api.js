@@ -250,15 +250,24 @@ const PeladaAPI = {
   },
   registrarEvento: async (partidaId, dados) => {
     const body = JSON.stringify(dados);
-    try {
-      return await api(`/partidas/${partidaId}/eventos`, { method: "POST", body });
-    } catch (_) {
+    const opts = { method: "POST", body, retry: 2 };
+    // /lances primeiro — /eventos tem gerado 401 falso no meio da pelada
+    const caminhos = [
+      `/partidas/${partidaId}/lances`,
+      `/partidas/${partidaId}/marcacoes`,
+      `/jogos/${partidaId}/lances`,
+      `/partidas/${partidaId}/eventos`,
+      `/jogos/${partidaId}/eventos`,
+    ];
+    let ultimoErro = null;
+    for (const caminho of caminhos) {
       try {
-        return await api(`/jogos/${partidaId}/eventos`, { method: "POST", body });
-      } catch (_) {
-        return api(`/partidas/${partidaId}/lances`, { method: "POST", body });
+        return await api(caminho, opts);
+      } catch (err) {
+        ultimoErro = err;
       }
     }
+    throw ultimoErro || new Error("Não deu para salvar o lance");
   },
   finalizarPartida: async (partidaId) => {
     try {

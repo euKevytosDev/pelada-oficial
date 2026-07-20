@@ -643,108 +643,171 @@ async function registrarEventoAoVivo(tipo) {
   const partida = estado.partidaAtual;
   if (!partida) return;
 
+  let timeId;
+  let jogadorId;
+  let goleiroId = null;
+  let goleiroNome = null;
+  let jogadoresDoTime = [];
+
   if (tipo === "GOL_CONTRA") {
-    const timeId = await escolherOpcao("Time que sofreu o gol contra?", [
+    timeId = await escolherOpcao("Time que sofreu o gol contra?", [
       { id: partida.timeA.id, label: partida.timeA.nome },
       { id: partida.timeB.id, label: partida.timeB.nome },
     ]);
     if (!timeId) return;
 
-    const jogadoresDoTime =
+    jogadoresDoTime =
       timeId === partida.timeA.id ? partida.jogadoresTimeA : partida.jogadoresTimeB;
 
-    const jogadorId = await escolherOpcao(
+    jogadorId = await escolherOpcao(
       "Quem fez o gol contra?",
       jogadoresDoTime.map((j) => ({ id: j.id, label: j.nome }))
     );
     if (!jogadorId) return;
+  } else {
+    timeId = await escolherOpcao("Qual time?", [
+      { id: partida.timeA.id, label: partida.timeA.nome },
+      { id: partida.timeB.id, label: partida.timeB.nome },
+    ]);
+    if (!timeId) return;
 
-    const resposta = await PeladaAPI.registrarEvento(partida.id, { tipo, timeId, jogadorId });
-    aplicarRespostaPartida(resposta, partida.id, {
-      tipo,
-      timeId,
-      jogadorId,
-      jogadoresDoTime,
-    });
-    toast("Gol contra! Placar para o adversário");
-    return;
-  }
+    jogadoresDoTime =
+      timeId === partida.timeA.id ? partida.jogadoresTimeA : partida.jogadoresTimeB;
 
-  const timeId = await escolherOpcao("Qual time?", [
-    { id: partida.timeA.id, label: partida.timeA.nome },
-    { id: partida.timeB.id, label: partida.timeB.nome },
-  ]);
-  if (!timeId) return;
-
-  const jogadoresDoTime =
-    timeId === partida.timeA.id ? partida.jogadoresTimeA : partida.jogadoresTimeB;
-
-  const jogadorId = await escolherOpcao(
-    tipo === "GOL" ? "Quem fez o gol?" : "Qual jogador?",
-    jogadoresDoTime.map((j) => ({ id: j.id, label: j.nome }))
-  );
-  if (!jogadorId) return;
-
-  let goleiroId = null;
-  let goleiroNome = null;
-  if (tipo === "GOL") {
-    const timeDefensorId = timeId === partida.timeA.id ? partida.timeB.id : partida.timeA.id;
-    const goleiros = partida.goleirosPelada || [];
-
-    if (!goleiros.length) {
-      toast("Cadastre goleiros para marcar o gol");
-      return;
-    }
-
-    const ordenados = [...goleiros].sort((a, b) => {
-      const aDoTime = a.timeId === timeDefensorId ? 0 : 1;
-      const bDoTime = b.timeId === timeDefensorId ? 0 : 1;
-      return aDoTime - bDoTime;
-    });
-
-    goleiroId = await escolherOpcao(
-      "Goleiro que sofreu? (pode emprestar)",
-      ordenados.map((g) => ({
-        id: g.id,
-        label:
-          g.timeId === timeDefensorId
-            ? `${g.nome} (do time)`
-            : g.timeId
-              ? `${g.nome} (emprestado)`
-              : `${g.nome} (livre)`,
-      }))
+    jogadorId = await escolherOpcao(
+      tipo === "GOL" ? "Quem fez o gol?" : "Qual jogador?",
+      jogadoresDoTime.map((j) => ({ id: j.id, label: j.nome }))
     );
-    if (!goleiroId) return;
-    goleiroNome = (ordenados.find((g) => g.id === goleiroId) || {}).nome;
+    if (!jogadorId) return;
+
+    if (tipo === "GOL") {
+      const timeDefensorId = timeId === partida.timeA.id ? partida.timeB.id : partida.timeA.id;
+      const goleiros = partida.goleirosPelada || [];
+
+      if (!goleiros.length) {
+        toast("Cadastre goleiros para marcar o gol");
+        return;
+      }
+
+      const ordenados = [...goleiros].sort((a, b) => {
+        const aDoTime = a.timeId === timeDefensorId ? 0 : 1;
+        const bDoTime = b.timeId === timeDefensorId ? 0 : 1;
+        return aDoTime - bDoTime;
+      });
+
+      goleiroId = await escolherOpcao(
+        "Goleiro que sofreu? (pode emprestar)",
+        ordenados.map((g) => ({
+          id: g.id,
+          label:
+            g.timeId === timeDefensorId
+              ? `${g.nome} (do time)`
+              : g.timeId
+                ? `${g.nome} (emprestado)`
+                : `${g.nome} (livre)`,
+        }))
+      );
+      if (!goleiroId) return;
+      goleiroNome = (ordenados.find((g) => g.id === goleiroId) || {}).nome;
+    }
   }
 
-  const resposta = await PeladaAPI.registrarEvento(partida.id, {
-    tipo,
-    timeId,
-    jogadorId,
-    goleiroId,
-  });
-  aplicarRespostaPartida(resposta, partida.id, {
+  const contexto = {
     tipo,
     timeId,
     jogadorId,
     goleiroId,
     goleiroNome,
     jogadoresDoTime,
-  });
-  toast(tipo === "GOL" ? "Gol!" : "Cartão registrado");
+  };
+
+  // 1) Atualiza placar NA HORA (não espera a API)
+  aplicarRespostaPartida(null, partida.id, contexto);
+  toast(tipo === "GOL" ? "Gol!" : tipo === "GOL_CONTRA" ? "Gol contra!" : "Cartão registrado");
+
+  // 2) Grava no servidor; se falhar, tenta de novo em segundo plano
+  const payload = { tipo, timeId, jogadorId, goleiroId };
+  try {
+    const resposta = await PeladaAPI.registrarEvento(partida.id, payload);
+    aplicarRespostaPartida(resposta, partida.id, contexto);
+  } catch (_) {
+    toast("Lance na tela — sincronizando…");
+    enfileirarLancePendente(partida.id, payload, contexto);
+  }
 }
 
-/** Atualiza a tela com a partida da API; se vier só o evento (API antiga), aplica no placar local. */
+const filaLancesPendentes = [];
+let sincronizandoLances = false;
+
+function enfileirarLancePendente(partidaId, payload, contexto) {
+  filaLancesPendentes.push({ partidaId, payload, contexto, tentativas: 0 });
+  sincronizarLancesPendentes();
+}
+
+async function sincronizarLancesPendentes() {
+  if (sincronizandoLances) return;
+  sincronizandoLances = true;
+  try {
+    while (filaLancesPendentes.length) {
+      const item = filaLancesPendentes[0];
+      try {
+        const resposta = await PeladaAPI.registrarEvento(item.partidaId, item.payload);
+        aplicarRespostaPartida(resposta, item.partidaId, item.contexto);
+        filaLancesPendentes.shift();
+        toast("Lance sincronizado");
+      } catch (_) {
+        item.tentativas += 1;
+        if (item.tentativas >= 8) {
+          filaLancesPendentes.shift();
+          toast("Um lance não sincronizou — anote e marque de novo se precisar");
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000 * item.tentativas));
+      }
+    }
+  } finally {
+    sincronizandoLances = false;
+  }
+}
+
+/** Atualiza a tela com a partida da API; se não houver resposta, aplica no placar local. */
 function aplicarRespostaPartida(resposta, partidaId, contexto) {
   if (resposta && resposta.timeA && Array.isArray(resposta.eventos)) {
+    const atual = estado.partidaAtual;
+    if (atual && atual.id === partidaId) {
+      const pend = filaLancesPendentes.filter((i) => i.partidaId === partidaId).length;
+      const golsServer = (resposta.golsTimeA || 0) + (resposta.golsTimeB || 0);
+      const golsLocal = (atual.golsTimeA || 0) + (atual.golsTimeB || 0);
+      // Resposta atrasada não pode apagar gol que já está na tela
+      if (pend > 0 && golsServer < golsLocal) {
+        return;
+      }
+      if (golsServer < golsLocal && (atual.eventos || []).some((e) => e._local)) {
+        return;
+      }
+    }
     renderPartida(resposta);
     return;
   }
 
-  // Fallback otimista: gol já salvou, atualiza a tela na hora sem segunda chamada
+  if (!contexto) return;
+
   const base = estado.partidaAtual;
   if (!base || base.id !== partidaId) return;
+
+  const jogador = (contexto.jogadoresDoTime || []).find((j) => j.id === contexto.jogadorId);
+  const timeNome =
+    contexto.timeId === base.timeA.id ? base.timeA.nome : base.timeB.nome;
+
+  const jaTemLocal = (base.eventos || []).some(
+    (e) =>
+      e._local &&
+      e.tipo === contexto.tipo &&
+      e.jogadorId === contexto.jogadorId &&
+      e.timeId === contexto.timeId &&
+      e.goleiroId === (contexto.goleiroId || null)
+  );
+  if (jaTemLocal && !resposta) return;
 
   const atualizada = {
     ...base,
@@ -753,37 +816,29 @@ function aplicarRespostaPartida(resposta, partidaId, contexto) {
     eventos: [...(base.eventos || [])],
   };
 
-  const jogador = (contexto.jogadoresDoTime || []).find((j) => j.id === contexto.jogadorId);
-  const timeNome =
-    contexto.timeId === base.timeA.id ? base.timeA.nome : base.timeB.nome;
+  if (!jaTemLocal) {
+    if (contexto.tipo === "GOL") {
+      if (contexto.timeId === base.timeA.id) atualizada.golsTimeA += 1;
+      else atualizada.golsTimeB += 1;
+    } else if (contexto.tipo === "GOL_CONTRA") {
+      if (contexto.timeId === base.timeA.id) atualizada.golsTimeB += 1;
+      else atualizada.golsTimeA += 1;
+    }
 
-  if (contexto.tipo === "GOL") {
-    if (contexto.timeId === base.timeA.id) atualizada.golsTimeA += 1;
-    else atualizada.golsTimeB += 1;
-  } else if (contexto.tipo === "GOL_CONTRA") {
-    if (contexto.timeId === base.timeA.id) atualizada.golsTimeB += 1;
-    else atualizada.golsTimeA += 1;
+    atualizada.eventos.push({
+      id: `local-${Date.now()}`,
+      _local: true,
+      tipo: contexto.tipo,
+      timeId: contexto.timeId,
+      timeNome,
+      jogadorId: contexto.jogadorId,
+      jogadorNome: jogador?.nome || "Jogador",
+      goleiroId: contexto.goleiroId || null,
+      goleiroNome: contexto.goleiroNome || null,
+    });
   }
 
-  atualizada.eventos.push({
-    id: resposta?.id || Date.now(),
-    tipo: contexto.tipo,
-    timeId: contexto.timeId,
-    timeNome,
-    jogadorId: contexto.jogadorId,
-    jogadorNome: jogador?.nome || "Jogador",
-    goleiroId: contexto.goleiroId || null,
-    goleiroNome: contexto.goleiroNome || null,
-  });
-
   renderPartida(atualizada);
-
-  // sincroniza em segundo plano (se falhar, a tela já está certa)
-  PeladaAPI.buscarPartida(partidaId)
-    .then((p) => {
-      if (p && p.timeA) renderPartida(p);
-    })
-    .catch(() => {});
 }
 
 async function finalizarPartidaAtual() {

@@ -57,7 +57,13 @@ public class PartidaController {
         return toPartidaMap(partidaService.buscar(id));
     }
 
-    @PostMapping({"/partidas/{id}/eventos", "/jogos/{id}/eventos", "/partidas/{id}/lances"})
+    @PostMapping({
+            "/partidas/{id}/lances",
+            "/partidas/{id}/marcacoes",
+            "/jogos/{id}/lances",
+            "/partidas/{id}/eventos",
+            "/jogos/{id}/eventos"
+    })
     public Map<String, Object> registrarEvento(@PathVariable Long id,
                                                @Valid @RequestBody RegistrarEventoRequest request) {
         partidaService.registrarEvento(id, request);

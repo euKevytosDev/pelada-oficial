@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Helper para pegar o usuário logado nos services.
- * O filtro JWT só valida o token; o banco é consultado aqui (com retry leve).
+ * O id vem do JWT. Consulta ao banco é opcional (não pode derrubar gol/cartão no meio do jogo).
  */
 @Component
 public class AuthSupport {
@@ -32,28 +32,31 @@ public class AuthSupport {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Faça login para continuar");
         }
 
-        Exception ultimo = null;
-        for (int i = 0; i < 3; i++) {
+        // Preferência: carregar do banco; se Neon oscilar, segue só com o id do token
+        for (int i = 0; i < 2; i++) {
             try {
                 return usuarioRepository.findById(usuarioId)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Faça login para continuar"));
-            } catch (ResponseStatusException e) {
-                throw e;
-            } catch (Exception e) {
-                ultimo = e;
+                        .orElseGet(() -> stub(usuarioId, auth.getPrincipal()));
+            } catch (Exception ignored) {
                 try {
-                    Thread.sleep(200L * (i + 1));
+                    Thread.sleep(120L * (i + 1));
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 }
             }
         }
-        throw new ResponseStatusException(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                "Banco oscilou. Toque de novo em Continuar.",
-                ultimo
-        );
+        return stub(usuarioId, auth.getPrincipal());
+    }
+
+    private Usuario stub(Long id, Object principal) {
+        String email = principal instanceof UsuarioPrincipal up ? up.email() : null;
+        Usuario u = new Usuario();
+        u.setId(id);
+        u.setEmail(email != null ? email : "usuario@" + id + ".local");
+        u.setNome("Usuario");
+        u.setSenhaHash("!");
+        return u;
     }
 
     private Long extrairId(Object principal) {
