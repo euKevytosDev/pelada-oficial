@@ -723,24 +723,66 @@ async function registrarEventoAoVivo(tipo) {
 
   // 1) Atualiza placar NA HORA (não espera a API)
   aplicarRespostaPartida(null, partida.id, contexto);
-  toast(tipo === "GOL" ? "Gol!" : tipo === "GOL_CONTRA" ? "Gol contra!" : "Cartão registrado");
+  toast(tipo === "GOL" ? "Gol na tela…" : tipo === "GOL_CONTRA" ? "Gol contra na tela…" : "Cartão na tela…");
 
   // 2) Grava no servidor; se falhar, tenta de novo em segundo plano
   const payload = { tipo, timeId, jogadorId, goleiroId };
   try {
     const resposta = await PeladaAPI.registrarEvento(partida.id, payload);
     aplicarRespostaPartida(resposta, partida.id, contexto);
+    toast(tipo === "GOL" ? "Gol salvo!" : tipo === "GOL_CONTRA" ? "Gol contra salvo!" : "Cartão salvo!");
   } catch (_) {
-    toast("Lance na tela — sincronizando…");
+    toast("Ainda não gravou no servidor — tentando de novo…");
     enfileirarLancePendente(partida.id, payload, contexto);
   }
 }
 
-const filaLancesPendentes = [];
+const FILA_LANCES_KEY = "pelada_fila_lances";
+const FILA_FINALIZAR_KEY = "pelada_fila_finalizar";
+
+function carregarFilaLances() {
+  try {
+    return JSON.parse(localStorage.getItem(FILA_LANCES_KEY) || "[]");
+  } catch (_) {
+    return [];
+  }
+}
+
+function salvarFilaLances(fila) {
+  localStorage.setItem(FILA_LANCES_KEY, JSON.stringify(fila));
+}
+
+function carregarFilaFinalizar() {
+  try {
+    return JSON.parse(localStorage.getItem(FILA_FINALIZAR_KEY) || "[]");
+  } catch (_) {
+    return [];
+  }
+}
+
+function salvarFilaFinalizar(fila) {
+  localStorage.setItem(FILA_FINALIZAR_KEY, JSON.stringify(fila));
+}
+
+const filaLancesPendentes = carregarFilaLances();
 let sincronizandoLances = false;
 
 function enfileirarLancePendente(partidaId, payload, contexto) {
-  filaLancesPendentes.push({ partidaId, payload, contexto, tentativas: 0 });
+  filaLancesPendentes.push({
+    partidaId,
+    payload,
+    contexto: contexto
+      ? {
+          tipo: contexto.tipo,
+          timeId: contexto.timeId,
+          jogadorId: contexto.jogadorId,
+          goleiroId: contexto.goleiroId || null,
+          goleiroNome: contexto.goleiroNome || null,
+        }
+      : null,
+    tentativas: 0,
+  });
+  salvarFilaLances(filaLancesPendentes);
   sincronizarLancesPendentes();
 }
 
@@ -752,17 +794,22 @@ async function sincronizarLancesPendentes() {
       const item = filaLancesPendentes[0];
       try {
         const resposta = await PeladaAPI.registrarEvento(item.partidaId, item.payload);
-        aplicarRespostaPartida(resposta, item.partidaId, item.contexto);
+        if (estado.partidaAtual && estado.partidaAtual.id === item.partidaId) {
+          aplicarRespostaPartida(resposta, item.partidaId, item.contexto);
+        }
         filaLancesPendentes.shift();
-        toast("Lance sincronizado");
+        salvarFilaLances(filaLancesPendentes);
+        toast("Lance gravado no servidor");
       } catch (_) {
-        item.tentativas += 1;
-        if (item.tentativas >= 8) {
+        item.tentativas = (item.tentativas || 0) + 1;
+        salvarFilaLances(filaLancesPendentes);
+        if (item.tentativas >= 12) {
           filaLancesPendentes.shift();
-          toast("Um lance não sincronizou — anote e marque de novo se precisar");
+          salvarFilaLances(filaLancesPendentes);
+          toast("Lance não gravou — marque de novo se sumir no Continuar");
           break;
         }
-        await new Promise((r) => setTimeout(r, 2000 * item.tentativas));
+        await new Promise((r) => setTimeout(r, 2000 * Math.min(item.tentativas, 5)));
       }
     }
   } finally {
@@ -846,45 +893,51 @@ async function finalizarPartidaAtual() {
   const partida = estado.partidaAtual;
   const partidaId = partida.id;
 
-  // Garante gols locais pendentes antes de fechar
   if (filaLancesPendentes.length) {
-    toast("Sincronizando lances…");
+    toast("Gravando lances pendentes antes de fechar…");
     await sincronizarLancesPendentes();
   }
 
-  // Atualiza classificação na hora (mesmo se a API oscilar)
-  const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
-  estado.partidaAtual = null;
-  if (timesLocais.length) {
-    estado.times = timesLocais;
-    renderClassificacao(timesLocais, "tabela-classificacao");
-  }
-  mostrarTela("tela-classificacao");
-  toast("Partida finalizada");
+  toast("Fechando partida no servidor…");
 
   try {
     const resultado = await PeladaAPI.finalizarPartida(partidaId);
+    estado.partidaAtual = null;
     if (resultado && Array.isArray(resultado.times) && resultado.times.length) {
       estado.times = resultado.times;
       renderClassificacao(resultado.times, "tabela-classificacao");
     } else {
+      const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
+      if (timesLocais.length) {
+        estado.times = timesLocais;
+        renderClassificacao(timesLocais, "tabela-classificacao");
+      }
       await irParaClassificacao().catch(() => {});
     }
+    mostrarTela("tela-classificacao");
     carregarPainelCorrecao().catch(() => {});
     carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
-    toast("Pontos atualizados");
+    toast("Partida finalizada de verdade");
   } catch (_) {
-    toast("Tela ok — sincronizando finalização…");
+    const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
+    estado.partidaAtual = null;
+    if (timesLocais.length) {
+      estado.times = timesLocais;
+      renderClassificacao(timesLocais, "tabela-classificacao");
+    }
+    mostrarTela("tela-classificacao");
+    toast("Tela mudou, mas ainda NÃO fechou no servidor — tentando…");
     enfileirarFinalizacaoPendente(partidaId);
   }
 }
 
-const filaFinalizacoesPendentes = [];
+const filaFinalizacoesPendentes = carregarFilaFinalizar();
 let sincronizandoFinalizacoes = false;
 
 function enfileirarFinalizacaoPendente(partidaId) {
   if (!filaFinalizacoesPendentes.includes(partidaId)) {
     filaFinalizacoesPendentes.push(partidaId);
+    salvarFilaFinalizar(filaFinalizacoesPendentes);
   }
   sincronizarFinalizacoesPendentes();
 }
@@ -893,6 +946,7 @@ async function sincronizarFinalizacoesPendentes() {
   if (sincronizandoFinalizacoes) return;
   sincronizandoFinalizacoes = true;
   try {
+    let tentativasSeguidas = 0;
     while (filaFinalizacoesPendentes.length) {
       const id = filaFinalizacoesPendentes[0];
       try {
@@ -902,24 +956,24 @@ async function sincronizarFinalizacoesPendentes() {
           renderClassificacao(resultado.times, "tabela-classificacao");
         }
         filaFinalizacoesPendentes.shift();
-        toast("Finalização sincronizada");
+        salvarFilaFinalizar(filaFinalizacoesPendentes);
+        tentativasSeguidas = 0;
+        toast("Finalização gravada no servidor");
       } catch (err) {
-        // Já estava finalizada no servidor
-        if (String(err.message || "").toLowerCase().includes("finalizada")) {
+        const msg = String(err.message || "").toLowerCase();
+        if (msg.includes("finalizada") || msg.includes("não encontrada") || msg.includes("nao encontrada")) {
           filaFinalizacoesPendentes.shift();
+          salvarFilaFinalizar(filaFinalizacoesPendentes);
           await irParaClassificacao().catch(() => {});
+          toast("Partida já estava finalizada");
           break;
         }
-        await new Promise((r) => setTimeout(r, 2500));
-        // evita loop infinito: tenta no máx ~8 vezes nesta rodada
-        if (!filaFinalizacoesPendentes._tentativas) filaFinalizacoesPendentes._tentativas = 0;
-        filaFinalizacoesPendentes._tentativas += 1;
-        if (filaFinalizacoesPendentes._tentativas > 8) {
-          filaFinalizacoesPendentes.shift();
-          filaFinalizacoesPendentes._tentativas = 0;
-          toast("Finalize de novo se a classificação estiver estranha");
+        tentativasSeguidas += 1;
+        if (tentativasSeguidas > 15) {
+          toast("Ainda não fechou no servidor — se voltar à partida, toque Finalizar de novo");
           break;
         }
+        await new Promise((r) => setTimeout(r, 2000 * Math.min(tentativasSeguidas, 6)));
       }
     }
   } finally {
@@ -1402,6 +1456,13 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
 
 montarSeletorEstrelas();
 bootAuth();
+// Se deu refresh no meio da sincronização, continua tentando gravar
+if (filaLancesPendentes.length || filaFinalizacoesPendentes.length) {
+  setTimeout(() => {
+    sincronizarLancesPendentes();
+    sincronizarFinalizacoesPendentes();
+  }, 1500);
+}
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
