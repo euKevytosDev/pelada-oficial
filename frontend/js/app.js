@@ -283,9 +283,9 @@ function renderTimes(times) {
   const grade = document.getElementById("grade-times");
   grade.innerHTML = `
     <p class="dica-times">
-      Goleiros no 1º sorteio: vão para os primeiros times
-      (ex.: 2 goleiros → Time A e Time B).
-      ${semGoleiro > 0 ? `Os ${semGoleiro} sem goleiro emprestam na hora do gol.` : "Todos os times têm goleiro."}
+      Arraste um jogador para outro time (ou toque em <strong>Mover</strong>).
+      Pode desequilibrar as estrelas à vontade.
+      ${semGoleiro > 0 ? ` · ${semGoleiro} time(s) sem goleiro (emprestam na partida).` : " · Todos têm goleiro."}
     </p>
     ${times
       .map((t) => {
@@ -300,15 +300,161 @@ function renderTimes(times) {
         <p class="gk-linha">Goleiro: <strong>${gk}</strong>
           <button type="button" class="btn-mini" data-acao="goleiro" data-time-id="${t.id}">Trocar</button>
         </p>
-        <ul>
+        <ul class="lista-time-jogadores" data-time-id="${t.id}">
           ${t.jogadores
-            .map((j) => `<li>${j.nome} <span class="meta">${estrelasTexto(j.estrelas)}</span></li>`)
+            .map(
+              (j) => `
+            <li class="jogador-arrastavel"
+                draggable="true"
+                data-jogador-id="${j.id}"
+                data-time-origem="${t.id}">
+              <span class="jogador-arraste-handle" aria-hidden="true">⠿</span>
+              <span class="jogador-nome">${j.nome}</span>
+              <span class="meta">${estrelasTexto(j.estrelas)}</span>
+              <button type="button" class="btn-mini" data-acao="mover" data-jogador-id="${j.id}" data-time-origem="${t.id}">Mover</button>
+            </li>`
+            )
             .join("")}
         </ul>
       </article>`;
       })
       .join("")}
   `;
+  ativarArrasteJogadores();
+}
+
+async function moverJogadorParaTime(jogadorId, timeDestinoId) {
+  const times = await PeladaAPI.moverJogador(estado.peladaId, jogadorId, timeDestinoId);
+  renderTimes(times);
+  toast("Jogador movido");
+}
+
+async function escolherTimeParaMover(jogadorId, timeOrigemId) {
+  const destinos = estado.times.filter((t) => t.id !== timeOrigemId);
+  if (!destinos.length) {
+    toast("Só há um time");
+    return;
+  }
+  const timeId = await escolherOpcao(
+    "Mover para qual time?",
+    destinos.map((t) => ({ id: t.id, label: `${t.nome} (${t.totalEstrelas}★)` }))
+  );
+  if (!timeId) return;
+  await moverJogadorParaTime(jogadorId, timeId);
+}
+
+function ativarArrasteJogadores() {
+  const grade = document.getElementById("grade-times");
+  if (!grade) return;
+
+  let arrastandoId = null;
+  let origemId = null;
+  let ghost = null;
+
+  grade.querySelectorAll(".jogador-arrastavel").forEach((li) => {
+    li.addEventListener("dragstart", (e) => {
+      arrastandoId = Number(li.dataset.jogadorId);
+      origemId = Number(li.dataset.timeOrigem);
+      li.classList.add("arrastando");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(arrastandoId));
+    });
+    li.addEventListener("dragend", () => {
+      li.classList.remove("arrastando");
+      grade.querySelectorAll(".time-card").forEach((c) => c.classList.remove("drop-alvo"));
+      arrastandoId = null;
+      origemId = null;
+    });
+
+    // Toque no celular (pointer)
+    li.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button")) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+
+      const jogadorId = Number(li.dataset.jogadorId);
+      const timeOrigem = Number(li.dataset.timeOrigem);
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
+
+      const onMove = (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!moved && Math.hypot(dx, dy) < 8) return;
+        if (!moved) {
+          moved = true;
+          arrastandoId = jogadorId;
+          origemId = timeOrigem;
+          li.classList.add("arrastando");
+          ghost = li.cloneNode(true);
+          ghost.classList.add("ghost-arraste");
+          ghost.style.width = `${li.offsetWidth}px`;
+          document.body.appendChild(ghost);
+          try {
+            li.setPointerCapture(ev.pointerId);
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        ghost.style.transform = `translate(${ev.clientX - 40}px, ${ev.clientY - 20}px)`;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const card = el && el.closest(".time-card");
+        grade.querySelectorAll(".time-card").forEach((c) => {
+          c.classList.toggle("drop-alvo", card === c && Number(c.dataset.timeId) !== timeOrigem);
+        });
+      };
+
+      const onUp = async (ev) => {
+        li.removeEventListener("pointermove", onMove);
+        li.removeEventListener("pointerup", onUp);
+        li.removeEventListener("pointercancel", onUp);
+        if (ghost) {
+          ghost.remove();
+          ghost = null;
+        }
+        li.classList.remove("arrastando");
+        grade.querySelectorAll(".time-card").forEach((c) => c.classList.remove("drop-alvo"));
+
+        if (!moved) return;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const card = el && el.closest(".time-card");
+        const destinoId = card ? Number(card.dataset.timeId) : null;
+        const jId = arrastandoId;
+        arrastandoId = null;
+        origemId = null;
+        if (!destinoId || destinoId === timeOrigem) return;
+        try {
+          await moverJogadorParaTime(jId, destinoId);
+        } catch (err) {
+          toast(err.message);
+        }
+      };
+
+      li.addEventListener("pointermove", onMove);
+      li.addEventListener("pointerup", onUp);
+      li.addEventListener("pointercancel", onUp);
+    });
+  });
+
+  grade.querySelectorAll(".time-card").forEach((card) => {
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      card.classList.add("drop-alvo");
+    });
+    card.addEventListener("dragleave", () => card.classList.remove("drop-alvo"));
+    card.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      card.classList.remove("drop-alvo");
+      const jogadorId = Number(e.dataTransfer.getData("text/plain") || arrastandoId);
+      const destinoId = Number(card.dataset.timeId);
+      if (!jogadorId || !destinoId || destinoId === origemId) return;
+      try {
+        await moverJogadorParaTime(jogadorId, destinoId);
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+  });
 }
 
 function renderPartida(partida) {
@@ -974,6 +1120,9 @@ document.getElementById("grade-times").addEventListener("click", async (e) => {
   try {
     if (btn.dataset.acao === "renomear") await renomearTime(timeId);
     if (btn.dataset.acao === "goleiro") await trocarGoleiroTime(timeId);
+    if (btn.dataset.acao === "mover") {
+      await escolherTimeParaMover(Number(btn.dataset.jogadorId), Number(btn.dataset.timeOrigem));
+    }
   } catch (err) {
     toast(err.message);
   }

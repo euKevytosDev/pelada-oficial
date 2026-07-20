@@ -4,6 +4,7 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.ElencoJogador;
 import br.com.peladaoficial.model.Jogador;
@@ -111,6 +112,15 @@ public class PeladaController {
                                              @PathVariable Long timeId,
                                              @Valid @RequestBody AtualizarTimeRequest request) {
         return toTimeMap(peladaService.atualizarTime(id, timeId, request));
+    }
+
+    @PostMapping("/{id}/jogadores/{jogadorId}/mover")
+    public List<Map<String, Object>> moverJogador(@PathVariable Long id,
+                                                  @PathVariable Long jogadorId,
+                                                  @Valid @RequestBody MoverJogadorRequest request) {
+        return peladaService.moverJogador(id, jogadorId, request).stream()
+                .map(this::toTimeMap)
+                .collect(Collectors.toList());
     }
 
     @PostMapping("/{id}/encerrar")

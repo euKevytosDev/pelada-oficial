@@ -4,6 +4,7 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.ElencoJogadorRepository;
@@ -371,6 +372,53 @@ public class PeladaService {
         }
 
         return time;
+    }
+
+    /**
+     * Move jogador de linha para outro time (livre, sem equilibrar estrelas).
+     * Goleiros continuam sendo trocados pelo fluxo de atualizarTime.
+     */
+    @Transactional
+    public List<Time> moverJogador(Long peladaId, Long jogadorId, MoverJogadorRequest request) {
+        Pelada pelada = buscar(peladaId);
+        if (pelada.getStatus() == StatusPelada.ENCERRADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pelada já encerrada");
+        }
+
+        Jogador jogador = jogadorRepository.findById(jogadorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
+        if (!jogador.getPelada().getId().equals(peladaId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+        }
+        if (Boolean.TRUE.equals(jogador.getGoleiro())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Use Trocar para mover goleiro");
+        }
+
+        Time destino = timeRepository.findById(request.getTimeDestinoId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Time de destino não encontrado"));
+        if (!destino.getPelada().getId().equals(peladaId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time não pertence a esta pelada");
+        }
+        destino.getJogadores().size();
+
+        Time origem = jogador.getTime();
+        if (origem != null && origem.getId().equals(destino.getId())) {
+            return listarTimes(peladaId);
+        }
+
+        if (origem != null) {
+            origem.getJogadores().size();
+            origem.getJogadores().remove(jogador);
+            origem.atualizarNomeAutomaticoSePreciso();
+        }
+
+        jogador.setTime(destino);
+        if (destino.getJogadores().stream().noneMatch(j -> j.getId().equals(jogador.getId()))) {
+            destino.getJogadores().add(jogador);
+        }
+        destino.atualizarNomeAutomaticoSePreciso();
+
+        return listarTimes(peladaId);
     }
 
     @Transactional

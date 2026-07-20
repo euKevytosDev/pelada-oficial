@@ -441,6 +441,51 @@ input:focus, select:focus {
   gap: 6px;
 }
 
+.time-card.drop-alvo {
+  outline: 2px dashed var(--verde-campo);
+  outline-offset: 2px;
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.jogador-arrastavel {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.jogador-arrastavel.arrastando {
+  opacity: 0.45;
+}
+
+.jogador-arraste-handle {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  letter-spacing: -2px;
+}
+
+.jogador-nome {
+  font-weight: 500;
+}
+
+.ghost-arraste {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0.92;
+  box-shadow: var(--sombra);
+  background: #fff;
+  margin: 0;
+}
+
 .placar {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
