@@ -1,8 +1,10 @@
 package br.com.peladaoficial.controller;
 
 import br.com.peladaoficial.dto.AdicionarJogadorRequest;
+import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.model.ElencoJogador;
 import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Pelada;
 import br.com.peladaoficial.model.Time;
@@ -49,6 +51,14 @@ public class PeladaController {
                 .orElseGet(HashMap::new);
     }
 
+    /** Elenco permanente da conta (nomes/estrelas da última pelada encerrada). */
+    @GetMapping("/elenco")
+    public List<Map<String, Object>> listarElenco() {
+        return peladaService.listarElenco().stream()
+                .map(this::toElencoMap)
+                .collect(Collectors.toList());
+    }
+
     @GetMapping("/{id}")
     public Map<String, Object> buscar(@PathVariable Long id) {
         return toPeladaMap(peladaService.buscar(id));
@@ -58,6 +68,13 @@ public class PeladaController {
     public Map<String, Object> adicionarJogador(@PathVariable Long id,
                                                 @Valid @RequestBody AdicionarJogadorRequest request) {
         return toJogadorMap(peladaService.adicionarJogador(id, request));
+    }
+
+    @PatchMapping("/{id}/jogadores/{jogadorId}")
+    public Map<String, Object> atualizarJogador(@PathVariable Long id,
+                                                @PathVariable Long jogadorId,
+                                                @Valid @RequestBody AtualizarJogadorRequest request) {
+        return toJogadorMap(peladaService.atualizarJogador(id, jogadorId, request));
     }
 
     @GetMapping("/{id}/jogadores")
@@ -129,6 +146,15 @@ public class PeladaController {
         map.put("cartoesVermelhos", jogador.getCartoesVermelhos());
         map.put("golsSofridos", jogador.getGolsSofridos());
         map.put("timeId", jogador.getTime() != null ? jogador.getTime().getId() : null);
+        return map;
+    }
+
+    private Map<String, Object> toElencoMap(ElencoJogador e) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", e.getId());
+        map.put("nome", e.getNome());
+        map.put("estrelas", e.getEstrelas());
+        map.put("goleiro", Boolean.TRUE.equals(e.getGoleiro()));
         return map;
     }
 

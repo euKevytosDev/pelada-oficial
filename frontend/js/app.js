@@ -159,6 +159,7 @@ function renderListasCadastro(todos) {
         <span>${j.nome}</span>
         <span class="meta-acoes">
           <span class="meta">${estrelasTexto(j.estrelas)}</span>
+          <button type="button" class="btn-editar" data-editar-id="${j.id}" aria-label="Editar ${j.nome}">Editar</button>
           <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
         </span>
       </li>`
@@ -174,6 +175,7 @@ function renderListasCadastro(todos) {
         <span>${j.nome}</span>
         <span class="meta-acoes">
           <span class="meta">goleiro</span>
+          <button type="button" class="btn-editar" data-editar-id="${j.id}" aria-label="Editar ${j.nome}">Editar</button>
           <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
         </span>
       </li>`
@@ -188,6 +190,90 @@ async function apagarJogador(jogadorId) {
   await PeladaAPI.removerJogador(estado.peladaId, jogadorId);
   await carregarCadastro();
   toast("Removido da lista");
+}
+
+function pedirEdicaoJogador(jogador) {
+  return new Promise((resolve) => {
+    const estrelasIniciais = Number(jogador.estrelas) || 5;
+    const blocoEstrelas = jogador.goleiro
+      ? `<p class="dica-modal">Goleiro não usa estrelas no sorteio.</p>`
+      : `
+        <label class="dica-modal">Estrelas (1 a 10)</label>
+        <div class="modal-estrelas" id="modal-estrelas" role="group"></div>
+        <p class="nivel-num" id="modal-nivel">${estrelasIniciais} ★</p>
+      `;
+
+    abrirModal(
+      "Editar " + (jogador.goleiro ? "goleiro" : "jogador"),
+      `<label>Nome
+         <input type="text" id="modal-input" maxlength="80" value="${String(jogador.nome).replace(/"/g, "&quot;")}" />
+       </label>
+       ${blocoEstrelas}
+       <button type="button" class="btn btn-principal" id="modal-ok">Salvar</button>`
+    );
+
+    let estrelas = estrelasIniciais;
+    if (!jogador.goleiro) {
+      const box = document.getElementById("modal-estrelas");
+      for (let i = 1; i <= 10; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "estrela" + (i <= estrelas ? " ativa" : "");
+        btn.dataset.estrela = String(i);
+        btn.textContent = "★";
+        btn.addEventListener("click", () => {
+          estrelas = i;
+          box.querySelectorAll(".estrela").forEach((b) => {
+            b.classList.toggle("ativa", Number(b.dataset.estrela) <= i);
+          });
+          document.getElementById("modal-nivel").textContent = `${i} ★`;
+        });
+        box.appendChild(btn);
+      }
+    }
+
+    const input = document.getElementById("modal-input");
+    input.focus();
+    input.select();
+
+    const ok = () => {
+      const nome = input.value.trim();
+      if (!nome) {
+        toast("Informe o nome");
+        return;
+      }
+      fecharModal();
+      resolve(jogador.goleiro ? { nome } : { nome, estrelas });
+    };
+
+    document.getElementById("modal-ok").addEventListener("click", ok);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ok();
+    });
+
+    const onCancel = () => {
+      fecharModal();
+      resolve(null);
+    };
+    document.getElementById("modal-fechar").addEventListener("click", onCancel, { once: true });
+    document.getElementById("modal-fundo").addEventListener("click", onCancel, { once: true });
+  });
+}
+
+async function editarJogador(jogadorId) {
+  const todos = await PeladaAPI.listarJogadores(estado.peladaId);
+  const jogador = todos.find((j) => j.id === jogadorId);
+  if (!jogador) {
+    toast("Jogador não encontrado");
+    return;
+  }
+
+  const dados = await pedirEdicaoJogador(jogador);
+  if (!dados) return;
+
+  await PeladaAPI.atualizarJogador(estado.peladaId, jogadorId, dados);
+  await carregarCadastro();
+  toast("Atualizado");
 }
 
 function renderTimes(times) {
@@ -474,13 +560,13 @@ async function finalizarPartidaAtual() {
 }
 
 async function encerrarPelada() {
-  const ok = confirm("Encerrar a pelada agora?");
+  const ok = confirm("Encerrar a pelada agora? Nomes e estrelas serão salvos para a próxima.");
   if (!ok) return;
   const resumo = await PeladaAPI.encerrar(estado.peladaId);
   estado.resumoAtual = resumo;
   renderResumoOficial(resumo);
   mostrarTela("tela-fim");
-  toast("Pelada encerrada · súmula pronta");
+  toast("Pelada encerrada · elenco salvo na conta");
 }
 
 /* ---------- eventos ---------- */
@@ -655,12 +741,17 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
     const pelada = await PeladaAPI.criar({
       nome: document.getElementById("nome-pelada").value.trim(),
       quantidadeTimes: Number(document.getElementById("qtd-times").value),
+      importarElenco: true,
     });
     estado.peladaId = pelada.id;
     localStorage.setItem(PELADA_KEY, String(pelada.id));
-    renderListasCadastro([]);
+    const todos = await carregarCadastro();
     mostrarTela("tela-jogadores");
-    toast("Pelada criada e salva na sua conta!");
+    if (todos.length) {
+      toast(`Elenco carregado: ${todos.length} pessoa(s) da última pelada`);
+    } else {
+      toast("Pelada criada — cadastre os jogadores");
+    }
   } catch (err) {
     toast(err.message);
   }
@@ -698,6 +789,15 @@ document.getElementById("form-goleiro").addEventListener("submit", async (e) => 
 });
 
 document.getElementById("lista-jogadores").addEventListener("click", async (e) => {
+  const editar = e.target.closest("[data-editar-id]");
+  if (editar) {
+    try {
+      await editarJogador(Number(editar.dataset.editarId));
+    } catch (err) {
+      toast(err.message);
+    }
+    return;
+  }
   const btn = e.target.closest("[data-apagar-id]");
   if (!btn) return;
   try {
@@ -708,6 +808,15 @@ document.getElementById("lista-jogadores").addEventListener("click", async (e) =
 });
 
 document.getElementById("lista-goleiros").addEventListener("click", async (e) => {
+  const editar = e.target.closest("[data-editar-id]");
+  if (editar) {
+    try {
+      await editarJogador(Number(editar.dataset.editarId));
+    } catch (err) {
+      toast(err.message);
+    }
+    return;
+  }
   const btn = e.target.closest("[data-apagar-id]");
   if (!btn) return;
   try {

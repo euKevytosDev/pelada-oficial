@@ -17,6 +17,9 @@ public class CriarPeladaRequest {
     @Max(6)
     private Integer quantidadeTimes = 2;
 
+    /** Se true (padrão), traz nomes/estrelas salvos da última pelada. */
+    private Boolean importarElenco = true;
+
     public String getNome() {
         return nome;
     }
@@ -31,5 +34,13 @@ public class CriarPeladaRequest {
 
     public void setQuantidadeTimes(Integer quantidadeTimes) {
         this.quantidadeTimes = quantidadeTimes;
+    }
+
+    public Boolean getImportarElenco() {
+        return importarElenco;
+    }
+
+    public void setImportarElenco(Boolean importarElenco) {
+        this.importarElenco = importarElenco;
     }
 }

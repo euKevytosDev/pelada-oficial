@@ -1,9 +1,11 @@
 package br.com.peladaoficial.service;
 
 import br.com.peladaoficial.dto.AdicionarJogadorRequest;
+import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
 import br.com.peladaoficial.model.*;
+import br.com.peladaoficial.repository.ElencoJogadorRepository;
 import br.com.peladaoficial.repository.JogadorRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 /**
  * Regras da pelada: criar, jogadores/goleiros, sorteio, nomes dos times e encerrar.
  * Cada pelada pertence ao usuário logado.
+ * O elenco (nomes + estrelas) fica salvo na conta para a próxima pelada.
  */
 @Service
 public class PeladaService {
@@ -31,15 +34,18 @@ public class PeladaService {
     private final PeladaRepository peladaRepository;
     private final JogadorRepository jogadorRepository;
     private final TimeRepository timeRepository;
+    private final ElencoJogadorRepository elencoRepository;
     private final AuthSupport authSupport;
 
     public PeladaService(PeladaRepository peladaRepository,
                          JogadorRepository jogadorRepository,
                          TimeRepository timeRepository,
+                         ElencoJogadorRepository elencoRepository,
                          AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
+        this.elencoRepository = elencoRepository;
         this.authSupport = authSupport;
     }
 
@@ -51,7 +57,50 @@ public class PeladaService {
         pelada.setQuantidadeTimes(request.getQuantidadeTimes());
         pelada.setStatus(StatusPelada.AGUARDANDO);
         pelada.setUsuario(dono);
-        return peladaRepository.save(pelada);
+        pelada = peladaRepository.save(pelada);
+
+        if (!Boolean.FALSE.equals(request.getImportarElenco())) {
+            importarElencoParaPelada(dono, pelada);
+        }
+        return pelada;
+    }
+
+    private void importarElencoParaPelada(Usuario dono, Pelada pelada) {
+        List<ElencoJogador> elenco = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+        for (ElencoJogador salvo : elenco) {
+            Jogador j = new Jogador(
+                    salvo.getNome(),
+                    salvo.getEstrelas(),
+                    Boolean.TRUE.equals(salvo.getGoleiro()),
+                    pelada
+            );
+            jogadorRepository.save(j);
+        }
+    }
+
+    /** Salva o elenco atual da pelada na conta (substitui o anterior). */
+    @Transactional
+    public void salvarElencoDaPelada(Long peladaId) {
+        Pelada pelada = buscar(peladaId);
+        Usuario dono = authSupport.usuarioAtual();
+        List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
+
+        elencoRepository.deleteByUsuario(dono);
+        elencoRepository.flush();
+
+        for (Jogador j : jogadores) {
+            elencoRepository.save(new ElencoJogador(
+                    dono,
+                    j.getNome(),
+                    j.getEstrelas(),
+                    Boolean.TRUE.equals(j.getGoleiro())
+            ));
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ElencoJogador> listarElenco() {
+        return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(authSupport.usuarioAtual());
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +148,42 @@ public class PeladaService {
     public List<Jogador> listarJogadores(Long peladaId) {
         buscar(peladaId);
         return jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
+    }
+
+    /** Edita nome/estrelas antes do sorteio (ou enquanto AGUARDANDO / EM_ANDAMENTO sem travar). */
+    @Transactional
+    public Jogador atualizarJogador(Long peladaId, Long jogadorId, AtualizarJogadorRequest request) {
+        Pelada pelada = buscar(peladaId);
+        if (pelada.getStatus() == StatusPelada.ENCERRADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pelada já encerrada");
+        }
+
+        Jogador jogador = jogadorRepository.findById(jogadorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
+        if (!jogador.getPelada().getId().equals(peladaId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+        }
+
+        if (request.getNome() != null) {
+            String nome = request.getNome().trim();
+            if (nome.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nome não pode ser vazio");
+            }
+            jogador.setNome(nome);
+        }
+
+        if (request.getEstrelas() != null) {
+            if (Boolean.TRUE.equals(jogador.getGoleiro())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Goleiro não tem estrelas");
+            }
+            jogador.setEstrelas(request.getEstrelas());
+            // se já está em um time e o nome do time é automático, atualiza
+            if (jogador.getTime() != null) {
+                jogador.getTime().atualizarNomeAutomaticoSePreciso();
+            }
+        }
+
+        return jogador;
     }
 
     /** Remove jogador ou goleiro antes (ou depois) do sorteio, se a pelada não estiver encerrada. */
@@ -288,6 +373,8 @@ public class PeladaService {
         Pelada pelada = buscar(peladaId);
         pelada.setStatus(StatusPelada.ENCERRADA);
         pelada.setEncerradaEm(LocalDateTime.now());
+        // guarda nomes + estrelas para a próxima pelada
+        salvarElencoDaPelada(peladaId);
         return pelada;
     }
 }

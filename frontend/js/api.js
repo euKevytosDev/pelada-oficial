@@ -100,7 +100,13 @@ const PeladaAPI = {
   buscar: (id) => api(`/peladas/${id}`),
   adicionarJogador: (peladaId, dados) =>
     api(`/peladas/${peladaId}/jogadores`, { method: "POST", body: JSON.stringify(dados) }),
+  atualizarJogador: (peladaId, jogadorId, dados) =>
+    api(`/peladas/${peladaId}/jogadores/${jogadorId}`, {
+      method: "PATCH",
+      body: JSON.stringify(dados),
+    }),
   listarJogadores: (peladaId) => api(`/peladas/${peladaId}/jogadores`),
+  listarElenco: () => api("/peladas/elenco"),
   removerJogador: (peladaId, jogadorId) =>
     api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),
