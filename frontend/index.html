@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B3D2E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Pelada Oficial</title>
+  <link rel="stylesheet" href="css/estilo.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <header class="topo">
+      <div class="marca">
+        <span class="marca-bola" aria-hidden="true"></span>
+        <h1>Pelada Oficial</h1>
+      </div>
+      <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
+    </header>
+
+    <main id="conteudo">
+      <!-- Tela inicial -->
+      <section class="tela ativa" id="tela-inicio">
+        <div class="hero-copy">
+          <p>Monte os times, sorteie equilibrado e marque o jogo ao vivo.</p>
+        </div>
+        <form id="form-nova-pelada" class="card-form">
+          <label>
+            Nome da pelada
+            <input type="text" id="nome-pelada" value="Pelada Oficial" maxlength="100" required />
+          </label>
+          <label>
+            Quantidade de times
+            <select id="qtd-times">
+              <option value="2" selected>2 times</option>
+              <option value="3">3 times</option>
+              <option value="4">4 times</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn-principal">Começar pelada</button>
+        </form>
+        <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
+      </section>
+
+      <!-- Cadastro de jogadores -->
+      <section class="tela" id="tela-jogadores">
+        <form id="form-jogador" class="card-form">
+          <label>
+            Nome do jogador
+            <input type="text" id="nome-jogador" placeholder="Ex: Kevin" maxlength="80" required />
+          </label>
+          <label>
+            Estrelas (nível)
+            <div class="estrelas" id="seletor-estrelas" role="group" aria-label="Nível de 1 a 5">
+              <button type="button" data-estrela="1" class="estrela ativa">★</button>
+              <button type="button" data-estrela="2" class="estrela ativa">★</button>
+              <button type="button" data-estrela="3" class="estrela ativa">★</button>
+              <button type="button" data-estrela="4" class="estrela">★</button>
+              <button type="button" data-estrela="5" class="estrela">★</button>
+            </div>
+          </label>
+          <button type="submit" class="btn btn-principal">Adicionar jogador</button>
+        </form>
+
+        <ul class="lista" id="lista-jogadores"></ul>
+
+        <div class="acoes-fixas">
+          <button type="button" class="btn btn-secundario" id="btn-sortear">Sortear times</button>
+        </div>
+      </section>
+
+      <!-- Times sorteados -->
+      <section class="tela" id="tela-times">
+        <div id="grade-times" class="grade-times"></div>
+        <div class="acoes-fixas">
+          <button type="button" class="btn btn-secundario" id="btn-re-sortear">Sortear de novo</button>
+          <button type="button" class="btn btn-principal" id="btn-ir-partida">Iniciar partida</button>
+        </div>
+      </section>
+
+      <!-- Partida ao vivo -->
+      <section class="tela" id="tela-partida">
+        <div class="placar" id="placar">
+          <div class="lado" id="lado-a">
+            <span class="time-nome" id="nome-time-a">Time A</span>
+            <strong class="gols" id="gols-a">0</strong>
+          </div>
+          <span class="vs">x</span>
+          <div class="lado" id="lado-b">
+            <span class="time-nome" id="nome-time-b">Time B</span>
+            <strong class="gols" id="gols-b">0</strong>
+          </div>
+        </div>
+        <p class="rodada" id="texto-rodada">Rodada 1</p>
+
+        <div class="acoes-evento">
+          <button type="button" class="btn btn-gol" data-evento="GOL">Gol</button>
+          <button type="button" class="btn btn-amarelo" data-evento="CARTAO_AMARELO">Amarelo</button>
+          <button type="button" class="btn btn-vermelho" data-evento="CARTAO_VERMELHO">Vermelho</button>
+        </div>
+
+        <ul class="lista eventos" id="lista-eventos"></ul>
+
+        <div class="acoes-fixas">
+          <button type="button" class="btn btn-secundario" id="btn-finalizar-partida">Finalizar partida</button>
+          <button type="button" class="btn btn-perigo" id="btn-encerrar-pelada">Encerrar pelada</button>
+        </div>
+      </section>
+
+      <!-- Classificação -->
+      <section class="tela" id="tela-classificacao">
+        <div id="tabela-classificacao" class="tabela-wrap"></div>
+        <div class="acoes-fixas">
+          <button type="button" class="btn btn-principal" id="btn-nova-rodada">Nova rodada</button>
+          <button type="button" class="btn btn-perigo" id="btn-encerrar-pelada-2">Encerrar pelada</button>
+        </div>
+      </section>
+
+      <!-- Fim -->
+      <section class="tela" id="tela-fim">
+        <div class="fim-box">
+          <h2>Pelada encerrada</h2>
+          <p>Confira o ranking final dos times.</p>
+        </div>
+        <div id="ranking-final" class="tabela-wrap"></div>
+        <div class="acoes-fixas">
+          <button type="button" class="btn btn-principal" id="btn-nova-pelada">Nova pelada</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal genérico para escolher time/jogador -->
+  <div class="modal oculto" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-fundo" id="modal-fundo"></div>
+    <div class="modal-caixa">
+      <h3 id="modal-titulo">Escolha</h3>
+      <div id="modal-corpo"></div>
+      <button type="button" class="btn btn-secundario" id="modal-fechar">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="toast oculto" id="toast"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

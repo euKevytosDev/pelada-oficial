@@ -1,0 +1,19 @@
+# Banco de dados PostgreSQL do Pelada Oficial
+# Para subir: docker compose up -d
+# Para parar: docker compose down
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: pelada-oficial-db
+    environment:
+      POSTGRES_DB: pelada_oficial
+      POSTGRES_USER: pelada
+      POSTGRES_PASSWORD: pelada123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pelada_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  pelada_postgres_data:
