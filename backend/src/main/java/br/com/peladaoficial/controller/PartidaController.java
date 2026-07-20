@@ -51,12 +51,12 @@ public class PartidaController {
         return listarGoleiros(peladaId);
     }
 
-    @GetMapping("/partidas/{id}")
+    @GetMapping({"/partidas/{id}", "/jogos/{id}"})
     public Map<String, Object> buscar(@PathVariable Long id) {
         return toPartidaMap(partidaService.buscar(id));
     }
 
-    @PostMapping("/partidas/{id}/eventos")
+    @PostMapping({"/partidas/{id}/eventos", "/jogos/{id}/eventos", "/partidas/{id}/lances"})
     public Map<String, Object> registrarEvento(@PathVariable Long id,
                                                @Valid @RequestBody RegistrarEventoRequest request) {
         return toEventoMap(partidaService.registrarEvento(id, request));

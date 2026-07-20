@@ -1,7 +1,5 @@
 package br.com.peladaoficial.security;
 
-import br.com.peladaoficial.model.Usuario;
-import br.com.peladaoficial.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,24 +15,22 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Lê o header Authorization: Bearer <token> e autentica o usuário.
+ * Lê Authorization: Bearer e autentica só validando o JWT.
+ * Não consulta o banco aqui — evita 401 falso quando o Neon oscila sob carga (ex.: rodada ao vivo).
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UsuarioRepository usuarioRepository;
 
-    public JwtAuthFilter(JwtService jwtService, UsuarioRepository usuarioRepository) {
+    public JwtAuthFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // Evita “resto” de autenticação em thread reutilizada do Tomcat
         SecurityContextHolder.clearContext();
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
@@ -43,17 +39,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 if (jwtService.valido(token)) {
                     Long usuarioId = jwtService.extrairUsuarioId(token);
-                    Usuario usuario = usuarioRepository.findById(usuarioId).orElse(null);
-                    if (usuario != null) {
-                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                                usuario, null, List.of()
-                        );
-                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    }
+                    String email = jwtService.extrairEmail(token);
+                    UsuarioPrincipal principal = new UsuarioPrincipal(usuarioId, email);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            principal, null, List.of()
+                    );
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception ignored) {
-                // Token inválido: segue sem auth → 401 só se a rota exigir login
                 SecurityContextHolder.clearContext();
             }
         }

@@ -152,6 +152,11 @@ async function api(caminho, opcoes = {}) {
       throw new Error("Conexão oscilou. Toque de novo em Continuar.");
     }
 
+    if ([502, 503, 504].includes(resposta.status) && tentativa < maxTentativas) {
+      await sleep(2000 * tentativa);
+      continue;
+    }
+
     if (!resposta.ok) {
       const texto = await resposta.clone().text();
       if (pareceServidorAcordando(resposta, texto) && tentativa < maxTentativas) {
@@ -235,9 +240,25 @@ const PeladaAPI = {
   iniciarPartida: (peladaId, dados) =>
     api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),
   listarPartidas: (peladaId) => api(`/peladas/${peladaId}/partidas`),
-  buscarPartida: (partidaId) => api(`/partidas/${partidaId}`),
-  registrarEvento: (partidaId, dados) =>
-    api(`/partidas/${partidaId}/eventos`, { method: "POST", body: JSON.stringify(dados) }),
+  buscarPartida: async (partidaId) => {
+    try {
+      return await api(`/partidas/${partidaId}`);
+    } catch (_) {
+      return api(`/jogos/${partidaId}`);
+    }
+  },
+  registrarEvento: async (partidaId, dados) => {
+    const body = JSON.stringify(dados);
+    try {
+      return await api(`/partidas/${partidaId}/eventos`, { method: "POST", body });
+    } catch (_) {
+      try {
+        return await api(`/jogos/${partidaId}/eventos`, { method: "POST", body });
+      } catch (_) {
+        return api(`/partidas/${partidaId}/lances`, { method: "POST", body });
+      }
+    }
+  },
   finalizarPartida: (partidaId) =>
     api(`/partidas/${partidaId}/finalizar`, { method: "POST", body: "{}" }),
   desfazerUltimoEvento: (partidaId) =>

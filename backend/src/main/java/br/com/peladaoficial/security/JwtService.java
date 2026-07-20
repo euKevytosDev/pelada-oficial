@@ -43,6 +43,11 @@ public class JwtService {
         return Long.valueOf(parse(token).getSubject());
     }
 
+    public String extrairEmail(String token) {
+        Object email = parse(token).get("email");
+        return email != null ? String.valueOf(email) : null;
+    }
+
     public boolean valido(String token) {
         try {
             parse(token);

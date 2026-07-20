@@ -902,21 +902,51 @@ async function retomarPelada(pelada) {
   }
 
   if (pelada.status === "EM_ANDAMENTO") {
-    const times = await PeladaAPI.listarTimes(estado.peladaId);
-    estado.times = times;
-    const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+    let times = [];
+    try {
+      times = await PeladaAPI.listarTimes(estado.peladaId);
+      estado.times = times;
+    } catch (_) {
+      /* segue tentando partidas */
+    }
+
+    let partidas = [];
+    try {
+      partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+    } catch (_) {
+      partidas = [];
+    }
+
     const aberta = (partidas || []).find((p) => p.status === "EM_ANDAMENTO");
     if (aberta) {
-      const completa = await PeladaAPI.buscarPartida(aberta.id);
-      renderPartida(completa);
-      mostrarTela("tela-partida");
-      toast("Partida retomada!");
-      return;
+      try {
+        const completa = await PeladaAPI.buscarPartida(aberta.id);
+        renderPartida(completa);
+        mostrarTela("tela-partida");
+        toast("Partida retomada!");
+        return;
+      } catch (_) {
+        // Placar resumido ainda abre a tela; usuário pode atualizar tocando de novo
+        renderPartida({
+          ...aberta,
+          eventos: [],
+          jogadoresTimeA: [],
+          jogadoresTimeB: [],
+          goleirosPelada: [],
+        });
+        mostrarTela("tela-partida");
+        toast("Partida aberta — se faltar detalhe, toque Continuar de novo");
+        return;
+      }
     }
     if ((partidas || []).length) {
-      await irParaClassificacao();
-      toast("Pelada retomada — classificação");
-      return;
+      try {
+        await irParaClassificacao();
+        toast("Pelada retomada — classificação");
+        return;
+      } catch (_) {
+        /* cai nos times */
+      }
     }
     if (times.length) {
       renderTimes(times);
@@ -924,6 +954,7 @@ async function retomarPelada(pelada) {
       toast("Pelada retomada — times");
       return;
     }
+    throw new Error("Conexão oscilou. Toque de novo em Continuar.");
   }
 
   if (pelada.status === "ENCERRADA") {
