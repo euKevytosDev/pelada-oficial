@@ -366,6 +366,36 @@ input:focus, select:focus {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.contadores-elenco {
+  margin: -4px 0 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.lista li.inapto {
+  opacity: 0.55;
+}
+
+.btn-apto {
+  border: none;
+  background: #e8f5ef;
+  color: var(--verde-campo);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-apto.off {
+  background: #fff3e0;
+  color: #e65100;
 }
 
 .btn-apagar {

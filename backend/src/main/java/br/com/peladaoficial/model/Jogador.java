@@ -53,6 +53,10 @@ public class Jogador {
     @Column(nullable = false)
     private Integer golsSofridos = 0;
 
+    /** false = inapto (não entra no sorteio / fora do jogo hoje). */
+    @Column(nullable = false)
+    private Boolean apto = true;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "pelada_id")
     private Pelada pelada;

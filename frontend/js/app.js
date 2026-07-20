@@ -144,9 +144,20 @@ function pedirTexto(titulo, valorInicial = "") {
 /* ---------- render ---------- */
 
 function renderListasCadastro(todos) {
-  const linha = todos.filter((j) => !j.goleiro);
-  const goleiros = todos.filter((j) => j.goleiro);
+  const linha = todos
+    .filter((j) => !j.goleiro)
+    .sort((a, b) => (a.estrelas || 0) - (b.estrelas || 0) || a.nome.localeCompare(b.nome));
+  const goleiros = todos
+    .filter((j) => j.goleiro)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
   estado.goleiros = goleiros;
+
+  const aptosLinha = linha.filter((j) => j.apto !== false).length;
+  const aptosGk = goleiros.filter((j) => j.apto !== false).length;
+  const contadores = document.getElementById("contadores-elenco");
+  if (contadores) {
+    contadores.textContent = `${linha.length} jogador(es) · ${goleiros.length} goleiro(s) · ${aptosLinha + aptosGk} apto(s) para o sorteio`;
+  }
 
   const listaJ = document.getElementById("lista-jogadores");
   const listaG = document.getElementById("lista-goleiros");
@@ -155,10 +166,13 @@ function renderListasCadastro(todos) {
     ? linha
         .map(
           (j) => `
-      <li>
+      <li class="${j.apto === false ? "inapto" : ""}">
         <span>${j.nome}</span>
         <span class="meta-acoes">
           <span class="meta">${estrelasTexto(j.estrelas)}</span>
+          <button type="button" class="btn-apto ${j.apto === false ? "off" : ""}" data-apto-id="${j.id}" data-apto="${j.apto !== false}">
+            ${j.apto === false ? "Inapto" : "Apto"}
+          </button>
           <button type="button" class="btn-editar" data-editar-id="${j.id}" aria-label="Editar ${j.nome}">Editar</button>
           <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
         </span>
@@ -171,10 +185,13 @@ function renderListasCadastro(todos) {
     ? goleiros
         .map(
           (j) => `
-      <li>
+      <li class="${j.apto === false ? "inapto" : ""}">
         <span>${j.nome}</span>
         <span class="meta-acoes">
           <span class="meta">goleiro</span>
+          <button type="button" class="btn-apto ${j.apto === false ? "off" : ""}" data-apto-id="${j.id}" data-apto="${j.apto !== false}">
+            ${j.apto === false ? "Inapto" : "Apto"}
+          </button>
           <button type="button" class="btn-editar" data-editar-id="${j.id}" aria-label="Editar ${j.nome}">Editar</button>
           <button type="button" class="btn-apagar" data-apagar-id="${j.id}" aria-label="Apagar ${j.nome}">Apagar</button>
         </span>
@@ -182,6 +199,12 @@ function renderListasCadastro(todos) {
         )
         .join("")
     : `<li><span>Nenhum goleiro ainda</span><span class="meta">adicione acima</span></li>`;
+}
+
+async function alternarApto(jogadorId, aptoAtual) {
+  await PeladaAPI.atualizarJogador(estado.peladaId, jogadorId, { apto: !aptoAtual });
+  await carregarCadastro();
+  toast(!aptoAtual ? "Marcado como apto" : "Marcado como inapto (fora do sorteio)");
 }
 
 async function apagarJogador(jogadorId) {
@@ -301,7 +324,9 @@ function renderTimes(times) {
           <button type="button" class="btn-mini" data-acao="goleiro" data-time-id="${t.id}">Trocar</button>
         </p>
         <ul class="lista-time-jogadores" data-time-id="${t.id}">
-          ${t.jogadores
+          ${(t.jogadores || [])
+            .slice()
+            .sort((a, b) => (a.estrelas || 0) - (b.estrelas || 0) || a.nome.localeCompare(b.nome))
             .map(
               (j) => `
             <li class="jogador-arrastavel"
@@ -1068,6 +1093,15 @@ document.getElementById("form-goleiro").addEventListener("submit", async (e) => 
 });
 
 document.getElementById("lista-jogadores").addEventListener("click", async (e) => {
+  const aptoBtn = e.target.closest("[data-apto-id]");
+  if (aptoBtn) {
+    try {
+      await alternarApto(Number(aptoBtn.dataset.aptoId), aptoBtn.dataset.apto === "true");
+    } catch (err) {
+      toast(err.message);
+    }
+    return;
+  }
   const editar = e.target.closest("[data-editar-id]");
   if (editar) {
     try {
@@ -1087,6 +1121,15 @@ document.getElementById("lista-jogadores").addEventListener("click", async (e) =
 });
 
 document.getElementById("lista-goleiros").addEventListener("click", async (e) => {
+  const aptoBtn = e.target.closest("[data-apto-id]");
+  if (aptoBtn) {
+    try {
+      await alternarApto(Number(aptoBtn.dataset.aptoId), aptoBtn.dataset.apto === "true");
+    } catch (err) {
+      toast(err.message);
+    }
+    return;
+  }
   const editar = e.target.closest("[data-editar-id]");
   if (editar) {
     try {
@@ -1100,6 +1143,16 @@ document.getElementById("lista-goleiros").addEventListener("click", async (e) =>
   if (!btn) return;
   try {
     await apagarJogador(Number(btn.dataset.apagarId));
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-voltar-jogadores").addEventListener("click", async () => {
+  try {
+    await carregarCadastro();
+    mostrarTela("tela-jogadores");
+    toast("Pode editar, apagar ou marcar inapto — depois sorteie de novo");
   } catch (err) {
     toast(err.message);
   }

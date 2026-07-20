@@ -189,6 +189,16 @@ public class PeladaService {
             }
         }
 
+        if (request.getApto() != null) {
+            jogador.setApto(request.getApto());
+            if (Boolean.FALSE.equals(request.getApto()) && jogador.getTime() != null) {
+                Time time = jogador.getTime();
+                time.getJogadores().remove(jogador);
+                jogador.setTime(null);
+                time.atualizarNomeAutomaticoSePreciso();
+            }
+        }
+
         return jogador;
     }
 
@@ -227,15 +237,17 @@ public class PeladaService {
 
         List<Jogador> linha = todos.stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .filter(j -> !Boolean.FALSE.equals(j.getApto()))
                 .collect(Collectors.toList());
         List<Jogador> goleiros = todos.stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .filter(j -> !Boolean.FALSE.equals(j.getApto()))
                 .collect(Collectors.toList());
 
         if (linha.size() < pelada.getQuantidadeTimes()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Cadastre pelo menos " + pelada.getQuantidadeTimes() + " jogadores de linha"
+                    "Cadastre pelo menos " + pelada.getQuantidadeTimes() + " jogadores aptos de linha"
             );
         }
 

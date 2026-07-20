@@ -13,6 +13,9 @@ public class AtualizarJogadorRequest {
     @Max(10)
     private Integer estrelas;
 
+    /** true = entra no sorteio; false = inapto para o jogo. */
+    private Boolean apto;
+
     public String getNome() {
         return nome;
     }
@@ -27,5 +30,13 @@ public class AtualizarJogadorRequest {
 
     public void setEstrelas(Integer estrelas) {
         this.estrelas = estrelas;
+    }
+
+    public Boolean getApto() {
+        return apto;
+    }
+
+    public void setApto(Boolean apto) {
+        this.apto = apto;
     }
 }

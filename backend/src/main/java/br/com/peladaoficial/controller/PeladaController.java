@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -187,6 +188,7 @@ public class PeladaController {
         map.put("cartoesAmarelos", jogador.getCartoesAmarelos());
         map.put("cartoesVermelhos", jogador.getCartoesVermelhos());
         map.put("golsSofridos", jogador.getGolsSofridos());
+        map.put("apto", !Boolean.FALSE.equals(jogador.getApto()));
         map.put("timeId", jogador.getTime() != null ? jogador.getTime().getId() : null);
         return map;
     }
@@ -216,9 +218,12 @@ public class PeladaController {
 
         List<Jogador> linha = time.getJogadores().stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .sorted(Comparator.comparingInt(Jogador::getEstrelas)
+                        .thenComparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
         List<Jogador> goleiros = time.getJogadores().stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
 
         map.put("jogadores", linha.stream().map(this::toJogadorMap).collect(Collectors.toList()));
