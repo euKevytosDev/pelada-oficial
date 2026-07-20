@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface EventoPartidaRepository extends JpaRepository<EventoPartida, Long> {
     List<EventoPartida> findByPartidaIdOrderByOcorridoEmAsc(Long partidaId);
+
+    java.util.Optional<EventoPartida> findByPartidaIdAndClientLanceId(Long partidaId, String clientLanceId);
 }

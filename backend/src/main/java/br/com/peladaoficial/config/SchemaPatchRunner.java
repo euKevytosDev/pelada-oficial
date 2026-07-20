@@ -29,9 +29,24 @@ public class SchemaPatchRunner implements ApplicationRunner {
                 ADD COLUMN IF NOT EXISTS apto boolean NOT NULL DEFAULT true
                 """);
             log.info("Schema OK: coluna jogadores.apto verificada");
+
+            jdbc.execute("""
+                ALTER TABLE eventos_partida
+                ADD COLUMN IF NOT EXISTS client_lance_id varchar(80)
+                """);
+            try {
+                jdbc.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS uk_evento_partida_client_lance
+                    ON eventos_partida (partida_id, client_lance_id)
+                    WHERE client_lance_id IS NOT NULL
+                    """);
+            } catch (Exception ignored) {
+                // H2 pode não aceitar índice parcial
+            }
+            log.info("Schema OK: coluna eventos_partida.client_lance_id verificada");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
-            log.warn("Não foi possível garantir coluna apto: {}", e.getMessage());
+            log.warn("Não foi possível garantir colunas de schema: {}", e.getMessage());
         }
     }
 }

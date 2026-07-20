@@ -112,6 +112,15 @@ public class PartidaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Partida já finalizada");
         }
 
+        // Idempotência: mesmo lance do celular não conta de novo
+        String clientLanceId = request.getClientLanceId();
+        if (clientLanceId != null && !clientLanceId.isBlank()) {
+            var existente = eventoRepository.findByPartidaIdAndClientLanceId(partidaId, clientLanceId.trim());
+            if (existente.isPresent()) {
+                return existente.get();
+            }
+        }
+
         Time time = buscarTime(request.getTimeId(), partida.getPelada().getId());
         if (!time.getId().equals(partida.getTimeA().getId()) && !time.getId().equals(partida.getTimeB().getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time não participa desta partida");
@@ -158,6 +167,9 @@ public class PartidaService {
         }
 
         EventoPartida evento = new EventoPartida(request.getTipo(), partida, time, jogador, goleiro);
+        if (clientLanceId != null && !clientLanceId.isBlank()) {
+            evento.setClientLanceId(clientLanceId.trim());
+        }
         partida.getEventos().add(evento);
         return eventoRepository.save(evento);
     }

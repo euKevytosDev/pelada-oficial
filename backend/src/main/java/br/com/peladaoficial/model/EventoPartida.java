@@ -46,6 +46,12 @@ public class EventoPartida {
     @Column(nullable = false)
     private LocalDateTime ocorridoEm = LocalDateTime.now();
 
+    /**
+     * Id gerado no celular para não duplicar gol quando o sync tenta de novo.
+     */
+    @Column(length = 80)
+    private String clientLanceId;
+
     public EventoPartida(TipoEvento tipo, Partida partida, Time time, Jogador jogador, Jogador goleiro) {
         this.tipo = tipo;
         this.partida = partida;

@@ -743,14 +743,13 @@ async function registrarEventoAoVivo(tipo) {
   };
 
   // Jogo no celular: placar na hora, sync depois (não trava a partida)
-  aplicarLanceLocal(partida.id, contexto);
-  LocalJogo.enfileirarLance(partida.id, { tipo, timeId, jogadorId, goleiroId }, {
-    tipo,
-    timeId,
-    jogadorId,
-    goleiroId,
-    goleiroNome,
-  });
+  const clientLanceId = LocalJogo.novoClientLanceId();
+  aplicarLanceLocal(partida.id, { ...contexto, clientLanceId });
+  LocalJogo.enfileirarLance(
+    partida.id,
+    { tipo, timeId, jogadorId, goleiroId, clientLanceId },
+    { tipo, timeId, jogadorId, goleiroId, goleiroNome, clientLanceId }
+  );
   atualizarStatusSync();
   toast(tipo === "GOL" ? "Gol!" : tipo === "GOL_CONTRA" ? "Gol contra!" : "Cartão registrado");
   sincronizarJogoEmBackground();
@@ -764,6 +763,14 @@ function aplicarLanceLocal(partidaId, contexto) {
     || { id: contexto.jogadorId, nome: "Jogador" };
   const timeNome =
     contexto.timeId === base.timeA.id ? base.timeA.nome : base.timeB.nome;
+
+  // Já existe este lance local? não soma de novo
+  if (
+    contexto.clientLanceId &&
+    (base.eventos || []).some((e) => e.clientLanceId === contexto.clientLanceId)
+  ) {
+    return;
+  }
 
   const atualizada = {
     ...base,
@@ -781,7 +788,8 @@ function aplicarLanceLocal(partidaId, contexto) {
   }
 
   atualizada.eventos.push({
-    id: `local-${Date.now()}`,
+    id: contexto.clientLanceId || `local-${Date.now()}`,
+    clientLanceId: contexto.clientLanceId || null,
     _local: true,
     tipo: contexto.tipo,
     timeId: contexto.timeId,
@@ -802,44 +810,42 @@ async function sincronizarJogoEmBackground() {
   if (!getToken()) return;
   sincronizandoJogo = true;
   try {
-    // 1) Lances pendentes
     for (;;) {
       const pendentes = LocalJogo.listarLancesPendentes();
       if (!pendentes.length) break;
       const item = pendentes[0];
+      if (!item.payload?.clientLanceId) {
+        // Fila antiga sem id — descarta para não duplicar
+        LocalJogo.removerLancePendente(item.id);
+        continue;
+      }
       try {
         await PeladaAPI.registrarEvento(item.partidaId, item.payload);
         LocalJogo.removerLancePendente(item.id);
-        // marca eventos locais como sincronizados na tela
         if (estado.partidaAtual && estado.partidaAtual.id === item.partidaId) {
           const p = {
             ...estado.partidaAtual,
             eventos: (estado.partidaAtual.eventos || []).map((e) =>
-              e._local && e.tipo === item.payload.tipo && e.jogadorId === item.payload.jogadorId
-                ? { ...e, _local: false }
-                : e
+              e.clientLanceId === item.payload.clientLanceId ? { ...e, _local: false } : e
             ),
           };
           renderPartida(p);
         }
         atualizarStatusSync();
       } catch (_) {
-        item.tentativas = (item.tentativas || 0) + 1;
-        // regrava tentativas no store
-        const todos = LocalJogo.listarLancesPendentes().map((l) =>
-          l.id === item.id ? { ...l, tentativas: item.tentativas } : l
-        );
-        const snap = LocalJogo.obter();
-        if (snap) {
-          snap.lancesPendentes = todos;
-          localStorage.setItem("pelada_jogo_local_v1", JSON.stringify(snap));
+        const tentativas = LocalJogo.registrarTentativa(item.id);
+        if (tentativas >= 8) {
+          // Para de martelar o mesmo lance (já deve estar no servidor ou falhou de verdade)
+          LocalJogo.removerLancePendente(item.id);
+          toast("Um lance ficou sem sync — confira o placar no Continuar");
+          atualizarStatusSync();
+          break;
         }
-        await new Promise((r) => setTimeout(r, 2500 * Math.min(item.tentativas || 1, 4)));
-        if ((item.tentativas || 0) >= 20) break;
+        await new Promise((r) => setTimeout(r, 3000 * Math.min(tentativas, 3)));
+        break; // sai e tenta de novo mais tarde (evita loop infinito agora)
       }
     }
 
-    // 2) Finalizar pendente
     if (LocalJogo.temFinalizarPendente()) {
       const snap = LocalJogo.obter();
       const partidaId = snap?.partida?.id;
