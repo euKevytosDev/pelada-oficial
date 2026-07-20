@@ -1,7 +1,16 @@
 /**
  * Comunicação com o backend Spring Boot + token JWT.
+ *
+ * Local: localhost:8080
+ * Produção: defina API_BASE_PROD após o deploy na Render
+ * (ou localStorage.setItem("pelada_api", "https://....onrender.com/api"))
  */
-const API_BASE = "http://localhost:8080/api";
+const API_BASE_PROD = "https://SEU-SERVICO.onrender.com/api";
+const API_BASE =
+  localStorage.getItem("pelada_api") ||
+  (["localhost", "127.0.0.1"].includes(location.hostname)
+    ? "http://localhost:8080/api"
+    : API_BASE_PROD);
 const TOKEN_KEY = "pelada_token";
 const USER_KEY = "pelada_usuario";
 const PELADA_KEY = "peladaId";
