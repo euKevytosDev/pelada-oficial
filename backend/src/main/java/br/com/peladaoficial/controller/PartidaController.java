@@ -5,6 +5,7 @@ import br.com.peladaoficial.dto.RegistrarEventoRequest;
 import br.com.peladaoficial.model.EventoPartida;
 import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Partida;
+import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PartidaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -59,12 +60,23 @@ public class PartidaController {
     @PostMapping({"/partidas/{id}/eventos", "/jogos/{id}/eventos", "/partidas/{id}/lances"})
     public Map<String, Object> registrarEvento(@PathVariable Long id,
                                                @Valid @RequestBody RegistrarEventoRequest request) {
-        return toEventoMap(partidaService.registrarEvento(id, request));
+        partidaService.registrarEvento(id, request);
+        // Devolve a partida completa já atualizada (placar + eventos) — 1 round-trip só
+        return toPartidaMap(partidaService.buscar(id));
     }
 
-    @PostMapping("/partidas/{id}/finalizar")
+    @PostMapping({"/partidas/{id}/finalizar", "/jogos/{id}/finalizar"})
     public Map<String, Object> finalizar(@PathVariable Long id) {
-        return toPartidaMap(partidaService.finalizar(id));
+        Partida partida = partidaService.finalizar(id);
+        Map<String, Object> map = new HashMap<>();
+        map.put("partida", toPartidaMap(partida));
+        Long peladaId = partida.getPelada().getId();
+        map.put("times", partidaService.listarTimesDaPelada(peladaId).stream()
+                .map(this::toTimeClassificacao)
+                .collect(Collectors.toList()));
+        // campos da partida no topo (compatível com clientes antigos)
+        map.putAll(toPartidaMap(partida));
+        return map;
     }
 
     @PostMapping("/partidas/{id}/desfazer-evento")
@@ -135,6 +147,26 @@ public class PartidaController {
         map.put("goleiroId", evento.getGoleiro() != null ? evento.getGoleiro().getId() : null);
         map.put("goleiroNome", evento.getGoleiro() != null ? evento.getGoleiro().getNome() : null);
         map.put("ocorridoEm", evento.getOcorridoEm());
+        return map;
+    }
+
+    private Map<String, Object> toTimeClassificacao(Time t) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", t.getId());
+        map.put("nome", t.getNome());
+        map.put("cor", t.getCor());
+        map.put("pontos", t.getPontos());
+        map.put("vitorias", t.getVitorias());
+        map.put("empates", t.getEmpates());
+        map.put("derrotas", t.getDerrotas());
+        map.put("golsPro", t.getGolsPro());
+        map.put("golsContra", t.getGolsContra());
+        map.put("nomeManual", Boolean.TRUE.equals(t.getNomeManual()));
+        map.put("jogadores", t.getJogadores().stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .map(this::toJogadorSimples)
+                .collect(Collectors.toList()));
+        t.getGoleiroDoTime().ifPresent(gk -> map.put("goleiro", toJogadorSimples(gk)));
         return map;
     }
 }

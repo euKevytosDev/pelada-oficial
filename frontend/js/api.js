@@ -260,8 +260,13 @@ const PeladaAPI = {
       }
     }
   },
-  finalizarPartida: (partidaId) =>
-    api(`/partidas/${partidaId}/finalizar`, { method: "POST", body: "{}" }),
+  finalizarPartida: async (partidaId) => {
+    try {
+      return await api(`/partidas/${partidaId}/finalizar`, { method: "POST", body: "{}" });
+    } catch (_) {
+      return api(`/jogos/${partidaId}/finalizar`, { method: "POST", body: "{}" });
+    }
+  },
   desfazerUltimoEvento: (partidaId) =>
     api(`/partidas/${partidaId}/desfazer-evento`, { method: "POST", body: "{}" }),
   cancelarPartida: (partidaId) => api(`/partidas/${partidaId}`, { method: "DELETE" }),

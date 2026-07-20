@@ -356,4 +356,12 @@ public class PartidaService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<Time> listarTimesDaPelada(Long peladaId) {
+        buscarPeladaDoUsuario(peladaId);
+        List<Time> times = timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId);
+        times.forEach(t -> t.getJogadores().size());
+        return times;
+    }
 }

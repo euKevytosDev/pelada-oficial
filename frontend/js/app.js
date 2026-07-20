@@ -644,7 +644,6 @@ async function registrarEventoAoVivo(tipo) {
   if (!partida) return;
 
   if (tipo === "GOL_CONTRA") {
-    // Invertido: escolhe o time que SOFREU, depois o jogador desse time
     const timeId = await escolherOpcao("Time que sofreu o gol contra?", [
       { id: partida.timeA.id, label: partida.timeA.nome },
       { id: partida.timeB.id, label: partida.timeB.nome },
@@ -660,9 +659,13 @@ async function registrarEventoAoVivo(tipo) {
     );
     if (!jogadorId) return;
 
-    await PeladaAPI.registrarEvento(partida.id, { tipo, timeId, jogadorId });
-    const atualizada = await PeladaAPI.buscarPartida(partida.id);
-    renderPartida(atualizada);
+    const resposta = await PeladaAPI.registrarEvento(partida.id, { tipo, timeId, jogadorId });
+    aplicarRespostaPartida(resposta, partida.id, {
+      tipo,
+      timeId,
+      jogadorId,
+      jogadoresDoTime,
+    });
     toast("Gol contra! Placar para o adversário");
     return;
   }
@@ -683,6 +686,7 @@ async function registrarEventoAoVivo(tipo) {
   if (!jogadorId) return;
 
   let goleiroId = null;
+  let goleiroNome = null;
   if (tipo === "GOL") {
     const timeDefensorId = timeId === partida.timeA.id ? partida.timeB.id : partida.timeA.id;
     const goleiros = partida.goleirosPelada || [];
@@ -692,7 +696,6 @@ async function registrarEventoAoVivo(tipo) {
       return;
     }
 
-    // Prioriza goleiro do time defensor; mostra todos (empréstimo)
     const ordenados = [...goleiros].sort((a, b) => {
       const aDoTime = a.timeId === timeDefensorId ? 0 : 1;
       const bDoTime = b.timeId === timeDefensorId ? 0 : 1;
@@ -712,20 +715,100 @@ async function registrarEventoAoVivo(tipo) {
       }))
     );
     if (!goleiroId) return;
+    goleiroNome = (ordenados.find((g) => g.id === goleiroId) || {}).nome;
   }
 
-  await PeladaAPI.registrarEvento(partida.id, { tipo, timeId, jogadorId, goleiroId });
-  const atualizada = await PeladaAPI.buscarPartida(partida.id);
-  renderPartida(atualizada);
+  const resposta = await PeladaAPI.registrarEvento(partida.id, {
+    tipo,
+    timeId,
+    jogadorId,
+    goleiroId,
+  });
+  aplicarRespostaPartida(resposta, partida.id, {
+    tipo,
+    timeId,
+    jogadorId,
+    goleiroId,
+    goleiroNome,
+    jogadoresDoTime,
+  });
   toast(tipo === "GOL" ? "Gol!" : "Cartão registrado");
+}
+
+/** Atualiza a tela com a partida da API; se vier só o evento (API antiga), aplica no placar local. */
+function aplicarRespostaPartida(resposta, partidaId, contexto) {
+  if (resposta && resposta.timeA && Array.isArray(resposta.eventos)) {
+    renderPartida(resposta);
+    return;
+  }
+
+  // Fallback otimista: gol já salvou, atualiza a tela na hora sem segunda chamada
+  const base = estado.partidaAtual;
+  if (!base || base.id !== partidaId) return;
+
+  const atualizada = {
+    ...base,
+    golsTimeA: base.golsTimeA,
+    golsTimeB: base.golsTimeB,
+    eventos: [...(base.eventos || [])],
+  };
+
+  const jogador = (contexto.jogadoresDoTime || []).find((j) => j.id === contexto.jogadorId);
+  const timeNome =
+    contexto.timeId === base.timeA.id ? base.timeA.nome : base.timeB.nome;
+
+  if (contexto.tipo === "GOL") {
+    if (contexto.timeId === base.timeA.id) atualizada.golsTimeA += 1;
+    else atualizada.golsTimeB += 1;
+  } else if (contexto.tipo === "GOL_CONTRA") {
+    if (contexto.timeId === base.timeA.id) atualizada.golsTimeB += 1;
+    else atualizada.golsTimeA += 1;
+  }
+
+  atualizada.eventos.push({
+    id: resposta?.id || Date.now(),
+    tipo: contexto.tipo,
+    timeId: contexto.timeId,
+    timeNome,
+    jogadorId: contexto.jogadorId,
+    jogadorNome: jogador?.nome || "Jogador",
+    goleiroId: contexto.goleiroId || null,
+    goleiroNome: contexto.goleiroNome || null,
+  });
+
+  renderPartida(atualizada);
+
+  // sincroniza em segundo plano (se falhar, a tela já está certa)
+  PeladaAPI.buscarPartida(partidaId)
+    .then((p) => {
+      if (p && p.timeA) renderPartida(p);
+    })
+    .catch(() => {});
 }
 
 async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
-  await PeladaAPI.finalizarPartida(estado.partidaAtual.id);
+  const resultado = await PeladaAPI.finalizarPartida(estado.partidaAtual.id);
   estado.partidaAtual = null;
-  await irParaClassificacao();
-  toast("Partida finalizada · pontos atualizados");
+
+  if (resultado && Array.isArray(resultado.times) && resultado.times.length) {
+    estado.times = resultado.times;
+    renderClassificacao(resultado.times, "tabela-classificacao");
+    mostrarTela("tela-classificacao");
+    // painéis extras sem bloquear a troca de tela
+    carregarPainelCorrecao().catch(() => {});
+    carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
+    toast("Partida finalizada · pontos atualizados");
+    return;
+  }
+
+  try {
+    await irParaClassificacao();
+    toast("Partida finalizada · pontos atualizados");
+  } catch (_) {
+    mostrarTela("tela-classificacao");
+    toast("Partida finalizada — atualize se a tabela não mudar");
+  }
 }
 
 async function irParaClassificacao() {
@@ -1324,19 +1407,33 @@ document.getElementById("btn-ir-partida").addEventListener("click", async () => 
 
 document.querySelectorAll(".acoes-evento [data-evento]").forEach((btn) => {
   btn.addEventListener("click", async () => {
+    if (btn.disabled) return;
+    const botoes = [...document.querySelectorAll(".acoes-evento [data-evento]")];
+    botoes.forEach((b) => {
+      b.disabled = true;
+    });
     try {
       await registrarEventoAoVivo(btn.dataset.evento);
     } catch (err) {
       toast(err.message);
+    } finally {
+      botoes.forEach((b) => {
+        b.disabled = false;
+      });
     }
   });
 });
 
 document.getElementById("btn-finalizar-partida").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-finalizar-partida");
+  if (btn.disabled) return;
+  btn.disabled = true;
   try {
     await finalizarPartidaAtual();
   } catch (err) {
     toast(err.message);
+  } finally {
+    btn.disabled = false;
   }
 });
 
