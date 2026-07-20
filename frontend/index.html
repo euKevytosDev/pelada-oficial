@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
   <div class="app">
@@ -123,12 +124,17 @@
       </section>
 
       <section class="tela" id="tela-fim">
-        <div class="fim-box">
-          <h2>Pelada encerrada</h2>
-          <p>Confira o ranking final dos times.</p>
+        <div class="acoes-share no-print">
+          <button type="button" class="btn btn-whats" id="btn-whatsapp">WhatsApp</button>
+          <button type="button" class="btn btn-secundario" id="btn-pdf">Baixar PDF</button>
+          <button type="button" class="btn btn-secundario" id="btn-compartilhar">Compartilhar</button>
         </div>
-        <div id="ranking-final" class="tabela-wrap"></div>
-        <div class="acoes-fixas">
+
+        <div id="resumo-oficial" class="resumo-oficial">
+          <!-- preenchido via JS -->
+        </div>
+
+        <div class="acoes-fixas no-print">
           <button type="button" class="btn btn-principal" id="btn-nova-pelada">Nova pelada</button>
         </div>
       </section>
@@ -147,6 +153,7 @@
   <div class="toast oculto" id="toast"></div>
 
   <script src="js/api.js"></script>
+  <script src="js/resumo.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

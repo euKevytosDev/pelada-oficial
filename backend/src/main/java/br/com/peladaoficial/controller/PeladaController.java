@@ -7,6 +7,7 @@ import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.Pelada;
 import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PeladaService;
+import br.com.peladaoficial.service.ResumoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +23,11 @@ import java.util.stream.Collectors;
 public class PeladaController {
 
     private final PeladaService peladaService;
+    private final ResumoService resumoService;
 
-    public PeladaController(PeladaService peladaService) {
+    public PeladaController(PeladaService peladaService, ResumoService resumoService) {
         this.peladaService = peladaService;
+        this.resumoService = resumoService;
     }
 
     @PostMapping
@@ -79,7 +82,13 @@ public class PeladaController {
 
     @PostMapping("/{id}/encerrar")
     public Map<String, Object> encerrar(@PathVariable Long id) {
-        return toPeladaMap(peladaService.encerrar(id));
+        peladaService.encerrar(id);
+        return resumoService.montar(id);
+    }
+
+    @GetMapping("/{id}/resumo")
+    public Map<String, Object> resumo(@PathVariable Long id) {
+        return resumoService.montar(id);
     }
 
     private Map<String, Object> toPeladaMap(Pelada pelada) {

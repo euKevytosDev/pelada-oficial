@@ -50,6 +50,7 @@ const PeladaAPI = {
     api(`/peladas/${peladaId}/times/${timeId}`, { method: "PATCH", body: JSON.stringify(dados) }),
   listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
+  resumo: (peladaId) => api(`/peladas/${peladaId}/resumo`),
   iniciarPartida: (peladaId, dados) =>
     api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),
   buscarPartida: (partidaId) => api(`/partidas/${partidaId}`),

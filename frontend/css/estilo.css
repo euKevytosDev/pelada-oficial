@@ -535,8 +535,321 @@ td.num, th.num {
   display: none;
 }
 
+/* ---- Resumo oficial / Brasileirão ---- */
+
+.acoes-share {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.acoes-share .btn-whats {
+  grid-column: 1 / -1;
+}
+
+.btn-whats {
+  background: #128c7e;
+  color: #fff;
+}
+
+.resumo-oficial {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid var(--linha);
+  box-shadow: var(--sombra);
+  padding: 16px 14px 20px;
+  color: var(--texto);
+}
+
+.resumo-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--verde-campo);
+}
+
+.resumo-topo .eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.resumo-topo h2 {
+  margin: 2px 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.7rem;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.resumo-data {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.resumo-bloco {
+  margin-top: 18px;
+}
+
+.resumo-bloco h3 {
+  margin: 0 0 10px;
+  font-family: var(--fonte-titulo);
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  color: var(--verde-campo);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-qtd {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--amarelo);
+  color: #3a2f00;
+  font-family: var(--fonte-corpo);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badge-qtd.vermelho {
+  background: var(--vermelho);
+  color: #fff;
+}
+
+.tabela-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabela-bra {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  min-width: 520px;
+}
+
+.tabela-bra th {
+  background: var(--verde-campo);
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 4px;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.tabela-bra th.time {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.tabela-bra td {
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--linha);
+  text-align: center;
+}
+
+.tabela-bra td.time {
+  text-align: left;
+  font-weight: 700;
+  padding-left: 8px;
+  white-space: nowrap;
+}
+
+.tabela-bra td.pts {
+  font-weight: 800;
+  color: var(--verde-campo);
+}
+
+.tabela-bra tr.lider td {
+  background: #e8f6ee;
+}
+
+.cor-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.premios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.premio {
+  background: #f7faf8;
+  border: 1px solid var(--linha);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.premio h4 {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-suave);
+}
+
+.premio-nome {
+  margin: 6px 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.premio-detalhe {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.times-resumo-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.time-resumo {
+  border-left: 5px solid var(--verde-campo);
+  background: #f7faf8;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.time-resumo h3 {
+  margin: 0 0 4px;
+  font-family: var(--fonte-titulo);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  color: var(--texto);
+}
+
+.lista-resumo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.lista-resumo li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.88rem;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--linha);
+}
+
+.lista-resumo em {
+  font-style: normal;
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+}
+
+.lista-partidas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.lista-partidas li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--linha);
+  font-size: 0.86rem;
+}
+
+.lista-partidas .rod {
+  font-weight: 700;
+  color: var(--texto-suave);
+  min-width: 36px;
+}
+
+.placar-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.placar-mini i {
+  font-style: normal;
+  opacity: 0.5;
+}
+
+.duas-cols {
+  display: grid;
+  gap: 14px;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.88rem;
+}
+
+.resumo-rodape {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--linha);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--texto-suave);
+}
+
 @media (min-width: 480px) {
   .app {
     padding-top: 28px;
+  }
+
+  .duas-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .topo,
+  .no-print,
+  .modal,
+  .toast {
+    display: none !important;
+  }
+
+  .app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .resumo-oficial {
+    box-shadow: none;
+    border: none;
   }
 }

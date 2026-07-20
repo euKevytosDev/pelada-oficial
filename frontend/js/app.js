@@ -13,6 +13,7 @@ const estado = {
   times: [],
   goleiros: [],
   partidaAtual: null,
+  resumoAtual: null,
 };
 
 function mostrarTela(id) {
@@ -25,7 +26,7 @@ function mostrarTela(id) {
     "tela-times": "Times sorteados",
     "tela-partida": "Partida ao vivo",
     "tela-classificacao": "Classificação",
-    "tela-fim": "Resultado final",
+    "tela-fim": "Súmula oficial",
   };
   document.getElementById("subtitulo-tela").textContent = titulos[id] || "";
 }
@@ -259,37 +260,35 @@ function renderPartida(partida) {
 function renderClassificacao(times, destinoId) {
   const ordenados = [...times].sort((a, b) => {
     if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-    return b.golsPro - b.golsContra - (a.golsPro - a.golsContra);
+    const sgB = b.golsPro - b.golsContra;
+    const sgA = a.golsPro - a.golsContra;
+    if (sgB !== sgA) return sgB - sgA;
+    return b.golsPro - a.golsPro;
+  });
+
+  const rows = ordenados.map((t, i) => {
+    const jogos = t.vitorias + t.empates + t.derrotas;
+    const sg = t.golsPro - t.golsContra;
+    const apr = jogos === 0 ? 0 : Math.round(((t.pontos * 100) / (jogos * 3)) * 10) / 10;
+    return {
+      posicao: i + 1,
+      nome: t.nome,
+      cor: t.cor,
+      pontos: t.pontos,
+      jogos,
+      vitorias: t.vitorias,
+      empates: t.empates,
+      derrotas: t.derrotas,
+      golsPro: t.golsPro,
+      golsContra: t.golsContra,
+      saldo: sg,
+      aproveitamento: apr,
+    };
   });
 
   document.getElementById(destinoId).innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th class="num">P</th>
-          <th class="num">V</th>
-          <th class="num">E</th>
-          <th class="num">D</th>
-          <th class="num">GP</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${ordenados
-          .map(
-            (t) => `
-          <tr>
-            <td><strong style="color:${t.cor}">${t.nome}</strong></td>
-            <td class="num">${t.pontos}</td>
-            <td class="num">${t.vitorias}</td>
-            <td class="num">${t.empates}</td>
-            <td class="num">${t.derrotas}</td>
-            <td class="num">${t.golsPro}</td>
-          </tr>`
-          )
-          .join("")}
-      </tbody>
-    </table>
+    <h3 class="lista-titulo" style="margin-top:0">Classificação</h3>
+    ${tabelaBrasileirao(rows)}
   `;
 }
 
@@ -475,10 +474,11 @@ async function finalizarPartidaAtual() {
 async function encerrarPelada() {
   const ok = confirm("Encerrar a pelada agora?");
   if (!ok) return;
-  await PeladaAPI.encerrar(estado.peladaId);
-  const times = await PeladaAPI.listarTimes(estado.peladaId);
-  renderClassificacao(times, "ranking-final");
+  const resumo = await PeladaAPI.encerrar(estado.peladaId);
+  estado.resumoAtual = resumo;
+  renderResumoOficial(resumo);
   mostrarTela("tela-fim");
+  toast("Pelada encerrada · súmula pronta");
 }
 
 /* ---------- eventos ---------- */
@@ -637,7 +637,35 @@ document.getElementById("btn-nova-pelada").addEventListener("click", () => {
   estado.times = [];
   estado.goleiros = [];
   estado.partidaAtual = null;
+  estado.resumoAtual = null;
   mostrarTela("tela-inicio");
+});
+
+document.getElementById("btn-whatsapp").addEventListener("click", async () => {
+  if (!estado.resumoAtual) return;
+  try {
+    await compartilharWhatsApp(estado.resumoAtual);
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-pdf").addEventListener("click", async () => {
+  try {
+    toast("Gerando PDF...");
+    await baixarPdfResumo();
+  } catch (err) {
+    toast(err.message || "Não foi possível gerar o PDF");
+  }
+});
+
+document.getElementById("btn-compartilhar").addEventListener("click", async () => {
+  if (!estado.resumoAtual) return;
+  try {
+    await compartilharNativo(estado.resumoAtual);
+  } catch (err) {
+    if (err.name !== "AbortError") toast(err.message);
+  }
 });
 
 document.getElementById("modal-fechar").addEventListener("click", fecharModal);
