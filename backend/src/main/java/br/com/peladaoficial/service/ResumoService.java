@@ -94,7 +94,7 @@ public class ResumoService {
                 })
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> artilharia = jogadores.stream()
+        List<Map<String, Object>> artilhariaCompleta = jogadores.stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && j.getGols() > 0)
                 .sorted((a, b) -> Integer.compare(b.getGols(), a.getGols()))
                 .map(j -> {
@@ -106,6 +106,17 @@ public class ResumoService {
                     return m;
                 })
                 .collect(Collectors.toList());
+
+        // Só o artilheiro (ou empatados na liderança)
+        List<Map<String, Object>> artilharia = new ArrayList<>();
+        if (!artilhariaCompleta.isEmpty()) {
+            int maxGols = (Integer) artilhariaCompleta.get(0).get("gols");
+            for (Map<String, Object> a : artilhariaCompleta) {
+                if (Objects.equals(a.get("gols"), maxGols)) {
+                    artilharia.add(a);
+                }
+            }
+        }
 
         List<Map<String, Object>> golsSofridos = jogadores.stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
