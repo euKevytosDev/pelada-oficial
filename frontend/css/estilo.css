@@ -692,6 +692,7 @@ td.num, th.num {
 
 .modal-caixa {
   position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 430px;
   background: #fff;
@@ -700,6 +701,7 @@ td.num, th.num {
   display: grid;
   gap: 12px;
   animation: sobe 0.25s ease;
+  pointer-events: auto;
 }
 
 .modal-caixa h3 {

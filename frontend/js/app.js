@@ -97,12 +97,16 @@ function montarSeletorEstrelas() {
   document.getElementById("nivel-num").textContent = `${estado.estrelasSelecionadas} ★`;
 }
 
+let modalEsperaResolve = null;
+let modalAbertoEm = 0;
+
 function abrirModal(titulo, corpoHtml) {
-  // Nunca cobre escolha de time/jogador com a bolinha
+  // Nunca cobre escolha com a bolinha
   loadingCount = 0;
   const overlay = document.getElementById("loading-overlay");
   if (overlay) overlay.classList.add("oculto");
 
+  modalAbertoEm = Date.now();
   document.getElementById("modal-titulo").textContent = titulo;
   document.getElementById("modal-corpo").innerHTML = corpoHtml;
   document.getElementById("modal").classList.remove("oculto");
@@ -113,6 +117,21 @@ function fecharModal() {
   document.getElementById("modal-corpo").innerHTML = "";
 }
 
+/** Fecha modal e resolve a Promise pendente (cancelar = null). */
+function cancelarModalPendente() {
+  // Ignora o toque que abriu o modal (click-through no fundo)
+  if (Date.now() - modalAbertoEm < 400) return;
+
+  if (typeof modalEsperaResolve === "function") {
+    const done = modalEsperaResolve;
+    modalEsperaResolve = null;
+    fecharModal();
+    done(null);
+    return;
+  }
+  fecharModal();
+}
+
 function escolherOpcao(titulo, opcoes) {
   return new Promise((resolve) => {
     if (!opcoes.length) {
@@ -120,6 +139,8 @@ function escolherOpcao(titulo, opcoes) {
       resolve(null);
       return;
     }
+
+    modalEsperaResolve = resolve;
     const html = `
       <div class="opcoes">
         ${opcoes
@@ -136,23 +157,25 @@ function escolherOpcao(titulo, opcoes) {
     const onClick = (e) => {
       const btn = e.target.closest(".opcao");
       if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
       corpo.removeEventListener("click", onClick);
+      modalEsperaResolve = null;
       fecharModal();
       resolve(Number(btn.dataset.id));
     };
-    corpo.addEventListener("click", onClick);
 
-    const onCancel = () => {
-      fecharModal();
-      resolve(null);
-    };
-    document.getElementById("modal-fechar").addEventListener("click", onCancel, { once: true });
-    document.getElementById("modal-fundo").addEventListener("click", onCancel, { once: true });
+    // Evita o mesmo toque do botão "Iniciar" fechar o modal na hora
+    setTimeout(() => {
+      if (modalEsperaResolve !== resolve) return;
+      corpo.addEventListener("click", onClick);
+    }, 280);
   });
 }
 
 function pedirTexto(titulo, valorInicial = "") {
   return new Promise((resolve) => {
+    modalEsperaResolve = resolve;
     abrirModal(
       titulo,
       `<input type="text" id="modal-input" maxlength="40" value="${valorInicial.replace(/"/g, "&quot;")}" />
@@ -162,19 +185,19 @@ function pedirTexto(titulo, valorInicial = "") {
     const input = document.getElementById("modal-input");
     input.focus();
     const ok = () => {
+      if (modalEsperaResolve !== resolve) return;
+      modalEsperaResolve = null;
+      const valor = input.value.trim();
       fecharModal();
-      resolve(input.value.trim());
+      resolve(valor);
     };
-    document.getElementById("modal-ok").addEventListener("click", ok, { once: true });
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") ok();
-    });
-    const onCancel = () => {
-      fecharModal();
-      resolve(null);
-    };
-    document.getElementById("modal-fechar").addEventListener("click", onCancel, { once: true });
-    document.getElementById("modal-fundo").addEventListener("click", onCancel, { once: true });
+    setTimeout(() => {
+      if (modalEsperaResolve !== resolve) return;
+      document.getElementById("modal-ok")?.addEventListener("click", ok, { once: true });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") ok();
+      });
+    }, 280);
   });
 }
 
@@ -671,32 +694,34 @@ async function trocarGoleiroTime(timeId) {
 }
 
 async function iniciarPartidaComEscolha() {
-  const times = estado.times.length ? estado.times : await PeladaAPI.listarTimes(estado.peladaId);
+  // Garante que nenhum spinner atrapalha a escolha
+  loadingCount = 0;
+  document.getElementById("loading-overlay")?.classList.add("oculto");
+
+  let times = estado.times.length ? estado.times : [];
+  if (times.length < 2) {
+    times = await PeladaAPI.listarTimes(estado.peladaId);
+  }
   estado.times = times;
 
-  if (times.length < 2) {
+  if (!times || times.length < 2) {
     toast("Precisa de pelo menos 2 times");
     return;
   }
 
-  let timeAId = times[0].id;
-  let timeBId = times[1].id;
+  // Sempre pergunta Time A e Time B (2, 3 ou 4 times)
+  const timeAId = await escolherOpcao(
+    "Quem joga? Time A",
+    times.map((t) => ({ id: t.id, label: t.nome }))
+  );
+  if (!timeAId) return;
 
-  // Escolha dos times SEM loading (modal precisa ficar clicável)
-  if (times.length > 2) {
-    timeAId = await escolherOpcao(
-      "Time A",
-      times.map((t) => ({ id: t.id, label: t.nome }))
-    );
-    if (!timeAId) return;
-
-    const restantes = times.filter((t) => t.id !== timeAId);
-    timeBId = await escolherOpcao(
-      "Time B",
-      restantes.map((t) => ({ id: t.id, label: t.nome }))
-    );
-    if (!timeBId) return;
-  }
+  const restantes = times.filter((t) => Number(t.id) !== Number(timeAId));
+  const timeBId = await escolherOpcao(
+    "Quem joga? Time B",
+    restantes.map((t) => ({ id: t.id, label: t.nome }))
+  );
+  if (!timeBId) return;
 
   const partida = await comLoading(
     () => PeladaAPI.iniciarPartida(estado.peladaId, { timeAId, timeBId }),
@@ -2057,5 +2082,5 @@ document.getElementById("btn-sumula-exemplo")?.addEventListener("click", () => {
 });
 document.getElementById("btn-sumula-gerar")?.addEventListener("click", gerarSumulaManualAgora);
 
-document.getElementById("modal-fechar").addEventListener("click", fecharModal);
-document.getElementById("modal-fundo").addEventListener("click", fecharModal);
+document.getElementById("modal-fechar").addEventListener("click", cancelarModalPendente);
+document.getElementById("modal-fundo").addEventListener("click", cancelarModalPendente);
