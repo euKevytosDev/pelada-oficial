@@ -527,4 +527,18 @@ public class PeladaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Observação não encontrada"));
         observacaoRepository.delete(obs);
     }
+
+    /** Remove pelada encerrada ou antiga da conta (não apaga a pelada em andamento). */
+    @Transactional
+    public void removerPelada(Long id) {
+        Pelada pelada = buscar(id);
+        buscarAtiva().ifPresent(ativa -> {
+            if (Objects.equals(ativa.getId(), pelada.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Não dá para apagar a pelada em andamento — continue ou encerre antes");
+            }
+        });
+        observacaoRepository.deleteByPeladaId(id);
+        peladaRepository.delete(pelada);
+    }
 }

@@ -241,6 +241,10 @@ html[data-theme="dark"] .auth-tab.ativa {
   font-size: 0.78rem;
 }
 
+.historico-acoes .btn-apagar {
+  margin-left: auto;
+}
+
 .badge-status {
   display: inline-block;
   font-size: 0.68rem;
@@ -676,6 +680,11 @@ textarea#texto-sumula-manual {
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+html[data-theme="dark"] .btn-apagar {
+  background: #3d2020;
+  color: #ff8a8a;
 }
 
 .btn-editar {

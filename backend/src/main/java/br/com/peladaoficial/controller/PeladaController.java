@@ -82,6 +82,12 @@ public class PeladaController {
         return toPeladaMap(peladaService.buscar(id));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void apagar(@PathVariable Long id) {
+        peladaService.removerPelada(id);
+    }
+
     @PostMapping("/{id}/jogadores")
     public Map<String, Object> adicionarJogador(@PathVariable Long id,
                                                 @Valid @RequestBody AdicionarJogadorRequest request) {

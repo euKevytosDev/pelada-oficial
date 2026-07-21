@@ -120,7 +120,7 @@ function metaPeladaHistorico(pelada) {
   return data ? `Criada em ${data}` : "";
 }
 
-function htmlItemHistorico(pelada) {
+function htmlItemHistorico(pelada, opcoes = {}) {
   const badge = badgeStatusPelada(pelada);
   const meta = metaPeladaHistorico(pelada);
   const botoes = [];
@@ -137,6 +137,11 @@ function htmlItemHistorico(pelada) {
       `<button type="button" class="btn-mini" data-hist-acao="sumula" data-pelada-id="${pelada.id}">Ver súmula</button>`
     );
   }
+  if (opcoes.mostrarApagar) {
+    botoes.push(
+      `<button type="button" class="btn-apagar btn-mini" data-hist-acao="apagar" data-pelada-id="${pelada.id}">Apagar</button>`
+    );
+  }
 
   return `
     <li data-pelada-id="${pelada.id}">
@@ -151,14 +156,14 @@ function htmlItemHistorico(pelada) {
     </li>`;
 }
 
-function renderHistoricoLista(listaEl, peladas, limite) {
+function renderHistoricoLista(listaEl, peladas, limite, opcoes) {
   if (!listaEl) return;
   const itens = (peladas || []).slice(0, limite ?? peladas.length);
   if (!itens.length) {
     listaEl.innerHTML = `<li><span>Nenhuma pelada salva ainda</span><span class="meta">—</span></li>`;
     return;
   }
-  listaEl.innerHTML = itens.map((p) => htmlItemHistorico(p)).join("");
+  listaEl.innerHTML = itens.map((p) => htmlItemHistorico(p, opcoes)).join("");
 }
 
 async function carregarHistoricoPeladas() {
@@ -233,6 +238,55 @@ async function continuarPeladaPorId(peladaId) {
   }, "Abrindo pelada...");
 }
 
+async function apagarPeladaPorId(peladaId) {
+  const pelada = (estado.historicoPeladas || []).find((p) => Number(p.id) === Number(peladaId));
+  const nome = pelada?.nome || "esta pelada";
+  if (!confirm(`Apagar "${nome}"?\n\nNão dá para desfazer.`)) return;
+
+  await comLoading(async () => {
+    await PeladaAPI.apagar(peladaId);
+    estado.historicoPeladas = (estado.historicoPeladas || []).filter(
+      (p) => Number(p.id) !== Number(peladaId)
+    );
+    if (Number(localStorage.getItem(PELADA_KEY)) === Number(peladaId)) {
+      localStorage.removeItem(PELADA_KEY);
+    }
+    const local = LocalJogo.obter();
+    if (local?.peladaId && Number(local.peladaId) === Number(peladaId)) {
+      LocalJogo.limpar();
+    }
+    if (Number(localStorage.getItem("pelada_ultima_id")) === Number(peladaId)) {
+      const prox = estado.historicoPeladas[0];
+      if (prox?.id) localStorage.setItem("pelada_ultima_id", String(prox.id));
+      else localStorage.removeItem("pelada_ultima_id");
+      estado.ultimaPelada = prox || null;
+    }
+    await atualizarHistoricoHome();
+  }, "Apagando...");
+  toast("Pelada apagada");
+}
+
+async function atualizarHistoricoHome() {
+  const boxHistorico = document.getElementById("box-historico-recente");
+  const listaHome = document.getElementById("lista-historico-home");
+  if (!boxHistorico || !listaHome) return;
+
+  let idAtiva =
+    estado.peladaAtiva?.id ||
+    Number(localStorage.getItem(PELADA_KEY)) ||
+    LocalJogo.obter()?.peladaId ||
+    null;
+
+  const recentes = peladasParaHistoricoHome(idAtiva);
+  if (recentes.length) {
+    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
+    boxHistorico.classList.remove("oculto");
+  } else {
+    boxHistorico.classList.add("oculto");
+    listaHome.innerHTML = "";
+  }
+}
+
 function configurarCliqueHistorico(listaEl) {
   if (!listaEl || listaEl._histBound) return;
   listaEl._histBound = true;
@@ -244,6 +298,7 @@ function configurarCliqueHistorico(listaEl) {
     try {
       if (acao === "continuar") await continuarPeladaPorId(id);
       else if (acao === "sumula") await abrirSumulaPelada(id);
+      else if (acao === "apagar") await apagarPeladaPorId(id);
     } catch (err) {
       toast(err.message);
     }
@@ -1482,7 +1537,7 @@ async function entrarNaHome() {
   const recentes = peladasParaHistoricoHome(idAtiva);
 
   if (recentes.length && boxHistorico && listaHome) {
-    renderHistoricoLista(listaHome, recentes, 5);
+    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
     boxHistorico.classList.remove("oculto");
   }
 }

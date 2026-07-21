@@ -10,4 +10,6 @@ public interface ObservacaoPeladaRepository extends JpaRepository<ObservacaoPela
     List<ObservacaoPelada> findByPeladaIdOrderByCriadaEmAsc(Long peladaId);
 
     Optional<ObservacaoPelada> findByIdAndPeladaId(Long id, Long peladaId);
+
+    void deleteByPeladaId(Long peladaId);
 }
