@@ -116,6 +116,15 @@
           <p class="continuar-txt">Você tem uma pelada em andamento.</p>
           <button type="button" class="btn btn-principal" id="btn-continuar">Continuar pelada</button>
         </div>
+        <div id="box-ultima-pelada" class="card-form oculto">
+          <p class="continuar-txt">Última pelada</p>
+          <p class="ultima-pelada-nome"><strong id="ultima-pelada-nome">Pelada Oficial</strong></p>
+          <p class="dica" id="ultima-pelada-meta"></p>
+          <div class="acoes-finas">
+            <button type="button" class="btn btn-principal" id="btn-continuar-ultima">Continuar partidas</button>
+            <button type="button" class="btn btn-secundario" id="btn-ver-sumula-ultima">Ver súmula</button>
+          </div>
+        </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
             Nome da pelada
@@ -216,7 +225,6 @@
           </div>
         </div>
         <p class="rodada" id="texto-rodada">Rodada 1</p>
-        <p class="dica sync-status" id="sync-status">Jogo neste celular · sync em segundo plano</p>
 
         <div class="acoes-evento quatro">
           <button type="button" class="btn btn-gol" data-evento="GOL">Gol</button>
@@ -315,10 +323,17 @@
 
   <div class="toast oculto" id="toast"></div>
 
-  <script src="js/api.js?v=20260721a"></script>
-  <script src="js/local-jogo.js?v=20260721a"></script>
-  <script src="js/resumo.js?v=20260721a"></script>
-  <script src="js/sumula-manual.js?v=20260721a"></script>
-  <script src="js/app.js?v=20260721a"></script>
+  <div class="loading-overlay oculto" id="loading-overlay" aria-live="polite" aria-busy="true">
+    <div class="loading-caixa">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <p id="loading-texto">Carregando...</p>
+    </div>
+  </div>
+
+  <script src="js/api.js?v=20260721b"></script>
+  <script src="js/local-jogo.js?v=20260721b"></script>
+  <script src="js/resumo.js?v=20260721b"></script>
+  <script src="js/sumula-manual.js?v=20260721b"></script>
+  <script src="js/app.js?v=20260721b"></script>
 </body>
 </html>

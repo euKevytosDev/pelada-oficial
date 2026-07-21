@@ -443,6 +443,35 @@ public class PeladaService {
         return pelada;
     }
 
+    /**
+     * Reabre uma pelada encerrada para continuar com mais partidas.
+     * Só permite se não houver outra pelada ativa na conta.
+     */
+    @Transactional
+    public Pelada reabrir(Long peladaId) {
+        Pelada pelada = buscar(peladaId);
+        if (pelada.getStatus() != StatusPelada.ENCERRADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta pelada já está aberta");
+        }
+
+        Optional<Pelada> ativa = buscarAtiva();
+        if (ativa.isPresent() && !ativa.get().getId().equals(peladaId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Já existe uma pelada em andamento. Encerre ela antes de continuar esta."
+            );
+        }
+
+        List<Time> times = listarTimes(peladaId);
+        if (times.isEmpty()) {
+            pelada.setStatus(StatusPelada.AGUARDANDO);
+        } else {
+            pelada.setStatus(StatusPelada.EM_ANDAMENTO);
+        }
+        pelada.setEncerradaEm(null);
+        return pelada;
+    }
+
     @Transactional
     public ObservacaoPelada adicionarObservacao(Long peladaId, ObservacaoRequest request) {
         Pelada pelada = buscar(peladaId);

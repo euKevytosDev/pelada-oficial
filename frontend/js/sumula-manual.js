@@ -169,8 +169,13 @@ function montarResumoDeTexto(textoBruto) {
   const texto = String(textoBruto || "").replace(/\r\n/g, "\n").trim();
   if (!texto) throw new Error("Cole o texto da pelada antes de gerar.");
 
-  const dataMatch = texto.match(/Data:\s*([0-9/]+)/i);
-  const dataIso = parseDataBrParaIso(dataMatch ? dataMatch[1] : null);
+  const dataIso = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}T12:00:00`;
+  })();
 
   const timesMap = {};
   const timesOrdem = [];

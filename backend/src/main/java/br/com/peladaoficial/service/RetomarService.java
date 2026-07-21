@@ -31,14 +31,23 @@ public class RetomarService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> montar() {
-        Map<String, Object> out = new HashMap<>();
         Optional<Pelada> opt = peladaService.buscarAtiva();
         if (opt.isEmpty()) {
+            Map<String, Object> out = new HashMap<>();
             out.put("pelada", null);
             return out;
         }
+        return montarDaPelada(opt.get());
+    }
 
-        Pelada pelada = opt.get();
+    /** Retoma uma pelada específica (ex.: depois de reabrir). */
+    @Transactional(readOnly = true)
+    public Map<String, Object> montarPorId(Long peladaId) {
+        return montarDaPelada(peladaService.buscar(peladaId));
+    }
+
+    private Map<String, Object> montarDaPelada(Pelada pelada) {
+        Map<String, Object> out = new HashMap<>();
         out.put("pelada", toPelada(pelada));
 
         if (pelada.getStatus() == StatusPelada.AGUARDANDO) {
@@ -60,7 +69,6 @@ public class RetomarService {
                     .findFirst()
                     .orElse(null);
             if (aberta != null) {
-                // recarrega completa (eventos + jogadores)
                 Partida completa = partidaService.buscar(aberta.getId());
                 out.put("partidaAberta", toPartidaCompleta(completa));
             }

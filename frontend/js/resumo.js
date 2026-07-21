@@ -2,8 +2,19 @@
  * Resumo final profissional da pelada (estilo súmula + Brasileirão).
  */
 
+/** Data de hoje no fuso do aparelho (relatório sempre com o dia real). */
+function dataHojeBr() {
+  try {
+    return new Date().toLocaleDateString("pt-BR", {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || undefined,
+    });
+  } catch (_) {
+    return new Date().toLocaleDateString("pt-BR");
+  }
+}
+
 function formatarDataBr(iso) {
-  if (!iso) return "-";
+  if (!iso) return dataHojeBr();
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
   return d.toLocaleDateString("pt-BR");
@@ -140,7 +151,7 @@ function renderResumoOficial(resumo) {
         <p class="eyebrow">Futebol entre amigos</p>
         <h2>${p.nome || "Pelada Oficial"}</h2>
       </div>
-      <p class="resumo-data">${formatarDataBr(p.encerradaEm || p.criadaEm)}</p>
+      <p class="resumo-data">${dataHojeBr()}</p>
     </header>
 
     <section class="resumo-bloco">
@@ -207,7 +218,7 @@ function textoResumoWhatsApp(resumo) {
   const p = resumo.pelada || {};
   const linhas = [];
   linhas.push(`*${p.nome || "Pelada Oficial"}*`);
-  linhas.push(`📅 ${formatarDataBr(p.encerradaEm || p.criadaEm)}`);
+  linhas.push(`📅 ${dataHojeBr()}`);
   linhas.push("");
   linhas.push("*Classificação*");
   (resumo.classificacao || []).forEach((t) => {
@@ -304,5 +315,9 @@ async function baixarPdfResumo() {
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
-  await html2pdf().set(opt).from(el).save();
+  if (typeof comLoading === "function") {
+    await comLoading(() => html2pdf().set(opt).from(el).save(), "Gerando PDF...");
+  } else {
+    await html2pdf().set(opt).from(el).save();
+  }
 }

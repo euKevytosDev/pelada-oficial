@@ -10,6 +10,7 @@
 const estado = {
   peladaId: null,
   peladaAtiva: null,
+  ultimaPelada: null,
   estrelasSelecionadas: 5,
   times: [],
   goleiros: [],
@@ -42,6 +43,31 @@ function toast(mensagem) {
   el.classList.remove("oculto");
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => el.classList.add("oculto"), 2600);
+}
+
+let loadingCount = 0;
+function mostrarLoading(texto) {
+  const overlay = document.getElementById("loading-overlay");
+  const label = document.getElementById("loading-texto");
+  if (label) label.textContent = texto || "Carregando...";
+  loadingCount += 1;
+  if (overlay) overlay.classList.remove("oculto");
+}
+
+function esconderLoading() {
+  loadingCount = Math.max(0, loadingCount - 1);
+  if (loadingCount > 0) return;
+  const overlay = document.getElementById("loading-overlay");
+  if (overlay) overlay.classList.add("oculto");
+}
+
+async function comLoading(fn, texto) {
+  mostrarLoading(texto);
+  try {
+    return await fn();
+  } finally {
+    esconderLoading();
+  }
 }
 
 function estrelasTexto(n) {
@@ -502,7 +528,6 @@ function renderPartida(partida) {
   document.getElementById("lado-a").style.color = partida.timeA.cor;
   document.getElementById("lado-b").style.color = partida.timeB.cor;
   document.getElementById("texto-rodada").textContent = `Rodada ${partida.numeroRodada}`;
-  atualizarStatusSync();
 
   const lista = document.getElementById("lista-eventos");
   if (!partida.eventos || !partida.eventos.length) {
@@ -510,44 +535,42 @@ function renderPartida(partida) {
     return;
   }
 
-  lista.innerHTML = [...partida.eventos]
-    .reverse()
-    .map((e) => {
-      let texto = "";
-      if (e.tipo === "GOL") {
-        texto = `Gol de ${e.jogadorNome} (${e.timeNome}) · GK ${e.goleiroNome || "?"}`;
-      } else if (e.tipo === "GOL_CONTRA") {
-        texto = `Gol contra de ${e.jogadorNome} (${e.timeNome})`;
-      } else if (e.tipo === "CARTAO_AMARELO") {
-        texto = `Amarelo para ${e.jogadorNome}`;
-      } else {
-        texto = `Vermelho para ${e.jogadorNome}`;
-      }
-      const meta = e._local ? "no celular" : e.tipo.replaceAll("_", " ");
-      return `<li><span>${texto}</span><span class="meta">${meta}</span></li>`;
-    })
-    .join("");
+  // Limita a lista na tela para não pesar em 15+ rodadas com muitos lances
+  const eventos = [...partida.eventos].reverse();
+  const MAX_EVT = 30;
+  const visiveis = eventos.slice(0, MAX_EVT);
+  const omitidos = eventos.length - visiveis.length;
+
+  lista.innerHTML =
+    visiveis
+      .map((e) => {
+        let texto = "";
+        if (e.tipo === "GOL") {
+          texto = `Gol de ${e.jogadorNome} (${e.timeNome}) · GK ${e.goleiroNome || "?"}`;
+        } else if (e.tipo === "GOL_CONTRA") {
+          texto = `Gol contra de ${e.jogadorNome} (${e.timeNome})`;
+        } else if (e.tipo === "CARTAO_AMARELO") {
+          texto = `Amarelo para ${e.jogadorNome}`;
+        } else {
+          texto = `Vermelho para ${e.jogadorNome}`;
+        }
+        return `<li><span>${texto}</span><span class="meta">${e.tipo.replaceAll("_", " ")}</span></li>`;
+      })
+      .join("") +
+    (omitidos > 0
+      ? `<li><span class="meta">+ ${omitidos} evento(s) anteriores</span><span></span></li>`
+      : "");
 }
 
 function atualizarStatusSync() {
-  const el = document.getElementById("sync-status");
-  if (!el) return;
-  const qtd = LocalJogo.qtdPendentes();
-  el.classList.remove("pendente", "ok");
-  if (qtd > 0) {
-    el.textContent = `Jogando neste celular · ${qtd} sync depois (pode seguir até a 13ª)`;
-    el.classList.add("pendente");
-  } else {
-    el.textContent = "Jogo neste celular · pode fechar e voltar neste navegador";
-    el.classList.add("ok");
-  }
+  /* status de sync removido da UI — jogo fica limpo */
 }
 
 let syncTimerSuave = null;
-function agendarSyncSuave(ms = 40000) {
+function agendarSyncSuave(ms = 90000) {
   clearTimeout(syncTimerSuave);
   syncTimerSuave = setTimeout(() => {
-    sincronizarJogoEmBackground();
+    sincronizarJogoEmBackground({ maxLances: 8 });
   }, ms);
 }
 
@@ -783,7 +806,7 @@ async function registrarEventoAoVivo(tipo) {
     jogadoresDoTime,
   };
 
-  // Jogo no celular: placar na hora, sync depois (não trava a partida)
+  // Jogo no celular: placar na hora — sync só ao finalizar a rodada
   const clientLanceId = LocalJogo.novoClientLanceId();
   aplicarLanceLocal(partida.id, { ...contexto, clientLanceId });
   LocalJogo.enfileirarLance(
@@ -791,10 +814,7 @@ async function registrarEventoAoVivo(tipo) {
     { tipo, timeId, jogadorId, goleiroId, clientLanceId },
     { tipo, timeId, jogadorId, goleiroId, goleiroNome, clientLanceId }
   );
-  atualizarStatusSync();
   toast(tipo === "GOL" ? "Gol!" : tipo === "GOL_CONTRA" ? "Gol contra!" : "Cartão registrado");
-  // Não martela a API a cada gol — sync suave depois (livre pra ir até a 13ª)
-  agendarSyncSuave(45000);
 }
 
 function aplicarLanceLocal(partidaId, contexto) {
@@ -842,23 +862,24 @@ function aplicarLanceLocal(partidaId, contexto) {
     goleiroNome: contexto.goleiroNome || null,
   });
 
+  // Só no celular — sync só ao finalizar rodada / encerrar
   renderPartida(atualizada);
 }
 
 let sincronizandoJogo = false;
 
-async function sincronizarJogoEmBackground() {
+async function sincronizarJogoEmBackground(opts = {}) {
+  const maxLances = opts.maxLances ?? 8;
   if (sincronizandoJogo) return;
   if (!getToken()) return;
   if (LocalJogo.syncPausado()) {
-    agendarSyncSuave(60000);
+    agendarSyncSuave(90000);
     return;
   }
   sincronizandoJogo = true;
   try {
-    // No máximo alguns lances por onda — não derruba o Render/Neon
     let processados = 0;
-    while (processados < 3) {
+    while (processados < maxLances) {
       const pendentes = LocalJogo.listarLancesPendentes();
       if (!pendentes.length) break;
       const item = pendentes[0];
@@ -879,23 +900,19 @@ async function sincronizarJogoEmBackground() {
           renderPartida(p);
         }
         processados += 1;
-        atualizarStatusSync();
       } catch (_) {
         const tentativas = LocalJogo.registrarTentativa(item.id);
-        // Não apaga o lance: pausa o sync pra não travar a pelada
-        LocalJogo.pausarSync(tentativas >= 5 ? 120000 : 45000);
-        agendarSyncSuave(tentativas >= 5 ? 120000 : 45000);
-        atualizarStatusSync();
+        LocalJogo.pausarSync(tentativas >= 5 ? 180000 : 90000);
+        agendarSyncSuave(tentativas >= 5 ? 180000 : 90000);
         return;
       }
     }
 
     if (LocalJogo.listarLancesPendentes().length) {
-      agendarSyncSuave(20000);
+      agendarSyncSuave(45000);
       return;
     }
 
-    // Só finaliza no servidor quando TODOS os gols da fila já subiram
     if (LocalJogo.temFinalizarPendente()) {
       const snap = LocalJogo.obter();
       const partidaId = snap?.partida?.id;
@@ -903,7 +920,6 @@ async function sincronizarJogoEmBackground() {
         try {
           const resultado = await PeladaAPI.finalizarPartida(partidaId);
           LocalJogo.marcarFinalizarPendente(false);
-          // Mantém classificação local se tiver mais jogos que o servidor
           if (resultado?.times?.length) {
             const localJogos = somaJogosTimes(estado.times.length ? estado.times : snap.times);
             const serverJogos = somaJogosTimes(resultado.times);
@@ -916,22 +932,20 @@ async function sincronizarJogoEmBackground() {
             }
           }
           LocalJogo.limparPartidaAberta();
-          atualizarStatusSync();
         } catch (err) {
           const msg = String(err.message || "").toLowerCase();
           if (msg.includes("finalizada")) {
             LocalJogo.marcarFinalizarPendente(false);
             LocalJogo.limparPartidaAberta();
           } else {
-            LocalJogo.pausarSync(60000);
-            agendarSyncSuave(60000);
+            LocalJogo.pausarSync(90000);
+            agendarSyncSuave(90000);
           }
         }
       }
     }
   } finally {
     sincronizandoJogo = false;
-    atualizarStatusSync();
   }
 }
 
@@ -946,7 +960,7 @@ async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
   const partida = estado.partidaAtual;
 
-  // Classificação neste celular (vale mesmo sem servidor)
+  // Classificação local na hora
   const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
   estado.partidaAtual = null;
   if (timesLocais.length) {
@@ -964,11 +978,10 @@ async function finalizarPartidaAtual() {
   localStorage.setItem("pelada_jogo_local_v3", JSON.stringify(snap));
 
   mostrarTela("tela-classificacao");
-  atualizarStatusSync();
-  toast("Rodada contabilizada neste celular");
+  toast("Rodada finalizada");
 
-  // Sync quando der — não trava a próxima rodada
-  agendarSyncSuave(5000);
+  // Sync importante: sobe lances + fecha a rodada no servidor (em segundo plano)
+  agendarSyncSuave(12000);
   carregarPainelCorrecao().catch(() => {});
   carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
 }
@@ -1094,7 +1107,7 @@ async function desfazerUltimoEvento() {
     );
     if (match) LocalJogo.removerLancePendente(match.id);
     atualizarStatusSync();
-    toast("Desfeito neste celular");
+    toast("Desfeito");
     return;
   }
 
@@ -1178,18 +1191,26 @@ async function salvarAtraso(sufixo = "") {
 async function encerrarPelada() {
   const ok = confirm("Encerrar a pelada agora? Nomes e estrelas serão salvos para a próxima.");
   if (!ok) return;
-  // Tenta sync pendente antes de encerrar
-  await sincronizarJogoEmBackground();
-  const resumo = await PeladaAPI.encerrar(estado.peladaId);
-  LocalJogo.limpar();
-  estado.resumoAtual = resumo;
-  estado.sumulaManual = false;
-  const boxAtraso = document.getElementById("box-atraso-fim");
-  if (boxAtraso) boxAtraso.classList.remove("oculto");
-  renderResumoOficial(resumo);
-  await carregarObservacoes(null, "atraso-jogador-fim");
-  mostrarTela("tela-fim");
-  toast("Pelada encerrada · elenco salvo na conta");
+  await comLoading(async () => {
+    await sincronizarJogoEmBackground({ maxLances: 80 });
+    const resumo = await PeladaAPI.encerrar(estado.peladaId);
+    localStorage.setItem("pelada_ultima_id", String(estado.peladaId));
+    LocalJogo.limpar();
+    estado.resumoAtual = resumo;
+    estado.sumulaManual = false;
+    estado.ultimaPelada = {
+      id: estado.peladaId,
+      nome: resumo?.pelada?.nome || "Pelada Oficial",
+      status: "ENCERRADA",
+      encerradaEm: resumo?.pelada?.encerradaEm,
+    };
+    const boxAtraso = document.getElementById("box-atraso-fim");
+    if (boxAtraso) boxAtraso.classList.remove("oculto");
+    renderResumoOficial(resumo);
+    await carregarObservacoes(null, "atraso-jogador-fim");
+    mostrarTela("tela-fim");
+  }, "Salvando e gerando súmula...");
+  toast("Pelada encerrada");
 }
 
 /* ---------- eventos ---------- */
@@ -1209,11 +1230,23 @@ async function entrarNaHome() {
   atualizarUserBar();
   mostrarTela("tela-inicio");
   const box = document.getElementById("box-continuar");
+  const boxUltima = document.getElementById("box-ultima-pelada");
+  if (box) box.classList.add("oculto");
+  if (boxUltima) boxUltima.classList.add("oculto");
+
+  const local = LocalJogo.obter();
+  const temLocal = !!(local?.peladaId && (local.partida || local.finalizarPendente || (local.times || []).length));
+
   try {
     const ativa = await PeladaAPI.ativa();
     if (ativa && ativa.id) {
       estado.peladaAtiva = ativa;
-      box.classList.remove("oculto");
+      estado.ultimaPelada = ativa;
+      if (box) {
+        document.querySelector("#box-continuar .continuar-txt").textContent =
+          "Você tem uma pelada em andamento.";
+        box.classList.remove("oculto");
+      }
       return;
     }
     estado.peladaAtiva = null;
@@ -1221,12 +1254,41 @@ async function entrarNaHome() {
     /* API oscilando */
   }
 
-  // Se tem jogo salvo no celular, ainda mostra Continuar
-  const local = LocalJogo.obter();
-  if (local?.peladaId && (local.partida || local.finalizarPendente)) {
+  if (temLocal && box) {
     box.classList.remove("oculto");
-  } else {
-    box.classList.add("oculto");
+  }
+
+  try {
+    const lista = await PeladaAPI.listarMinhas();
+    const ultima = (lista || []).find((p) => p && p.id);
+    if (!ultima) return;
+    estado.ultimaPelada = ultima;
+    localStorage.setItem("pelada_ultima_id", String(ultima.id));
+
+    if (ultima.status === "ENCERRADA" && boxUltima && !temLocal) {
+      document.getElementById("ultima-pelada-nome").textContent = ultima.nome || "Pelada Oficial";
+      const quando = ultima.encerradaEm || ultima.criadaEm;
+      document.getElementById("ultima-pelada-meta").textContent = quando
+        ? `Encerrada em ${formatarDataBr(quando)} · pode continuar com mais partidas`
+        : "Pode continuar com mais partidas";
+      boxUltima.classList.remove("oculto");
+    } else if (
+      (ultima.status === "AGUARDANDO" || ultima.status === "EM_ANDAMENTO") &&
+      box &&
+      !temLocal
+    ) {
+      estado.peladaAtiva = ultima;
+      box.classList.remove("oculto");
+    }
+  } catch (_) {
+    const idLocal = localStorage.getItem("pelada_ultima_id");
+    if (idLocal && boxUltima && !temLocal) {
+      document.getElementById("ultima-pelada-nome").textContent = "Última pelada";
+      document.getElementById("ultima-pelada-meta").textContent =
+        "Toque para tentar reabrir quando o servidor responder";
+      estado.ultimaPelada = { id: Number(idLocal), status: "ENCERRADA", nome: "Pelada Oficial" };
+      boxUltima.classList.remove("oculto");
+    }
   }
 }
 
@@ -1363,7 +1425,6 @@ async function aplicarRetomada(payload) {
       }
       mostrarTela("tela-partida");
       toast("Partida retomada!");
-      agendarSyncSuave(8000);
       return;
     }
 
@@ -1404,8 +1465,7 @@ function tentarRetomarDoCelular(peladaId) {
   if (local.partida && local.partida.status !== "FINALIZADA" && local.partida.timeA) {
     renderPartida(local.partida);
     mostrarTela("tela-partida");
-    toast("Partida retomada deste celular");
-    agendarSyncSuave(8000);
+    toast("Partida retomada");
     return true;
   }
 
@@ -1414,8 +1474,7 @@ function tentarRetomarDoCelular(peladaId) {
     if (estado.times.length) {
       renderClassificacao(estado.times, "tabela-classificacao");
       mostrarTela("tela-classificacao");
-      toast("Classificação deste celular");
-      agendarSyncSuave(8000);
+      toast("Classificação retomada");
       return true;
     }
   }
@@ -1475,13 +1534,15 @@ document.querySelectorAll(".btn-olho").forEach((btn) => {
 document.getElementById("form-login").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    const data = await AuthAPI.login({
-      email: document.getElementById("login-email").value.trim(),
-      senha: document.getElementById("login-senha").value,
-    });
-    salvarSessao(data.token, data.usuario);
-    toast(`Olá, ${data.usuario.nome}!`);
-    await entrarNaHome();
+    await comLoading(async () => {
+      const data = await AuthAPI.login({
+        email: document.getElementById("login-email").value.trim(),
+        senha: document.getElementById("login-senha").value,
+      });
+      salvarSessao(data.token, data.usuario);
+      toast(`Olá, ${data.usuario.nome}!`);
+      await entrarNaHome();
+    }, "Entrando...");
   } catch (err) {
     toast(err.message);
   }
@@ -1490,14 +1551,16 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
 document.getElementById("form-cadastro").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    const data = await AuthAPI.cadastro({
-      nome: document.getElementById("cadastro-nome").value.trim(),
-      email: document.getElementById("cadastro-email").value.trim(),
-      senha: document.getElementById("cadastro-senha").value,
-    });
-    salvarSessao(data.token, data.usuario);
-    toast("Conta criada!");
-    await entrarNaHome();
+    await comLoading(async () => {
+      const data = await AuthAPI.cadastro({
+        nome: document.getElementById("cadastro-nome").value.trim(),
+        email: document.getElementById("cadastro-email").value.trim(),
+        senha: document.getElementById("cadastro-senha").value,
+      });
+      salvarSessao(data.token, data.usuario);
+      toast("Conta criada!");
+      await entrarNaHome();
+    }, "Criando conta...");
   } catch (err) {
     toast(err.message);
   }
@@ -1519,75 +1582,124 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
   const btn = document.getElementById("btn-continuar");
   btn.disabled = true;
   try {
-    toast("Abrindo pelada…");
-
-    // 1) Abre do celular na hora (mesmo offline / API oscilando)
-    const local = LocalJogo.obter();
-    if (local?.peladaId && tentarRetomarDoCelular(local.peladaId)) {
-      return;
-    }
-
-    let ultimoErro = null;
-    for (let t = 1; t <= 3; t++) {
-      try {
-        let payload = null;
-        try {
-          payload = await PeladaAPI.retomar();
-        } catch (_) {
-          payload = null;
-        }
-
-        if (payload && payload.pelada && payload.pelada.id) {
-          await aplicarRetomada(payload);
-          return;
-        }
-
-        const ativa = await PeladaAPI.ativa();
-        if (!ativa || !ativa.id) {
-          toast("Nenhuma pelada ativa");
-          document.getElementById("box-continuar").classList.add("oculto");
-          return;
-        }
-        estado.peladaAtiva = ativa;
-        await retomarPelada(ativa);
+    await comLoading(async () => {
+      const local = LocalJogo.obter();
+      if (local?.peladaId && tentarRetomarDoCelular(local.peladaId)) {
         return;
-      } catch (err) {
-        ultimoErro = err;
-        if (!getToken()) throw err;
-        if (t < 3) {
-          toast(`Tentativa ${t}/3… aguarde`);
-          await new Promise((r) => setTimeout(r, 1200 * t));
+      }
+
+      let ultimoErro = null;
+      for (let t = 1; t <= 3; t++) {
+        try {
+          let payload = null;
+          try {
+            payload = await PeladaAPI.retomar();
+          } catch (_) {
+            payload = null;
+          }
+
+          if (payload && payload.pelada && payload.pelada.id) {
+            await aplicarRetomada(payload);
+            return;
+          }
+
+          const ativa = await PeladaAPI.ativa();
+          if (!ativa || !ativa.id) {
+            toast("Nenhuma pelada ativa");
+            document.getElementById("box-continuar").classList.add("oculto");
+            return;
+          }
+          estado.peladaAtiva = ativa;
+          await retomarPelada(ativa);
+          return;
+        } catch (err) {
+          ultimoErro = err;
+          if (!getToken()) throw err;
+          if (t < 3) await new Promise((r) => setTimeout(r, 1200 * t));
         }
       }
-    }
-    toast(ultimoErro?.message || "Não deu para continuar. Espere 10s e tente de novo.");
+      throw ultimoErro || new Error("Não deu para continuar. Espere e tente de novo.");
+    }, "Abrindo pelada...");
+  } catch (err) {
+    toast(err.message || "Não deu para continuar");
   } finally {
     btn.disabled = false;
   }
 });
 
+document.getElementById("btn-continuar-ultima")?.addEventListener("click", async () => {
+  const ultima = estado.ultimaPelada;
+  if (!ultima?.id) {
+    toast("Nenhuma pelada recente");
+    return;
+  }
+  try {
+    await comLoading(async () => {
+      await PeladaAPI.reabrir(ultima.id);
+      const payload = await PeladaAPI.retomarPorId(ultima.id);
+      if (payload?.pelada) {
+        await aplicarRetomada(payload);
+      } else {
+        await retomarPelada({ ...ultima, status: "EM_ANDAMENTO" });
+      }
+      toast("Pelada reaberta — pode seguir com mais partidas");
+    }, "Reabrindo pelada...");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-ver-sumula-ultima")?.addEventListener("click", async () => {
+  const ultima = estado.ultimaPelada;
+  if (!ultima?.id) {
+    toast("Nenhuma pelada recente");
+    return;
+  }
+  try {
+    await comLoading(async () => {
+      const resumo = await PeladaAPI.resumo(ultima.id);
+      estado.peladaId = ultima.id;
+      estado.resumoAtual = resumo;
+      estado.sumulaManual = false;
+      const boxAtraso = document.getElementById("box-atraso-fim");
+      if (boxAtraso) boxAtraso.classList.remove("oculto");
+      renderResumoOficial(resumo);
+      await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
+      mostrarTela("tela-fim");
+    }, "Carregando súmula...");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
 montarSeletorEstrelas();
 bootAuth();
-// Continua sync de lances/finalizar salvos neste celular
-setTimeout(() => sincronizarJogoEmBackground(), 1200);
+// Sync silencioso só se tiver pendência importante (finalizar / fila)
+setTimeout(() => {
+  if (LocalJogo.qtdPendentes() > 0) {
+    sincronizarJogoEmBackground({ maxLances: 20 });
+  }
+}, 4000);
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    const pelada = await PeladaAPI.criar({
-      nome: document.getElementById("nome-pelada").value.trim(),
-      quantidadeTimes: Number(document.getElementById("qtd-times").value),
-      importarElenco: true,
-    });
-    estado.peladaId = pelada.id;
-    localStorage.setItem(PELADA_KEY, String(pelada.id));
-    const todos = await carregarCadastro();
-    mostrarTela("tela-jogadores");
-    if (todos.length) {
-      toast(`Elenco carregado: ${todos.length} pessoa(s) da última pelada`);
-    } else {
-      toast("Pelada criada — cadastre os jogadores");
-    }
+    await comLoading(async () => {
+      const pelada = await PeladaAPI.criar({
+        nome: document.getElementById("nome-pelada").value.trim(),
+        quantidadeTimes: Number(document.getElementById("qtd-times").value),
+        importarElenco: true,
+      });
+      estado.peladaId = pelada.id;
+      localStorage.setItem(PELADA_KEY, String(pelada.id));
+      const todos = await carregarCadastro();
+      mostrarTela("tela-jogadores");
+      if (todos.length) {
+        toast(`Elenco carregado: ${todos.length} pessoa(s) da última pelada`);
+      } else {
+        toast("Pelada criada — cadastre os jogadores");
+      }
+    }, "Criando pelada...");
   } catch (err) {
     toast(err.message);
   }
@@ -1692,7 +1804,7 @@ document.getElementById("btn-voltar-jogadores").addEventListener("click", async 
 
 document.getElementById("btn-sortear").addEventListener("click", async () => {
   try {
-    await sortearTimes();
+    await comLoading(() => sortearTimes(), "Sorteando times...");
   } catch (err) {
     toast(err.message);
   }
@@ -1700,7 +1812,7 @@ document.getElementById("btn-sortear").addEventListener("click", async () => {
 
 document.getElementById("btn-re-sortear").addEventListener("click", async () => {
   try {
-    await sortearTimes();
+    await comLoading(() => sortearTimes(), "Sorteando de novo...");
   } catch (err) {
     toast(err.message);
   }
@@ -1723,7 +1835,7 @@ document.getElementById("grade-times").addEventListener("click", async (e) => {
 
 document.getElementById("btn-ir-partida").addEventListener("click", async () => {
   try {
-    await iniciarPartidaComEscolha();
+    await comLoading(() => iniciarPartidaComEscolha(), "Abrindo partida...");
   } catch (err) {
     toast(err.message);
   }
@@ -1817,11 +1929,15 @@ document.getElementById("lista-observacoes").addEventListener("click", async (e)
 
 document.getElementById("btn-nova-rodada").addEventListener("click", async () => {
   try {
-    // Não espera sync perfeito — classificação local já vale
-    agendarSyncSuave(3000);
-    await iniciarPartidaComEscolha();
+    await comLoading(async () => {
+      // Sync da rodada anterior antes de abrir a próxima (momento importante)
+      if (LocalJogo.qtdPendentes() > 0) {
+        await sincronizarJogoEmBackground({ maxLances: 80 });
+      }
+      await iniciarPartidaComEscolha();
+    }, "Abrindo partida...");
   } catch (err) {
-    toast(err.message || "Servidor oscilou — espere 10s e toque Nova rodada de novo");
+    toast(err.message || "Não deu para abrir a partida — tente de novo");
   }
 });
 
@@ -1870,7 +1986,6 @@ document.getElementById("btn-whatsapp").addEventListener("click", async () => {
 
 document.getElementById("btn-pdf").addEventListener("click", async () => {
   try {
-    toast("Gerando PDF...");
     await baixarPdfResumo();
   } catch (err) {
     toast(err.message || "Não foi possível gerar o PDF");

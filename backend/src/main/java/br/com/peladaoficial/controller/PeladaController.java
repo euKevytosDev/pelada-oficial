@@ -64,6 +64,11 @@ public class PeladaController {
         return retomarService.montar();
     }
 
+    @GetMapping("/{id}/retomar")
+    public Map<String, Object> retomarPorId(@PathVariable Long id) {
+        return retomarService.montarPorId(id);
+    }
+
     /** Elenco permanente da conta (nomes/estrelas da última pelada encerrada). */
     @GetMapping("/elenco")
     public List<Map<String, Object>> listarElenco() {
@@ -169,6 +174,12 @@ public class PeladaController {
     public Map<String, Object> encerrar(@PathVariable Long id) {
         peladaService.encerrar(id);
         return resumoService.montar(id);
+    }
+
+    /** Reabre pelada encerrada para seguir com mais rodadas. */
+    @PostMapping({"/{id}/reabrir", "/{id}/continuar"})
+    public Map<String, Object> reabrir(@PathVariable Long id) {
+        return toPeladaMap(peladaService.reabrir(id));
     }
 
     /** Súmula / relatório final (alias estável — evita 401 intermitente em /resumo). */

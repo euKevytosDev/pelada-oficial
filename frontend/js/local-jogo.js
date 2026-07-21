@@ -1,7 +1,6 @@
 /**
- * Jogo no celular primeiro — sync suave depois.
- * Classificação e placar valem neste navegador até a 13ª rodada,
- * mesmo se o servidor oscilar.
+ * Jogo no celular primeiro — sync só nos momentos importantes
+ * (finalizar rodada / encerrar), sem travar 15+ rodadas.
  */
 const LocalJogo = (() => {
   const STORE_KEY = "pelada_jogo_local_v3";
