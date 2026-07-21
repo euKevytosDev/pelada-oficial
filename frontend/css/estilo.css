@@ -369,6 +369,21 @@ input:focus, select:focus {
   color: #fff;
 }
 
+textarea#texto-sumula-manual {
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(11, 61, 46, 0.22);
+  background: #f7faf8;
+  color: #123;
+  box-sizing: border-box;
+}
+
 .dica {
   text-align: center;
   color: var(--texto-suave);

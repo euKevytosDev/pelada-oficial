@@ -15,6 +15,8 @@ const estado = {
   goleiros: [],
   partidaAtual: null,
   resumoAtual: null,
+  sumulaManual: false,
+  telaAntesSumula: "tela-inicio",
 };
 
 function mostrarTela(id) {
@@ -24,6 +26,7 @@ function mostrarTela(id) {
   const titulos = {
     "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
+    "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
     "tela-times": "Times sorteados",
     "tela-partida": "Partida ao vivo",
@@ -1180,6 +1183,9 @@ async function encerrarPelada() {
   const resumo = await PeladaAPI.encerrar(estado.peladaId);
   LocalJogo.limpar();
   estado.resumoAtual = resumo;
+  estado.sumulaManual = false;
+  const boxAtraso = document.getElementById("box-atraso-fim");
+  if (boxAtraso) boxAtraso.classList.remove("oculto");
   renderResumoOficial(resumo);
   await carregarObservacoes(null, "atraso-jogador-fim");
   mostrarTela("tela-fim");
@@ -1842,6 +1848,14 @@ document.getElementById("btn-nova-pelada").addEventListener("click", async () =>
   estado.goleiros = [];
   estado.partidaAtual = null;
   estado.resumoAtual = null;
+  const eraManual = estado.sumulaManual;
+  estado.sumulaManual = false;
+  const boxAtraso = document.getElementById("box-atraso-fim");
+  if (boxAtraso) boxAtraso.classList.remove("oculto");
+  if (eraManual && !getUsuario()) {
+    mostrarTela("tela-auth");
+    return;
+  }
   await entrarNaHome();
 });
 
@@ -1863,6 +1877,19 @@ document.getElementById("btn-pdf").addEventListener("click", async () => {
   }
 });
 
+document.getElementById("btn-planilha").addEventListener("click", () => {
+  if (!estado.resumoAtual) {
+    toast("Gere a súmula antes de baixar a planilha");
+    return;
+  }
+  try {
+    baixarPlanilhaCsv(estado.resumoAtual);
+    toast("Planilha baixada (CSV)");
+  } catch (err) {
+    toast(err.message || "Não foi possível baixar a planilha");
+  }
+});
+
 document.getElementById("btn-compartilhar").addEventListener("click", async () => {
   if (!estado.resumoAtual) return;
   try {
@@ -1871,6 +1898,41 @@ document.getElementById("btn-compartilhar").addEventListener("click", async () =
     if (err.name !== "AbortError") toast(err.message);
   }
 });
+
+function abrirTelaSumulaManual() {
+  const ativa = document.querySelector(".tela.ativa");
+  estado.telaAntesSumula = ativa?.id || "tela-inicio";
+  const ta = document.getElementById("texto-sumula-manual");
+  if (ta && !ta.value.trim()) ta.value = EXEMPLO_SUMULA;
+  mostrarTela("tela-sumula-manual");
+}
+
+function gerarSumulaManualAgora() {
+  try {
+    const texto = document.getElementById("texto-sumula-manual").value;
+    const resumo = montarResumoDeTexto(texto);
+    estado.resumoAtual = resumo;
+    estado.sumulaManual = true;
+    const boxAtraso = document.getElementById("box-atraso-fim");
+    if (boxAtraso) boxAtraso.classList.add("oculto");
+    renderResumoOficial(resumo);
+    mostrarTela("tela-fim");
+    toast("Súmula pronta — PDF, planilha ou WhatsApp");
+  } catch (err) {
+    toast(err.message || "Não deu para ler o texto");
+  }
+}
+
+document.getElementById("btn-gerar-sumula")?.addEventListener("click", abrirTelaSumulaManual);
+document.getElementById("btn-gerar-sumula-auth")?.addEventListener("click", abrirTelaSumulaManual);
+document.getElementById("btn-sumula-voltar")?.addEventListener("click", () => {
+  mostrarTela(estado.telaAntesSumula || "tela-inicio");
+});
+document.getElementById("btn-sumula-exemplo")?.addEventListener("click", () => {
+  document.getElementById("texto-sumula-manual").value = EXEMPLO_SUMULA;
+  toast("Exemplo da pelada de 20/07 carregado");
+});
+document.getElementById("btn-sumula-gerar")?.addEventListener("click", gerarSumulaManualAgora);
 
 document.getElementById("modal-fechar").addEventListener("click", fecharModal);
 document.getElementById("modal-fundo").addEventListener("click", fecharModal);

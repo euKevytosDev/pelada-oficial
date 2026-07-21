@@ -103,6 +103,9 @@
           <button type="submit" class="btn btn-principal">Criar conta</button>
         </form>
         <p class="dica">Seus resultados ficam salvos na sua conta.</p>
+        <div class="acoes-finas" style="margin-top:12px">
+          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula-auth">Gerar súmula (sem marcar jogo)</button>
+        </div>
       </section>
 
       <section class="tela" id="tela-inicio">
@@ -128,7 +131,28 @@
           </label>
           <button type="submit" class="btn btn-principal">Começar pelada</button>
         </form>
+        <div class="acoes-finas">
+          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula">Gerar súmula (colar planilha)</button>
+        </div>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
+      </section>
+
+      <section class="tela" id="tela-sumula-manual">
+        <div class="hero-copy">
+          <p>Cole o resumo da pelada no formato abaixo. Gera a mesma súmula do PDF, sem depender do jogo ao vivo.</p>
+        </div>
+        <div class="card-form">
+          <label>
+            Texto da pelada
+            <textarea id="texto-sumula-manual" rows="18" spellcheck="true" placeholder="Cole times, placares, cartões e premiação..."></textarea>
+          </label>
+          <div class="acoes-finas">
+            <button type="button" class="btn btn-principal" id="btn-sumula-gerar">Gerar súmula</button>
+            <button type="button" class="btn btn-secundario" id="btn-sumula-exemplo">Carregar exemplo 20/07</button>
+            <button type="button" class="btn btn-secundario" id="btn-sumula-voltar">Voltar</button>
+          </div>
+          <p class="dica">Dica: use TIME 1 - Nome, lista de jogadores, Partidas (1ª TimeA 1 x 0 TimeB) e Cartões.</p>
+        </div>
       </section>
 
       <section class="tela" id="tela-jogadores">
@@ -248,6 +272,7 @@
         <div class="acoes-share no-print">
           <button type="button" class="btn btn-whats" id="btn-whatsapp">WhatsApp</button>
           <button type="button" class="btn btn-secundario" id="btn-pdf">Baixar PDF</button>
+          <button type="button" class="btn btn-secundario" id="btn-planilha">Baixar planilha</button>
           <button type="button" class="btn btn-secundario" id="btn-compartilhar">Compartilhar</button>
         </div>
 
@@ -290,9 +315,10 @@
 
   <div class="toast oculto" id="toast"></div>
 
-  <script src="js/api.js?v=20260720j"></script>
-  <script src="js/local-jogo.js?v=20260720j"></script>
-  <script src="js/resumo.js?v=20260720j"></script>
-  <script src="js/app.js?v=20260720j"></script>
+  <script src="js/api.js?v=20260721a"></script>
+  <script src="js/local-jogo.js?v=20260721a"></script>
+  <script src="js/resumo.js?v=20260721a"></script>
+  <script src="js/sumula-manual.js?v=20260721a"></script>
+  <script src="js/app.js?v=20260721a"></script>
 </body>
 </html>
