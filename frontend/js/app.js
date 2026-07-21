@@ -2068,6 +2068,81 @@ document.getElementById("btn-voltar-jogadores").addEventListener("click", async 
   }
 });
 
+document.getElementById("btn-voltar-inicio-jogadores")?.addEventListener("click", async () => {
+  toast("Pelada continua salva — use Continuar na home");
+  await entrarNaHome();
+});
+
+async function voltarDaPartidaComSeguranca() {
+  const partida = estado.partidaAtual;
+  const eventos = partida?.eventos || [];
+  const gols = (Number(partida?.golsTimeA) || 0) + (Number(partida?.golsTimeB) || 0);
+  const temLance = eventos.length > 0 || gols > 0;
+
+  if (temLance) {
+    const ok = confirm(
+      "Sair cancela esta partida em andamento (placar e cartões desta rodada).\n\nAs rodadas já finalizadas ficam salvas."
+    );
+    if (!ok) return;
+  }
+
+  await comLoading(async () => {
+    if (partida?.id) {
+      try {
+        await PeladaAPI.cancelarPartida(partida.id);
+      } catch (_) {
+        /* partida pode já ter sido cancelada */
+      }
+      estado.partidaAtual = null;
+      LocalJogo.limparPartidaAberta();
+    }
+
+    let finalizadas = [];
+    try {
+      const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+      finalizadas = (partidas || []).filter((p) => p.status === "FINALIZADA");
+    } catch (_) {
+      finalizadas = [];
+    }
+
+    if (finalizadas.length) {
+      await irParaClassificacao();
+      toast("Voltou à classificação");
+    } else {
+      const times = await PeladaAPI.listarTimes(estado.peladaId);
+      estado.times = times;
+      renderTimes(times);
+      mostrarTela("tela-times");
+      toast("Voltou aos times");
+    }
+  }, "Saindo da partida...");
+}
+
+document.getElementById("btn-voltar-partida")?.addEventListener("click", async () => {
+  try {
+    await voltarDaPartidaComSeguranca();
+  } catch (err) {
+    toast(err.message || "Não deu para sair da partida");
+  }
+});
+
+document.getElementById("btn-voltar-times-class")?.addEventListener("click", async () => {
+  try {
+    await comLoading(async () => {
+      const times = await PeladaAPI.listarTimes(estado.peladaId);
+      estado.times = times;
+      renderTimes(times);
+      mostrarTela("tela-times");
+    }, "Abrindo times...");
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+document.getElementById("btn-voltar-inicio-fim")?.addEventListener("click", async () => {
+  await entrarNaHome();
+});
+
 document.getElementById("btn-sortear").addEventListener("click", async () => {
   try {
     await comLoading(() => sortearTimes(), "Sorteando times...");

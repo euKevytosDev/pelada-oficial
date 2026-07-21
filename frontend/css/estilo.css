@@ -204,6 +204,34 @@ html[data-theme="dark"] .auth-tab.ativa {
   width: auto;
 }
 
+/* Voltar discreto: presente, mas não compete com a ação principal */
+.btn-voltar-suave {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  width: auto;
+  box-shadow: none;
+}
+
+.btn-voltar-suave:active {
+  opacity: 0.75;
+}
+
+.btn-voltar-suave:hover {
+  color: var(--texto);
+  text-decoration: underline;
+}
+
 .btn-block {
   width: 100%;
   text-align: center;
