@@ -674,7 +674,7 @@ td.num, th.num {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 10050;
   display: flex;
   align-items: flex-end;
   justify-content: center;

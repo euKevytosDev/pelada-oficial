@@ -98,6 +98,11 @@ function montarSeletorEstrelas() {
 }
 
 function abrirModal(titulo, corpoHtml) {
+  // Nunca cobre escolha de time/jogador com a bolinha
+  loadingCount = 0;
+  const overlay = document.getElementById("loading-overlay");
+  if (overlay) overlay.classList.add("oculto");
+
   document.getElementById("modal-titulo").textContent = titulo;
   document.getElementById("modal-corpo").innerHTML = corpoHtml;
   document.getElementById("modal").classList.remove("oculto");
@@ -677,6 +682,7 @@ async function iniciarPartidaComEscolha() {
   let timeAId = times[0].id;
   let timeBId = times[1].id;
 
+  // Escolha dos times SEM loading (modal precisa ficar clicável)
   if (times.length > 2) {
     timeAId = await escolherOpcao(
       "Time A",
@@ -692,8 +698,10 @@ async function iniciarPartidaComEscolha() {
     if (!timeBId) return;
   }
 
-  const partida = await PeladaAPI.iniciarPartida(estado.peladaId, { timeAId, timeBId });
-  // Garante times locais salvos antes da nova rodada
+  const partida = await comLoading(
+    () => PeladaAPI.iniciarPartida(estado.peladaId, { timeAId, timeBId }),
+    "Abrindo partida..."
+  );
   if (estado.times.length) LocalJogo.salvarTimes(estado.times);
   LocalJogo.salvarPartida(estado.peladaId, partida, estado.times);
   renderPartida(partida);
@@ -1835,7 +1843,7 @@ document.getElementById("grade-times").addEventListener("click", async (e) => {
 
 document.getElementById("btn-ir-partida").addEventListener("click", async () => {
   try {
-    await comLoading(() => iniciarPartidaComEscolha(), "Abrindo partida...");
+    await iniciarPartidaComEscolha();
   } catch (err) {
     toast(err.message);
   }
@@ -1929,13 +1937,13 @@ document.getElementById("lista-observacoes").addEventListener("click", async (e)
 
 document.getElementById("btn-nova-rodada").addEventListener("click", async () => {
   try {
-    await comLoading(async () => {
-      // Sync da rodada anterior antes de abrir a próxima (momento importante)
-      if (LocalJogo.qtdPendentes() > 0) {
-        await sincronizarJogoEmBackground({ maxLances: 80 });
-      }
-      await iniciarPartidaComEscolha();
-    }, "Abrindo partida...");
+    if (LocalJogo.qtdPendentes() > 0) {
+      await comLoading(
+        () => sincronizarJogoEmBackground({ maxLances: 80 }),
+        "Salvando rodada anterior..."
+      );
+    }
+    await iniciarPartidaComEscolha();
   } catch (err) {
     toast(err.message || "Não deu para abrir a partida — tente de novo");
   }
