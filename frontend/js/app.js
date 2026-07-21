@@ -2316,42 +2316,11 @@ document.getElementById("btn-nova-pelada").addEventListener("click", async () =>
   await entrarNaHome();
 });
 
-document.getElementById("btn-whatsapp").addEventListener("click", async () => {
-  if (!estado.resumoAtual) return;
-  try {
-    await compartilharWhatsApp(estado.resumoAtual);
-  } catch (err) {
-    toast(err.message);
-  }
-});
-
-document.getElementById("btn-pdf").addEventListener("click", async () => {
+document.getElementById("btn-pdf")?.addEventListener("click", async () => {
   try {
     await baixarPdfResumo();
   } catch (err) {
     toast(err.message || "Não foi possível gerar o PDF");
-  }
-});
-
-document.getElementById("btn-planilha").addEventListener("click", () => {
-  if (!estado.resumoAtual) {
-    toast("Gere a súmula antes de baixar a planilha");
-    return;
-  }
-  try {
-    baixarPlanilhaCsv(estado.resumoAtual);
-    toast("Planilha baixada (CSV)");
-  } catch (err) {
-    toast(err.message || "Não foi possível baixar a planilha");
-  }
-});
-
-document.getElementById("btn-compartilhar").addEventListener("click", async () => {
-  if (!estado.resumoAtual) return;
-  try {
-    await compartilharNativo(estado.resumoAtual);
-  } catch (err) {
-    if (err.name !== "AbortError") toast(err.message);
   }
 });
 
