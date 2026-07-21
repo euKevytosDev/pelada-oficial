@@ -1,6 +1,7 @@
 package br.com.peladaoficial.service;
 
 import br.com.peladaoficial.model.*;
+import br.com.peladaoficial.repository.EventoPartidaRepository;
 import br.com.peladaoficial.repository.JogadorRepository;
 import br.com.peladaoficial.repository.ObservacaoPeladaRepository;
 import br.com.peladaoficial.repository.PartidaRepository;
@@ -25,6 +26,7 @@ public class ResumoService {
     private final TimeRepository timeRepository;
     private final JogadorRepository jogadorRepository;
     private final PartidaRepository partidaRepository;
+    private final EventoPartidaRepository eventoRepository;
     private final ObservacaoPeladaRepository observacaoRepository;
     private final AuthSupport authSupport;
 
@@ -32,12 +34,14 @@ public class ResumoService {
                          TimeRepository timeRepository,
                          JogadorRepository jogadorRepository,
                          PartidaRepository partidaRepository,
+                         EventoPartidaRepository eventoRepository,
                          ObservacaoPeladaRepository observacaoRepository,
                          AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.timeRepository = timeRepository;
         this.jogadorRepository = jogadorRepository;
         this.partidaRepository = partidaRepository;
+        this.eventoRepository = eventoRepository;
         this.observacaoRepository = observacaoRepository;
         this.authSupport = authSupport;
     }
@@ -247,7 +251,64 @@ public class ResumoService {
         map.put("golsB", p.getGolsTimeB());
         map.put("corA", p.getTimeA().getCor());
         map.put("corB", p.getTimeB().getCor());
+
+        List<EventoPartida> eventos = eventoRepository.findByPartidaIdOrderByOcorridoEmAsc(p.getId());
+        List<Map<String, Object>> lances = eventos.stream().map(e -> {
+            Map<String, Object> em = new LinkedHashMap<>();
+            em.put("tipo", e.getTipo().name());
+            em.put("jogadorNome", e.getJogador() != null ? e.getJogador().getNome() : "?");
+            em.put("timeNome", e.getTime() != null ? e.getTime().getNome() : null);
+            return em;
+        }).collect(Collectors.toList());
+        map.put("eventos", lances);
+        map.put("detalhe", montarDetalhePartida(lances));
         return map;
+    }
+
+    /** Texto compacto: "Gols: João, Pedro · Amarelo: Carlos" */
+    private String montarDetalhePartida(List<Map<String, Object>> lances) {
+        if (lances == null || lances.isEmpty()) {
+            return "";
+        }
+        LinkedHashMap<String, List<String>> grupos = new LinkedHashMap<>();
+        grupos.put("GOL", new ArrayList<>());
+        grupos.put("GOL_CONTRA", new ArrayList<>());
+        grupos.put("CARTAO_AMARELO", new ArrayList<>());
+        grupos.put("CARTAO_VERMELHO", new ArrayList<>());
+
+        for (Map<String, Object> e : lances) {
+            String tipo = String.valueOf(e.get("tipo"));
+            String nome = String.valueOf(e.getOrDefault("jogadorNome", "?"));
+            List<String> lista = grupos.get(tipo);
+            if (lista != null) {
+                lista.add(nome);
+            }
+        }
+
+        List<String> partes = new ArrayList<>();
+        if (!grupos.get("GOL").isEmpty()) {
+            partes.add("Gols: " + nomesAgrupados(grupos.get("GOL")));
+        }
+        if (!grupos.get("GOL_CONTRA").isEmpty()) {
+            partes.add("Contra: " + nomesAgrupados(grupos.get("GOL_CONTRA")));
+        }
+        if (!grupos.get("CARTAO_AMARELO").isEmpty()) {
+            partes.add("Amarelo: " + nomesAgrupados(grupos.get("CARTAO_AMARELO")));
+        }
+        if (!grupos.get("CARTAO_VERMELHO").isEmpty()) {
+            partes.add("Vermelho: " + nomesAgrupados(grupos.get("CARTAO_VERMELHO")));
+        }
+        return String.join(" · ", partes);
+    }
+
+    private String nomesAgrupados(List<String> nomes) {
+        LinkedHashMap<String, Integer> contagem = new LinkedHashMap<>();
+        for (String n : nomes) {
+            contagem.merge(n, 1, Integer::sum);
+        }
+        return contagem.entrySet().stream()
+                .map(e -> e.getValue() > 1 ? e.getKey() + " (" + e.getValue() + ")" : e.getKey())
+                .collect(Collectors.joining(", "));
     }
 
     private Map<String, Object> toObservacaoMap(ObservacaoPelada o) {

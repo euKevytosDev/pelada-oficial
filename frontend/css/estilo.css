@@ -1338,7 +1338,7 @@ td.num, th.num {
 
 .lista-partidas li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--linha);
@@ -1349,6 +1349,15 @@ td.num, th.num {
   font-weight: 700;
   color: var(--texto-suave);
   min-width: 36px;
+  padding-top: 1px;
+}
+
+.partida-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .placar-mini {
@@ -1361,6 +1370,18 @@ td.num, th.num {
 .placar-mini i {
   font-style: normal;
   opacity: 0.5;
+}
+
+.partida-lances {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #8a9a92;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+html[data-theme="dark"] .partida-lances {
+  color: #7d8f86;
 }
 
 .duas-cols {

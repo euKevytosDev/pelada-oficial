@@ -432,8 +432,10 @@ function baixarPlanilhaCsv(resumo) {
   (resumo.cartoesVermelhos || []).forEach((c) => row(c.nome, c.quantidade));
   row("");
   row("PARTIDAS");
-  row("Rodada", "Time A", "Gols A", "Gols B", "Time B");
-  (resumo.partidas || []).forEach((p) => row(`${p.numero}ª`, p.timeA, p.golsA, p.golsB, p.timeB));
+  row("Rodada", "Time A", "Gols A", "Gols B", "Time B", "Lances");
+  (resumo.partidas || []).forEach((p) =>
+    row(`${p.numero}ª`, p.timeA, p.golsA, p.golsB, p.timeB, typeof textoDetalhePartida === "function" ? textoDetalhePartida(p) : p.detalhe || "")
+  );
 
   const blob = new Blob(["\uFEFF" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");

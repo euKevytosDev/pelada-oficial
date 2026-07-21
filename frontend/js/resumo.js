@@ -20,6 +20,44 @@ function formatarDataBr(iso) {
   return d.toLocaleDateString("pt-BR");
 }
 
+/** Agrupa nomes iguais: João, João → João (2) */
+function nomesAgrupados(nomes) {
+  const contagem = new Map();
+  (nomes || []).forEach((n) => {
+    const key = n || "?";
+    contagem.set(key, (contagem.get(key) || 0) + 1);
+  });
+  return [...contagem.entries()]
+    .map(([nome, qtd]) => (qtd > 1 ? `${nome} (${qtd})` : nome))
+    .join(", ");
+}
+
+/** Texto discreto dos lances: "Gols: A, B · Amarelo: C" */
+function textoDetalhePartida(partida) {
+  if (partida?.detalhe) return partida.detalhe;
+  const eventos = partida?.eventos || [];
+  if (!eventos.length) return "";
+
+  const gols = [];
+  const contra = [];
+  const amarelo = [];
+  const vermelho = [];
+  eventos.forEach((e) => {
+    const nome = e.jogadorNome || e.nome || "?";
+    if (e.tipo === "GOL") gols.push(nome);
+    else if (e.tipo === "GOL_CONTRA") contra.push(nome);
+    else if (e.tipo === "CARTAO_AMARELO") amarelo.push(nome);
+    else if (e.tipo === "CARTAO_VERMELHO") vermelho.push(nome);
+  });
+
+  const partes = [];
+  if (gols.length) partes.push(`Gols: ${nomesAgrupados(gols)}`);
+  if (contra.length) partes.push(`Contra: ${nomesAgrupados(contra)}`);
+  if (amarelo.length) partes.push(`Amarelo: ${nomesAgrupados(amarelo)}`);
+  if (vermelho.length) partes.push(`Vermelho: ${nomesAgrupados(vermelho)}`);
+  return partes.join(" · ");
+}
+
 function tabelaBrasileirao(classificacao) {
   if (!classificacao || !classificacao.length) {
     return `<p class="vazio">Sem classificação ainda.</p>`;
@@ -137,19 +175,23 @@ function renderResumoOficial(resumo) {
 
   const partidasHtml = (resumo.partidas || []).length
     ? `<ul class="lista-partidas">${resumo.partidas
-        .map(
-          (m) => `
+        .map((m) => {
+          const detalhe = textoDetalhePartida(m);
+          return `
         <li>
           <span class="rod">${String(m.numero).padStart(2, "0")}ª</span>
-          <span class="placar-mini">
-            <strong style="color:${m.corA}">${m.timeA}</strong>
-            <b>${m.golsA}</b>
-            <i>x</i>
-            <b>${m.golsB}</b>
-            <strong style="color:${m.corB}">${m.timeB}</strong>
-          </span>
-        </li>`
-        )
+          <div class="partida-linha">
+            <span class="placar-mini">
+              <strong style="color:${m.corA}">${m.timeA}</strong>
+              <b>${m.golsA}</b>
+              <i>x</i>
+              <b>${m.golsB}</b>
+              <strong style="color:${m.corB}">${m.timeB}</strong>
+            </span>
+            ${detalhe ? `<span class="partida-lances">${detalhe}</span>` : ""}
+          </div>
+        </li>`;
+        })
         .join("")}</ul>`
     : `<p class="vazio">Nenhuma partida registrada.</p>`;
 
@@ -282,6 +324,18 @@ function textoResumoWhatsApp(resumo) {
       const hora = o.horario ? ` às ${o.horario}` : "";
       const extra = o.texto ? ` — ${o.texto}` : "";
       linhas.push(`• ${o.tipo === "ATRASO" ? "Atraso" : o.tipo}: ${o.jogadorNome}${hora}${extra}`);
+    });
+  }
+
+  if ((resumo.partidas || []).length) {
+    linhas.push("");
+    linhas.push("*Partidas*");
+    resumo.partidas.forEach((m) => {
+      const detalhe = textoDetalhePartida(m);
+      linhas.push(
+        `${String(m.numero).padStart(2, "0")}ª ${m.timeA} ${m.golsA} x ${m.golsB} ${m.timeB}` +
+          (detalhe ? `\n   ${detalhe}` : "")
+      );
     });
   }
 
