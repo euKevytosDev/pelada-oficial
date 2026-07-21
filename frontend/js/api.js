@@ -227,6 +227,12 @@ const PeladaAPI = {
     }),
   listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
+  sincronizarCompleta: (peladaId, dados) =>
+    api(`/peladas/${peladaId}/sincronizar-completa`, {
+      method: "POST",
+      body: JSON.stringify(dados),
+      retry: 4,
+    }),
   reabrir: (peladaId) => api(`/peladas/${peladaId}/reabrir`, { method: "POST", body: "{}" }),
   apagar: (peladaId) => api(`/peladas/${peladaId}`, { method: "DELETE" }),
   retomarPorId: (peladaId) => api(`/peladas/${peladaId}/retomar`),

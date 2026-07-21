@@ -397,7 +397,7 @@ function escolherOpcao(titulo, opcoes) {
       corpo.removeEventListener("click", onClick);
       modalEsperaResolve = null;
       fecharModal();
-      resolve(Number(btn.dataset.id));
+      resolve(btn.dataset.id);
     };
 
     // Evita o mesmo toque do botão "Iniciar" fechar o modal na hora
@@ -497,7 +497,7 @@ function renderListasCadastro(todos) {
 }
 
 async function alternarApto(jogadorId, aptoAtual) {
-  await PeladaAPI.atualizarJogador(estado.peladaId, jogadorId, { apto: !aptoAtual });
+  LocalJogo.atualizarJogador(jogadorId, { apto: !aptoAtual });
   await carregarCadastro();
   toast(!aptoAtual ? "Marcado como apto" : "Marcado como inapto (fora do sorteio)");
 }
@@ -505,7 +505,7 @@ async function alternarApto(jogadorId, aptoAtual) {
 async function apagarJogador(jogadorId) {
   const ok = confirm("Apagar esta pessoa da lista?");
   if (!ok) return;
-  await PeladaAPI.removerJogador(estado.peladaId, jogadorId);
+  LocalJogo.removerJogador(jogadorId);
   await carregarCadastro();
   toast("Removido da lista");
 }
@@ -579,8 +579,8 @@ function pedirEdicaoJogador(jogador) {
 }
 
 async function editarJogador(jogadorId) {
-  const todos = await PeladaAPI.listarJogadores(estado.peladaId);
-  const jogador = todos.find((j) => j.id === jogadorId);
+  const todos = LocalJogo.listarJogadores();
+  const jogador = todos.find((j) => String(j.id) === String(jogadorId));
   if (!jogador) {
     toast("Jogador não encontrado");
     return;
@@ -589,7 +589,7 @@ async function editarJogador(jogadorId) {
   const dados = await pedirEdicaoJogador(jogador);
   if (!dados) return;
 
-  await PeladaAPI.atualizarJogador(estado.peladaId, jogadorId, dados);
+  LocalJogo.atualizarJogador(jogadorId, dados);
   await carregarCadastro();
   toast("Atualizado");
 }
@@ -644,13 +644,13 @@ function renderTimes(times) {
 }
 
 async function moverJogadorParaTime(jogadorId, timeDestinoId) {
-  const times = await PeladaAPI.moverJogador(estado.peladaId, jogadorId, timeDestinoId);
-  renderTimes(times);
+  LocalJogo.moverJogadorLocal(jogadorId, timeDestinoId);
+  renderTimes(LocalJogo.listarTimes());
   toast("Jogador movido");
 }
 
 async function escolherTimeParaMover(jogadorId, timeOrigemId) {
-  const destinos = estado.times.filter((t) => t.id !== timeOrigemId);
+  const destinos = estado.times.filter((t) => String(t.id) !== String(timeOrigemId));
   if (!destinos.length) {
     toast("Só há um time");
     return;
@@ -673,8 +673,8 @@ function ativarArrasteJogadores() {
 
   grade.querySelectorAll(".jogador-arrastavel").forEach((li) => {
     li.addEventListener("dragstart", (e) => {
-      arrastandoId = Number(li.dataset.jogadorId);
-      origemId = Number(li.dataset.timeOrigem);
+      arrastandoId = li.dataset.jogadorId;
+      origemId = li.dataset.timeOrigem;
       li.classList.add("arrastando");
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", String(arrastandoId));
@@ -691,8 +691,8 @@ function ativarArrasteJogadores() {
       if (e.target.closest("button")) return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
-      const jogadorId = Number(li.dataset.jogadorId);
-      const timeOrigem = Number(li.dataset.timeOrigem);
+      const jogadorId = li.dataset.jogadorId;
+      const timeOrigem = li.dataset.timeOrigem;
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
@@ -720,7 +720,7 @@ function ativarArrasteJogadores() {
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const card = el && el.closest(".time-card");
         grade.querySelectorAll(".time-card").forEach((c) => {
-          c.classList.toggle("drop-alvo", card === c && Number(c.dataset.timeId) !== timeOrigem);
+          c.classList.toggle("drop-alvo", card === c && String(c.dataset.timeId) !== String(timeOrigem));
         });
       };
 
@@ -738,11 +738,11 @@ function ativarArrasteJogadores() {
         if (!moved) return;
         const el = document.elementFromPoint(ev.clientX, ev.clientY);
         const card = el && el.closest(".time-card");
-        const destinoId = card ? Number(card.dataset.timeId) : null;
+        const destinoId = card ? card.dataset.timeId : null;
         const jId = arrastandoId;
         arrastandoId = null;
         origemId = null;
-        if (!destinoId || destinoId === timeOrigem) return;
+        if (!destinoId || String(destinoId) === String(timeOrigem)) return;
         try {
           await moverJogadorParaTime(jId, destinoId);
         } catch (err) {
@@ -765,9 +765,9 @@ function ativarArrasteJogadores() {
     card.addEventListener("drop", async (e) => {
       e.preventDefault();
       card.classList.remove("drop-alvo");
-      const jogadorId = Number(e.dataTransfer.getData("text/plain") || arrastandoId);
-      const destinoId = Number(card.dataset.timeId);
-      if (!jogadorId || !destinoId || destinoId === origemId) return;
+      const jogadorId = e.dataTransfer.getData("text/plain") || arrastandoId;
+      const destinoId = card.dataset.timeId;
+      if (!jogadorId || !destinoId || String(destinoId) === String(origemId)) return;
       try {
         await moverJogadorParaTime(jogadorId, destinoId);
       } catch (err) {
@@ -779,11 +779,7 @@ function ativarArrasteJogadores() {
 
 function renderPartida(partida) {
   estado.partidaAtual = partida;
-  if (estado.peladaId) {
-    LocalJogo.salvarPartida(estado.peladaId, partida, estado.times);
-  } else {
-    LocalJogo.atualizarPartida(partida);
-  }
+  LocalJogo.atualizarPartida(partida);
   document.getElementById("nome-time-a").textContent = partida.timeA.nome;
   document.getElementById("nome-time-b").textContent = partida.timeB.nome;
   document.getElementById("gols-a").textContent = partida.golsTimeA;
@@ -830,11 +826,8 @@ function atualizarStatusSync() {
 }
 
 let syncTimerSuave = null;
-function agendarSyncSuave(ms = 90000) {
-  clearTimeout(syncTimerSuave);
-  syncTimerSuave = setTimeout(() => {
-    sincronizarJogoEmBackground({ maxLances: 8 });
-  }, ms);
+function agendarSyncSuave() {
+  return;
 }
 
 function renderClassificacao(times, destinoId) {
@@ -875,14 +868,15 @@ function renderClassificacao(times, destinoId) {
 /* ---------- ações ---------- */
 
 async function carregarCadastro() {
-  const todos = await PeladaAPI.listarJogadores(estado.peladaId);
+  const todos = LocalJogo.listarJogadores();
   renderListasCadastro(todos);
   return todos;
 }
 
 async function sortearTimes() {
-  const times = await PeladaAPI.sortear(estado.peladaId);
-  estado.goleiros = await PeladaAPI.listarGoleiros(estado.peladaId);
+  LocalJogo.sortearTimesLocal();
+  const times = LocalJogo.listarTimes();
+  estado.goleiros = LocalJogo.listarGoleiros();
   renderTimes(times);
   mostrarTela("tela-times");
   const comGk = times.filter((t) => t.goleiro).length;
@@ -894,21 +888,22 @@ async function sortearTimes() {
 }
 
 async function renomearTime(timeId) {
-  const time = estado.times.find((t) => t.id === timeId);
+  const time = estado.times.find((t) => String(t.id) === String(timeId));
   const novo = await pedirTexto("Nome do time", time ? time.nome : "");
   if (novo === null) return;
 
-  const atualizado = await PeladaAPI.atualizarTime(estado.peladaId, timeId, {
+  LocalJogo.atualizarTimeLocal(timeId, {
     nome: novo,
     usarNomeAutomatico: novo === "",
   });
-  const times = await PeladaAPI.listarTimes(estado.peladaId);
+  const times = LocalJogo.listarTimes();
   renderTimes(times);
-  toast(atualizado.nomeManual ? "Nome atualizado" : "Nome automático (mais estrelas)");
+  const atualizado = times.find((t) => String(t.id) === String(timeId));
+  toast(atualizado?.nomeManual ? "Nome atualizado" : "Nome automático (mais estrelas)");
 }
 
 async function trocarGoleiroTime(timeId) {
-  const goleiros = await PeladaAPI.listarGoleiros(estado.peladaId);
+  const goleiros = LocalJogo.listarGoleiros();
   if (!goleiros.length) {
     toast("Cadastre goleiros antes");
     return;
@@ -916,14 +911,14 @@ async function trocarGoleiroTime(timeId) {
 
   const opcoes = goleiros.map((g) => ({
     id: g.id,
-    label: g.timeId ? `${g.nome} (time ${g.timeId === timeId ? "deste" : "outro"})` : `${g.nome} (livre)`,
+    label: g.timeId ? `${g.nome} (time ${String(g.timeId) === String(timeId) ? "deste" : "outro"})` : `${g.nome} (livre)`,
   }));
 
   const goleiroId = await escolherOpcao("Goleiro deste time", opcoes);
   if (!goleiroId) return;
 
-  await PeladaAPI.atualizarTime(estado.peladaId, timeId, { goleiroId });
-  const times = await PeladaAPI.listarTimes(estado.peladaId);
+  LocalJogo.atualizarTimeLocal(timeId, { goleiroId });
+  const times = LocalJogo.listarTimes();
   renderTimes(times);
   toast("Goleiro definido (pode ser emprestado)");
 }
@@ -935,7 +930,7 @@ async function iniciarPartidaComEscolha() {
 
   let times = estado.times.length ? estado.times : [];
   if (times.length < 2) {
-    times = await PeladaAPI.listarTimes(estado.peladaId);
+    times = LocalJogo.listarTimes();
   }
   estado.times = times;
 
@@ -951,19 +946,14 @@ async function iniciarPartidaComEscolha() {
   );
   if (!timeAId) return;
 
-  const restantes = times.filter((t) => Number(t.id) !== Number(timeAId));
+  const restantes = times.filter((t) => String(t.id) !== String(timeAId));
   const timeBId = await escolherOpcao(
     "Quem joga? Time B",
     restantes.map((t) => ({ id: t.id, label: t.nome }))
   );
   if (!timeBId) return;
 
-  const partida = await comLoading(
-    () => PeladaAPI.iniciarPartida(estado.peladaId, { timeAId, timeBId }),
-    "Abrindo partida..."
-  );
-  if (estado.times.length) LocalJogo.salvarTimes(estado.times);
-  LocalJogo.salvarPartida(estado.peladaId, partida, estado.times);
+  const partida = LocalJogo.iniciarPartidaLocal(timeAId, timeBId);
   renderPartida(partida);
   mostrarTela("tela-partida");
 }
@@ -979,9 +969,12 @@ function ordenarPorEstrelasAsc(jogadores) {
 
 /** Linha + goleiros do time (para marcar gol também com GK). */
 function elencoDoTimeParaLance(partida, timeId) {
-  const linha = (timeId === partida.timeA.id ? partida.jogadoresTimeA : partida.jogadoresTimeB) || [];
+  const linha =
+    (String(timeId) === String(partida.timeA.id)
+      ? partida.jogadoresTimeA || partida.timeA.jogadores
+      : partida.jogadoresTimeB || partida.timeB.jogadores) || [];
   const gks = (partida.goleirosPelada || [])
-    .filter((g) => g.timeId === timeId)
+    .filter((g) => String(g.timeId) === String(timeId))
     .map((g) => ({ ...g, goleiro: true }));
   const ids = new Set(linha.map((j) => j.id));
   const extras = gks.filter((g) => !ids.has(g.id));
@@ -1039,7 +1032,8 @@ async function registrarEventoAoVivo(tipo) {
     if (!jogadorId) return;
 
     if (tipo === "GOL") {
-      const timeDefensorId = timeId === partida.timeA.id ? partida.timeB.id : partida.timeA.id;
+      const timeDefensorId =
+        String(timeId) === String(partida.timeA.id) ? partida.timeB.id : partida.timeA.id;
       const goleiros = partida.goleirosPelada || [];
 
       if (!goleiros.length) {
@@ -1048,8 +1042,8 @@ async function registrarEventoAoVivo(tipo) {
       }
 
       const ordenados = [...goleiros].sort((a, b) => {
-        const aDoTime = a.timeId === timeDefensorId ? 0 : 1;
-        const bDoTime = b.timeId === timeDefensorId ? 0 : 1;
+        const aDoTime = String(a.timeId) === String(timeDefensorId) ? 0 : 1;
+        const bDoTime = String(b.timeId) === String(timeDefensorId) ? 0 : 1;
         return aDoTime - bDoTime;
       });
 
@@ -1061,7 +1055,7 @@ async function registrarEventoAoVivo(tipo) {
         }))
       );
       if (!goleiroId) return;
-      goleiroNome = (ordenados.find((g) => g.id === goleiroId) || {}).nome;
+      goleiroNome = (ordenados.find((g) => String(g.id) === String(goleiroId)) || {}).nome;
     }
   }
 
@@ -1074,25 +1068,22 @@ async function registrarEventoAoVivo(tipo) {
     jogadoresDoTime,
   };
 
-  // Jogo no celular: placar na hora — sync só ao finalizar a rodada
+  // Jogo no celular: placar na hora — sync só ao encerrar a pelada
   const clientLanceId = LocalJogo.novoClientLanceId();
   aplicarLanceLocal(partida.id, { ...contexto, clientLanceId });
-  LocalJogo.enfileirarLance(
-    partida.id,
-    { tipo, timeId, jogadorId, goleiroId, clientLanceId },
-    { tipo, timeId, jogadorId, goleiroId, goleiroNome, clientLanceId }
-  );
   toast(tipo === "GOL" ? "Gol!" : tipo === "GOL_CONTRA" ? "Gol contra!" : "Cartão registrado");
 }
 
 function aplicarLanceLocal(partidaId, contexto) {
   const base = estado.partidaAtual;
-  if (!base || base.id !== partidaId) return;
+  if (!base || String(base.id) !== String(partidaId)) return;
 
-  const jogador = (contexto.jogadoresDoTime || []).find((j) => j.id === contexto.jogadorId)
+  const jogador = (contexto.jogadoresDoTime || []).find((j) => String(j.id) === String(contexto.jogadorId))
     || { id: contexto.jogadorId, nome: "Jogador" };
+  const time = contexto.timeId && String(contexto.timeId) === String(base.timeA.id) ? base.timeA : base.timeB;
+  const goleiro = (base.goleirosPelada || []).find((g) => String(g.id) === String(contexto.goleiroId)) || null;
   const timeNome =
-    contexto.timeId === base.timeA.id ? base.timeA.nome : base.timeB.nome;
+    String(contexto.timeId) === String(base.timeA.id) ? base.timeA.nome : base.timeB.nome;
 
   // Já existe este lance local? não soma de novo
   if (
@@ -1110,10 +1101,10 @@ function aplicarLanceLocal(partidaId, contexto) {
   };
 
   if (contexto.tipo === "GOL") {
-    if (contexto.timeId === base.timeA.id) atualizada.golsTimeA += 1;
+    if (String(contexto.timeId) === String(base.timeA.id)) atualizada.golsTimeA += 1;
     else atualizada.golsTimeB += 1;
   } else if (contexto.tipo === "GOL_CONTRA") {
-    if (contexto.timeId === base.timeA.id) atualizada.golsTimeB += 1;
+    if (String(contexto.timeId) === String(base.timeA.id)) atualizada.golsTimeB += 1;
     else atualizada.golsTimeA += 1;
   }
 
@@ -1122,6 +1113,9 @@ function aplicarLanceLocal(partidaId, contexto) {
     clientLanceId: contexto.clientLanceId || null,
     _local: true,
     tipo: contexto.tipo,
+    jogador,
+    time,
+    goleiro,
     timeId: contexto.timeId,
     timeNome,
     jogadorId: contexto.jogadorId,
@@ -1136,85 +1130,8 @@ function aplicarLanceLocal(partidaId, contexto) {
 
 let sincronizandoJogo = false;
 
-async function sincronizarJogoEmBackground(opts = {}) {
-  const maxLances = opts.maxLances ?? 8;
-  if (sincronizandoJogo) return;
-  if (!getToken()) return;
-  if (LocalJogo.syncPausado()) {
-    agendarSyncSuave(90000);
-    return;
-  }
-  sincronizandoJogo = true;
-  try {
-    let processados = 0;
-    while (processados < maxLances) {
-      const pendentes = LocalJogo.listarLancesPendentes();
-      if (!pendentes.length) break;
-      const item = pendentes[0];
-      if (!item.payload?.clientLanceId) {
-        LocalJogo.removerLancePendente(item.id);
-        continue;
-      }
-      try {
-        await PeladaAPI.registrarEvento(item.partidaId, item.payload);
-        LocalJogo.removerLancePendente(item.id);
-        if (estado.partidaAtual && estado.partidaAtual.id === item.partidaId) {
-          const p = {
-            ...estado.partidaAtual,
-            eventos: (estado.partidaAtual.eventos || []).map((e) =>
-              e.clientLanceId === item.payload.clientLanceId ? { ...e, _local: false } : e
-            ),
-          };
-          renderPartida(p);
-        }
-        processados += 1;
-      } catch (_) {
-        const tentativas = LocalJogo.registrarTentativa(item.id);
-        LocalJogo.pausarSync(tentativas >= 5 ? 180000 : 90000);
-        agendarSyncSuave(tentativas >= 5 ? 180000 : 90000);
-        return;
-      }
-    }
-
-    if (LocalJogo.listarLancesPendentes().length) {
-      agendarSyncSuave(45000);
-      return;
-    }
-
-    if (LocalJogo.temFinalizarPendente()) {
-      const snap = LocalJogo.obter();
-      const partidaId = snap?.partida?.id;
-      if (partidaId && !String(partidaId).startsWith("tmp")) {
-        try {
-          const resultado = await PeladaAPI.finalizarPartida(partidaId);
-          LocalJogo.marcarFinalizarPendente(false);
-          if (resultado?.times?.length) {
-            const localJogos = somaJogosTimes(estado.times.length ? estado.times : snap.times);
-            const serverJogos = somaJogosTimes(resultado.times);
-            if (serverJogos >= localJogos) {
-              estado.times = resultado.times;
-              LocalJogo.salvarTimes(resultado.times);
-              if (document.getElementById("tela-classificacao")?.classList.contains("ativa")) {
-                renderClassificacao(resultado.times, "tabela-classificacao");
-              }
-            }
-          }
-          LocalJogo.limparPartidaAberta();
-        } catch (err) {
-          const msg = String(err.message || "").toLowerCase();
-          if (msg.includes("finalizada")) {
-            LocalJogo.marcarFinalizarPendente(false);
-            LocalJogo.limparPartidaAberta();
-          } else {
-            LocalJogo.pausarSync(90000);
-            agendarSyncSuave(90000);
-          }
-        }
-      }
-    }
-  } finally {
-    sincronizandoJogo = false;
-  }
+async function sincronizarJogoEmBackground() {
+  return;
 }
 
 function somaJogosTimes(times) {
@@ -1233,23 +1150,13 @@ async function finalizarPartidaAtual() {
   estado.partidaAtual = null;
   if (timesLocais.length) {
     estado.times = timesLocais;
-    LocalJogo.salvarTimes(timesLocais);
     renderClassificacao(timesLocais, "tabela-classificacao");
   }
-  LocalJogo.marcarFinalizarPendente(true);
-  const snap = LocalJogo.obter() || { peladaId: estado.peladaId };
-  snap.peladaId = estado.peladaId;
-  snap.partida = { ...partida, status: "FINALIZADA" };
-  snap.times = timesLocais.length ? timesLocais : snap.times || [];
-  snap.finalizarPendente = true;
-  snap.lancesPendentes = LocalJogo.listarLancesPendentes();
-  localStorage.setItem("pelada_jogo_local_v3", JSON.stringify(snap));
+  LocalJogo.finalizarPartidaLocal(partida, timesLocais);
 
   mostrarTela("tela-classificacao");
   toast("Rodada finalizada");
 
-  // Sync importante: sobe lances + fecha a rodada no servidor (em segundo plano)
-  agendarSyncSuave(12000);
   carregarPainelCorrecao().catch(() => {});
   carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
 }
@@ -1265,7 +1172,7 @@ function aplicarResultadoLocalNosTimes(times, partida) {
 
   return times.map((t) => {
     const copia = { ...t };
-    if (t.id === partida.timeA.id) {
+    if (String(t.id) === String(partida.timeA.id)) {
       copia.golsPro = (t.golsPro || 0) + golsA;
       copia.golsContra = (t.golsContra || 0) + golsB;
       if (golsA > golsB) {
@@ -1277,7 +1184,7 @@ function aplicarResultadoLocalNosTimes(times, partida) {
       } else {
         copia.derrotas = (t.derrotas || 0) + 1;
       }
-    } else if (t.id === partida.timeB.id) {
+    } else if (String(t.id) === String(partida.timeB.id)) {
       copia.golsPro = (t.golsPro || 0) + golsB;
       copia.golsContra = (t.golsContra || 0) + golsA;
       if (golsB > golsA) {
@@ -1295,7 +1202,7 @@ function aplicarResultadoLocalNosTimes(times, partida) {
 }
 
 async function irParaClassificacao() {
-  const times = await PeladaAPI.listarTimes(estado.peladaId);
+  const times = LocalJogo.listarTimes();
   estado.times = times;
   renderClassificacao(times, "tabela-classificacao");
   await carregarPainelCorrecao();
@@ -1306,7 +1213,7 @@ async function irParaClassificacao() {
 async function carregarPainelCorrecao() {
   const lista = document.getElementById("lista-partidas-corrigir");
   if (!lista) return;
-  const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
+  const partidas = LocalJogo.obter()?.rodadasFinalizadas || [];
   const ordenadas = [...(partidas || [])].sort((a, b) => a.numeroRodada - b.numeroRodada);
   if (!ordenadas.length) {
     lista.innerHTML = `<li><span>Nenhuma partida ainda</span><span class="meta">—</span></li>`;
@@ -1329,8 +1236,8 @@ async function carregarPainelCorrecao() {
 async function cancelarPartidaPorId(partidaId) {
   const ok = confirm("Cancelar esta partida? Placar, gols, cartões e pontos serão desfeitos.");
   if (!ok) return;
-  await PeladaAPI.cancelarPartida(partidaId);
-  if (estado.partidaAtual && estado.partidaAtual.id === partidaId) {
+  LocalJogo.cancelarPartidaLocal(partidaId);
+  if (estado.partidaAtual && String(estado.partidaAtual.id) === String(partidaId)) {
     estado.partidaAtual = null;
   }
   await irParaClassificacao();
@@ -1355,10 +1262,10 @@ async function desfazerUltimoEvento() {
   let golsA = base.golsTimeA;
   let golsB = base.golsTimeB;
   if (ultimo.tipo === "GOL") {
-    if (ultimo.timeId === base.timeA.id) golsA = Math.max(0, golsA - 1);
+    if (String(ultimo.timeId) === String(base.timeA.id)) golsA = Math.max(0, golsA - 1);
     else golsB = Math.max(0, golsB - 1);
   } else if (ultimo.tipo === "GOL_CONTRA") {
-    if (ultimo.timeId === base.timeA.id) golsB = Math.max(0, golsB - 1);
+    if (String(ultimo.timeId) === String(base.timeA.id)) golsB = Math.max(0, golsB - 1);
     else golsA = Math.max(0, golsA - 1);
   }
 
@@ -1396,8 +1303,13 @@ async function cancelarPartidaAtual() {
 async function carregarObservacoes(listaId, selectId) {
   const lista = document.getElementById(listaId);
   const select = document.getElementById(selectId);
-  const jogadores = await PeladaAPI.listarJogadores(estado.peladaId);
-  const observacoes = await PeladaAPI.listarObservacoes(estado.peladaId);
+  const jogoLocal = LocalJogo.temJogoLocal();
+  const jogadores = jogoLocal
+    ? LocalJogo.listarJogadores()
+    : await PeladaAPI.listarJogadores(estado.peladaId);
+  const observacoes = jogoLocal
+    ? LocalJogo.listarObservacoes()
+    : await PeladaAPI.listarObservacoes(estado.peladaId);
 
   if (select) {
     select.innerHTML = jogadores
@@ -1425,7 +1337,7 @@ async function carregarObservacoes(listaId, selectId) {
 }
 
 async function salvarAtraso(sufixo = "") {
-  const jogadorId = Number(document.getElementById(`atraso-jogador${sufixo}`).value);
+  const jogadorId = document.getElementById(`atraso-jogador${sufixo}`).value;
   const horario = document.getElementById(`atraso-horario${sufixo}`).value;
   const texto = document.getElementById(`atraso-texto${sufixo}`).value.trim();
   if (!jogadorId) {
@@ -1436,38 +1348,65 @@ async function salvarAtraso(sufixo = "") {
     toast("Informe o horário ou uma nota");
     return;
   }
-  await PeladaAPI.adicionarObservacao(estado.peladaId, {
-    jogadorId,
-    tipo: "ATRASO",
-    horario: horario || null,
-    texto: texto || null,
-  });
+  if (LocalJogo.temJogoLocal()) {
+    const jogador = LocalJogo.listarJogadores().find((j) => String(j.id) === String(jogadorId));
+    LocalJogo.adicionarObservacaoLocal({
+      jogadorId,
+      jogadorNome: jogador?.nome || "Jogador",
+      tipo: "ATRASO",
+      horario: horario || null,
+      texto: texto || null,
+    });
+  } else {
+    await PeladaAPI.adicionarObservacao(estado.peladaId, {
+      jogadorId,
+      tipo: "ATRASO",
+      horario: horario || null,
+      texto: texto || null,
+    });
+  }
   document.getElementById(`atraso-horario${sufixo}`).value = "";
   document.getElementById(`atraso-texto${sufixo}`).value = "";
   toast("Atraso registrado");
 
-  if (sufixo === "-fim") {
+  await carregarObservacoes(
+    sufixo === "-fim" ? null : "lista-observacoes",
+    sufixo === "-fim" ? "atraso-jogador-fim" : "atraso-jogador"
+  );
+  if (sufixo === "-fim" && !LocalJogo.temJogoLocal()) {
     const resumo = await PeladaAPI.resumo(estado.peladaId);
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
-    await carregarObservacoes(null, "atraso-jogador-fim");
-  } else {
-    await carregarObservacoes("lista-observacoes", "atraso-jogador");
   }
 }
 
 async function encerrarPelada() {
-  const ok = confirm("Encerrar a pelada agora? Nomes e estrelas serão salvos para a próxima.");
+  const ok = confirm("Encerrar a pelada agora? Tudo será enviado à sua conta (histórico + súmula).");
   if (!ok) return;
+  if (estado.partidaAtual) {
+    toast("Finalize ou saia da partida aberta antes de encerrar");
+    return;
+  }
   await comLoading(async () => {
-    await sincronizarJogoEmBackground({ maxLances: 80 });
-    const resumo = await PeladaAPI.encerrar(estado.peladaId);
-    localStorage.setItem("pelada_ultima_id", String(estado.peladaId));
+    const local = LocalJogo.obter();
+    let peladaId = estado.peladaId || local?.peladaId;
+    if (!peladaId) {
+      const criada = await PeladaAPI.criar({
+        nome: local?.nome || "Pelada Oficial",
+        quantidadeTimes: local?.quantidadeTimes || 2,
+        importarElenco: false,
+      });
+      peladaId = criada.id;
+      estado.peladaId = peladaId;
+    }
+    const payload = LocalJogo.montarPayloadSync();
+    const resumo = await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    localStorage.setItem("pelada_ultima_id", String(peladaId));
     LocalJogo.limpar();
     estado.resumoAtual = resumo;
     estado.sumulaManual = false;
     estado.ultimaPelada = {
-      id: estado.peladaId,
+      id: peladaId,
       nome: resumo?.pelada?.nome || "Pelada Oficial",
       status: "ENCERRADA",
       encerradaEm: resumo?.pelada?.encerradaEm,
@@ -1477,7 +1416,7 @@ async function encerrarPelada() {
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim");
     mostrarTela("tela-fim");
-  }, "Salvando e gerando súmula...");
+  }, "Enviando pelada e gerando súmula...");
   toast("Pelada encerrada");
 }
 
@@ -1507,7 +1446,7 @@ async function entrarNaHome() {
   configurarCliqueHistorico(document.getElementById("lista-historico-completo"));
 
   const local = LocalJogo.obter();
-  const temLocal = !!(local?.peladaId && (local.partida || local.finalizarPendente || (local.times || []).length));
+  const temLocal = LocalJogo.temJogoLocal();
   let idAtiva = null;
 
   try {
@@ -1530,6 +1469,8 @@ async function entrarNaHome() {
 
   if (temLocal && box) {
     box.classList.remove("oculto");
+    document.querySelector("#box-continuar .continuar-txt").textContent =
+      "Você tem uma pelada salva neste celular.";
     if (local.peladaId) idAtiva = local.peladaId;
   }
 
@@ -1704,9 +1645,9 @@ async function aplicarRetomada(payload) {
 /** Retoma placar/partida salvos neste navegador (mesmo se a API estiver oscilando). */
 function tentarRetomarDoCelular(peladaId) {
   const local = LocalJogo.obter();
-  if (!local || Number(local.peladaId) !== Number(peladaId)) return false;
+  if (!local || String(local.peladaId) !== String(peladaId)) return false;
 
-  estado.peladaId = peladaId;
+  estado.peladaId = local.peladaId;
   if (Array.isArray(local.times) && local.times.length) {
     estado.times = local.times;
   }
@@ -1720,13 +1661,23 @@ function tentarRetomarDoCelular(peladaId) {
   }
 
   // Já finalizou localmente → classificação local (não espera servidor)
-  if (local.finalizarPendente || (local.times && local.times.length && somaJogosTimes(local.times) > 0)) {
+  if (
+    (local.rodadasFinalizadas || []).length ||
+    (local.times && local.times.length && somaJogosTimes(local.times) > 0)
+  ) {
     if (estado.times.length) {
       renderClassificacao(estado.times, "tabela-classificacao");
       mostrarTela("tela-classificacao");
       toast("Classificação retomada");
       return true;
     }
+  }
+
+  if (local.status === "AGUARDANDO" || (local.jogadores || []).length) {
+    renderListasCadastro(local.jogadores);
+    mostrarTela("tela-jogadores");
+    toast("Cadastro retomado");
+    return true;
   }
 
   return false;
@@ -1940,13 +1891,6 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 montarSeletorEstrelas();
 ConfigApp.init();
 bootAuth();
-// Sync silencioso só se tiver pendência importante (finalizar / fila)
-setTimeout(() => {
-  if (LocalJogo.qtdPendentes() > 0) {
-    sincronizarJogoEmBackground({ maxLances: 20 });
-  }
-}, 4000);
-
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
@@ -1954,16 +1898,35 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       const pelada = await PeladaAPI.criar({
         nome: document.getElementById("nome-pelada").value.trim(),
         quantidadeTimes: Number(document.getElementById("qtd-times").value),
-        importarElenco: true,
+        importarElenco: false,
       });
       estado.peladaId = pelada.id;
       localStorage.setItem(PELADA_KEY, String(pelada.id));
+      let jogadores = [];
+      try {
+        const elenco = await PeladaAPI.listarElenco();
+        jogadores = (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
+          id: j.id,
+          nome: j.nome,
+          estrelas: j.estrelas,
+          goleiro: !!j.goleiro,
+          apto: j.apto !== false,
+        }));
+      } catch (_) {
+        /* elenco é opcional: o cadastro segue local */
+      }
+      LocalJogo.iniciarPeladaLocal({
+        peladaId: pelada.id,
+        nome: pelada.nome || document.getElementById("nome-pelada").value.trim(),
+        quantidadeTimes: Number(document.getElementById("qtd-times").value),
+        jogadores,
+      });
       const todos = await carregarCadastro();
       mostrarTela("tela-jogadores");
       if (todos.length) {
-        toast(`Elenco carregado: ${todos.length} pessoa(s) da última pelada`);
+        toast(`Elenco carregado no celular: ${todos.length} pessoa(s)`);
       } else {
-        toast("Pelada criada — cadastre os jogadores");
+        toast("Pelada criada — cadastre no celular e envie ao encerrar");
       }
     }, "Criando pelada...");
   } catch (err) {
@@ -1974,7 +1937,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
 document.getElementById("form-jogador").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    await PeladaAPI.adicionarJogador(estado.peladaId, {
+    LocalJogo.adicionarJogador({
       nome: document.getElementById("nome-jogador").value.trim(),
       estrelas: estado.estrelasSelecionadas,
       goleiro: false,
@@ -1990,7 +1953,7 @@ document.getElementById("form-jogador").addEventListener("submit", async (e) => 
 document.getElementById("form-goleiro").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    await PeladaAPI.adicionarJogador(estado.peladaId, {
+    LocalJogo.adicionarJogador({
       nome: document.getElementById("nome-goleiro").value.trim(),
       goleiro: true,
     });
@@ -2006,7 +1969,7 @@ document.getElementById("lista-jogadores").addEventListener("click", async (e) =
   const aptoBtn = e.target.closest("[data-apto-id]");
   if (aptoBtn) {
     try {
-      await alternarApto(Number(aptoBtn.dataset.aptoId), aptoBtn.dataset.apto === "true");
+      await alternarApto(aptoBtn.dataset.aptoId, aptoBtn.dataset.apto === "true");
     } catch (err) {
       toast(err.message);
     }
@@ -2015,7 +1978,7 @@ document.getElementById("lista-jogadores").addEventListener("click", async (e) =
   const editar = e.target.closest("[data-editar-id]");
   if (editar) {
     try {
-      await editarJogador(Number(editar.dataset.editarId));
+      await editarJogador(editar.dataset.editarId);
     } catch (err) {
       toast(err.message);
     }
@@ -2024,7 +1987,7 @@ document.getElementById("lista-jogadores").addEventListener("click", async (e) =
   const btn = e.target.closest("[data-apagar-id]");
   if (!btn) return;
   try {
-    await apagarJogador(Number(btn.dataset.apagarId));
+    await apagarJogador(btn.dataset.apagarId);
   } catch (err) {
     toast(err.message);
   }
@@ -2034,7 +1997,7 @@ document.getElementById("lista-goleiros").addEventListener("click", async (e) =>
   const aptoBtn = e.target.closest("[data-apto-id]");
   if (aptoBtn) {
     try {
-      await alternarApto(Number(aptoBtn.dataset.aptoId), aptoBtn.dataset.apto === "true");
+      await alternarApto(aptoBtn.dataset.aptoId, aptoBtn.dataset.apto === "true");
     } catch (err) {
       toast(err.message);
     }
@@ -2043,7 +2006,7 @@ document.getElementById("lista-goleiros").addEventListener("click", async (e) =>
   const editar = e.target.closest("[data-editar-id]");
   if (editar) {
     try {
-      await editarJogador(Number(editar.dataset.editarId));
+      await editarJogador(editar.dataset.editarId);
     } catch (err) {
       toast(err.message);
     }
@@ -2052,7 +2015,7 @@ document.getElementById("lista-goleiros").addEventListener("click", async (e) =>
   const btn = e.target.closest("[data-apagar-id]");
   if (!btn) return;
   try {
-    await apagarJogador(Number(btn.dataset.apagarId));
+    await apagarJogador(btn.dataset.apagarId);
   } catch (err) {
     toast(err.message);
   }
@@ -2088,28 +2051,21 @@ async function voltarDaPartidaComSeguranca() {
 
   await comLoading(async () => {
     if (partida?.id) {
-      try {
+      if (String(partida.id).startsWith("lp-") || partida._local) {
+        LocalJogo.cancelarPartidaLocal(partida.id);
+      } else {
         await PeladaAPI.cancelarPartida(partida.id);
-      } catch (_) {
-        /* partida pode já ter sido cancelada */
       }
       estado.partidaAtual = null;
-      LocalJogo.limparPartidaAberta();
     }
 
-    let finalizadas = [];
-    try {
-      const partidas = await PeladaAPI.listarPartidas(estado.peladaId);
-      finalizadas = (partidas || []).filter((p) => p.status === "FINALIZADA");
-    } catch (_) {
-      finalizadas = [];
-    }
+    const finalizadas = LocalJogo.obter()?.rodadasFinalizadas || [];
 
     if (finalizadas.length) {
       await irParaClassificacao();
       toast("Voltou à classificação");
     } else {
-      const times = await PeladaAPI.listarTimes(estado.peladaId);
+      const times = LocalJogo.listarTimes();
       estado.times = times;
       renderTimes(times);
       mostrarTela("tela-times");
@@ -2128,12 +2084,10 @@ document.getElementById("btn-voltar-partida")?.addEventListener("click", async (
 
 document.getElementById("btn-voltar-times-class")?.addEventListener("click", async () => {
   try {
-    await comLoading(async () => {
-      const times = await PeladaAPI.listarTimes(estado.peladaId);
-      estado.times = times;
-      renderTimes(times);
-      mostrarTela("tela-times");
-    }, "Abrindo times...");
+    const times = LocalJogo.listarTimes();
+    estado.times = times;
+    renderTimes(times);
+    mostrarTela("tela-times");
   } catch (err) {
     toast(err.message);
   }
@@ -2162,12 +2116,12 @@ document.getElementById("btn-re-sortear").addEventListener("click", async () => 
 document.getElementById("grade-times").addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-acao]");
   if (!btn) return;
-  const timeId = Number(btn.dataset.timeId);
+  const timeId = btn.dataset.timeId;
   try {
     if (btn.dataset.acao === "renomear") await renomearTime(timeId);
     if (btn.dataset.acao === "goleiro") await trocarGoleiroTime(timeId);
     if (btn.dataset.acao === "mover") {
-      await escolherTimeParaMover(Number(btn.dataset.jogadorId), Number(btn.dataset.timeOrigem));
+      await escolherTimeParaMover(btn.dataset.jogadorId, btn.dataset.timeOrigem);
     }
   } catch (err) {
     toast(err.message);
@@ -2234,7 +2188,7 @@ document.getElementById("lista-partidas-corrigir").addEventListener("click", asy
   const btn = e.target.closest("[data-cancelar-partida]");
   if (!btn) return;
   try {
-    await cancelarPartidaPorId(Number(btn.dataset.cancelarPartida));
+    await cancelarPartidaPorId(btn.dataset.cancelarPartida);
   } catch (err) {
     toast(err.message);
   }
@@ -2260,7 +2214,7 @@ document.getElementById("lista-observacoes").addEventListener("click", async (e)
   const btn = e.target.closest("[data-obs-id]");
   if (!btn) return;
   try {
-    await PeladaAPI.removerObservacao(estado.peladaId, Number(btn.dataset.obsId));
+    LocalJogo.removerObservacaoLocal(btn.dataset.obsId);
     await carregarObservacoes("lista-observacoes", "atraso-jogador");
     toast("Observação removida");
   } catch (err) {
@@ -2270,12 +2224,6 @@ document.getElementById("lista-observacoes").addEventListener("click", async (e)
 
 document.getElementById("btn-nova-rodada").addEventListener("click", async () => {
   try {
-    if (LocalJogo.qtdPendentes() > 0) {
-      await comLoading(
-        () => sincronizarJogoEmBackground({ maxLances: 80 }),
-        "Salvando rodada anterior..."
-      );
-    }
     await iniciarPartidaComEscolha();
   } catch (err) {
     toast(err.message || "Não deu para abrir a partida — tente de novo");
