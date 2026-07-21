@@ -6,6 +6,7 @@ import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
 import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
+import br.com.peladaoficial.dto.SyncCompletaRequest;
 import br.com.peladaoficial.model.ElencoJogador;
 import br.com.peladaoficial.model.Jogador;
 import br.com.peladaoficial.model.ObservacaoPelada;
@@ -14,6 +15,7 @@ import br.com.peladaoficial.model.Time;
 import br.com.peladaoficial.service.PeladaService;
 import br.com.peladaoficial.service.ResumoService;
 import br.com.peladaoficial.service.RetomarService;
+import br.com.peladaoficial.service.SyncCompletaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -32,11 +34,16 @@ public class PeladaController {
     private final PeladaService peladaService;
     private final ResumoService resumoService;
     private final RetomarService retomarService;
+    private final SyncCompletaService syncCompletaService;
 
-    public PeladaController(PeladaService peladaService, ResumoService resumoService, RetomarService retomarService) {
+    public PeladaController(PeladaService peladaService,
+                            ResumoService resumoService,
+                            RetomarService retomarService,
+                            SyncCompletaService syncCompletaService) {
         this.peladaService = peladaService;
         this.resumoService = resumoService;
         this.retomarService = retomarService;
+        this.syncCompletaService = syncCompletaService;
     }
 
     @PostMapping
@@ -180,6 +187,15 @@ public class PeladaController {
     public Map<String, Object> encerrar(@PathVariable Long id) {
         peladaService.encerrar(id);
         return resumoService.montar(id);
+    }
+
+    /**
+     * Substitui o estado local da pelada pelo snapshot offline em uma única transação.
+     */
+    @PostMapping("/{id}/sincronizar-completa")
+    public Map<String, Object> sincronizarCompleta(@PathVariable Long id,
+                                                    @RequestBody SyncCompletaRequest request) {
+        return syncCompletaService.sincronizar(id, request);
     }
 
     /** Reabre pelada encerrada para seguir com mais rodadas. */
