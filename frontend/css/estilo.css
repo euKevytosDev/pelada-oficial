@@ -126,6 +126,79 @@ body {
   color: var(--texto);
 }
 
+.btn-voltar-inline {
+  margin-bottom: 12px;
+  width: auto;
+}
+
+.btn-block {
+  width: 100%;
+  text-align: center;
+}
+
+.menu-mais {
+  display: grid;
+  gap: 10px;
+}
+
+.lista-historico li {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.historico-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.historico-linha strong {
+  font-size: 0.95rem;
+}
+
+.historico-meta {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
+.historico-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.historico-acoes .btn-mini {
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
+.badge-status {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e8f6ee;
+  color: var(--verde-campo);
+  white-space: nowrap;
+}
+
+.badge-status.encerrada {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.badge-status.retomar {
+  background: #fff8e1;
+  color: #9a6700;
+}
+
 .tela {
   display: none;
   animation: sobe 0.28s ease;

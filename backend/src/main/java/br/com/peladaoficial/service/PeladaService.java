@@ -445,13 +445,21 @@ public class PeladaService {
 
     /**
      * Reabre uma pelada encerrada para continuar com mais partidas.
-     * Só permite se não houver outra pelada ativa na conta.
+     * Só permite se não houver outra pelada ativa na conta (janela de 24h).
      */
     @Transactional
     public Pelada reabrir(Long peladaId) {
         Pelada pelada = buscar(peladaId);
         if (pelada.getStatus() != StatusPelada.ENCERRADA) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta pelada já está aberta");
+        }
+
+        if (pelada.getEncerradaEm() == null
+                || pelada.getEncerradaEm().isBefore(LocalDateTime.now().minusHours(24))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Só dá para continuar até 24 horas depois de encerrar a pelada"
+            );
         }
 
         Optional<Pelada> ativa = buscarAtiva();

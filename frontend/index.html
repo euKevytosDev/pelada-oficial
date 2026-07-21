@@ -50,6 +50,7 @@
       <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
       <div class="user-bar oculto" id="user-bar">
         <span id="user-nome"></span>
+        <button type="button" class="btn-mini" id="btn-mais-topo">Mais</button>
         <button type="button" class="btn-mini" id="btn-sair">Sair</button>
       </div>
     </header>
@@ -116,14 +117,11 @@
           <p class="continuar-txt">Você tem uma pelada em andamento.</p>
           <button type="button" class="btn btn-principal" id="btn-continuar">Continuar pelada</button>
         </div>
-        <div id="box-ultima-pelada" class="card-form oculto">
-          <p class="continuar-txt">Última pelada</p>
-          <p class="ultima-pelada-nome"><strong id="ultima-pelada-nome">Pelada Oficial</strong></p>
-          <p class="dica" id="ultima-pelada-meta"></p>
-          <div class="acoes-finas">
-            <button type="button" class="btn btn-principal" id="btn-continuar-ultima">Continuar partidas</button>
-            <button type="button" class="btn btn-secundario" id="btn-ver-sumula-ultima">Ver súmula</button>
-          </div>
+        <div id="box-historico-recente" class="card-form oculto">
+          <h2 class="lista-titulo" style="margin-top:0">Peladas recentes</h2>
+          <p class="dica">Encerradas há menos de 24h podem continuar com mais partidas.</p>
+          <ul class="lista lista-historico" id="lista-historico-home"></ul>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico completo</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
@@ -140,10 +138,24 @@
           </label>
           <button type="submit" class="btn btn-principal">Começar pelada</button>
         </form>
-        <div class="acoes-finas">
-          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula">Gerar súmula (colar planilha)</button>
-        </div>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
+      </section>
+
+      <section class="tela" id="tela-mais">
+        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-mais">← Voltar</button>
+        <h2 class="lista-titulo">Mais opções</h2>
+        <div class="card-form menu-mais">
+          <button type="button" class="btn btn-secundario btn-block" id="btn-menu-historico">Histórico de peladas</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-menu-sumula">Gerar súmula (colar texto)</button>
+        </div>
+        <p class="dica">Use a súmula manual quando marcar o jogo na planilha ou no papel.</p>
+      </section>
+
+      <section class="tela" id="tela-historico">
+        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-historico">← Voltar</button>
+        <h2 class="lista-titulo">Histórico</h2>
+        <p class="dica">Peladas encerradas nas últimas 24 horas podem ser retomadas para mais rodadas.</p>
+        <ul class="lista lista-historico" id="lista-historico-completo"></ul>
       </section>
 
       <section class="tela" id="tela-sumula-manual">
@@ -330,10 +342,10 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=20260721e"></script>
-  <script src="js/local-jogo.js?v=20260721e"></script>
-  <script src="js/resumo.js?v=20260721e"></script>
-  <script src="js/sumula-manual.js?v=20260721e"></script>
-  <script src="js/app.js?v=20260721e"></script>
+  <script src="js/api.js?v=20260721f"></script>
+  <script src="js/local-jogo.js?v=20260721f"></script>
+  <script src="js/resumo.js?v=20260721f"></script>
+  <script src="js/sumula-manual.js?v=20260721f"></script>
+  <script src="js/app.js?v=20260721f"></script>
 </body>
 </html>

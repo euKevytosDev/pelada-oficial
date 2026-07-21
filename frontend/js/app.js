@@ -11,6 +11,7 @@ const estado = {
   peladaId: null,
   peladaAtiva: null,
   ultimaPelada: null,
+  historicoPeladas: [],
   estrelasSelecionadas: 5,
   times: [],
   goleiros: [],
@@ -18,7 +19,11 @@ const estado = {
   resumoAtual: null,
   sumulaManual: false,
   telaAntesSumula: "tela-inicio",
+  telaVoltarUtil: "tela-inicio",
 };
+
+/** Pelada encerrada pode ser retomada por até 24h. */
+const JANELA_RETOMAR_MS = 24 * 60 * 60 * 1000;
 
 function mostrarTela(id) {
   document.querySelectorAll(".tela").forEach((tela) => tela.classList.remove("ativa"));
@@ -27,6 +32,8 @@ function mostrarTela(id) {
   const titulos = {
     "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
+    "tela-mais": "Mais opções",
+    "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
     "tela-times": "Times sorteados",
@@ -68,6 +75,178 @@ async function comLoading(fn, texto) {
   } finally {
     esconderLoading();
   }
+}
+
+function msDesdeEncerramento(pelada) {
+  const t = pelada?.encerradaEm || pelada?.criadaEm;
+  if (!t) return Infinity;
+  const d = new Date(t);
+  return Number.isNaN(d.getTime()) ? Infinity : Date.now() - d.getTime();
+}
+
+function podeContinuarPelada(pelada) {
+  if (!pelada?.id) return false;
+  if (pelada.status === "EM_ANDAMENTO" || pelada.status === "AGUARDANDO") return true;
+  if (pelada.status === "ENCERRADA") return msDesdeEncerramento(pelada) < JANELA_RETOMAR_MS;
+  return false;
+}
+
+function podeVerSumula(pelada) {
+  return pelada?.status === "ENCERRADA" || pelada?.status === "EM_ANDAMENTO";
+}
+
+function badgeStatusPelada(pelada) {
+  if (pelada.status === "EM_ANDAMENTO") return { cls: "", txt: "Ao vivo" };
+  if (pelada.status === "AGUARDANDO") return { cls: "", txt: "Preparando" };
+  if (pelada.status === "ENCERRADA" && podeContinuarPelada(pelada)) {
+    const restante = JANELA_RETOMAR_MS - msDesdeEncerramento(pelada);
+    const horas = Math.max(1, Math.ceil(restante / 3600000));
+    return { cls: "retomar", txt: `Retomar · ${horas}h` };
+  }
+  return { cls: "encerrada", txt: "Encerrada" };
+}
+
+function metaPeladaHistorico(pelada) {
+  const quando = pelada.encerradaEm || pelada.criadaEm;
+  const data = quando ? formatarDataBr(quando) : "";
+  if (pelada.status === "ENCERRADA" && podeContinuarPelada(pelada)) {
+    return `${data} · pode continuar com mais partidas`;
+  }
+  if (pelada.status === "ENCERRADA") {
+    return data ? `Encerrada em ${data}` : "Encerrada";
+  }
+  if (pelada.status === "EM_ANDAMENTO") return "Pelada em andamento";
+  return data ? `Criada em ${data}` : "";
+}
+
+function htmlItemHistorico(pelada) {
+  const badge = badgeStatusPelada(pelada);
+  const meta = metaPeladaHistorico(pelada);
+  const botoes = [];
+
+  if (podeContinuarPelada(pelada)) {
+    const label =
+      pelada.status === "ENCERRADA" ? "Continuar partidas" : "Abrir pelada";
+    botoes.push(
+      `<button type="button" class="btn-mini" data-hist-acao="continuar" data-pelada-id="${pelada.id}">${label}</button>`
+    );
+  }
+  if (podeVerSumula(pelada)) {
+    botoes.push(
+      `<button type="button" class="btn-mini" data-hist-acao="sumula" data-pelada-id="${pelada.id}">Ver súmula</button>`
+    );
+  }
+
+  return `
+    <li data-pelada-id="${pelada.id}">
+      <div class="historico-linha">
+        <div>
+          <strong>${pelada.nome || "Pelada Oficial"}</strong>
+          <p class="historico-meta">${meta}</p>
+        </div>
+        <span class="badge-status ${badge.cls}">${badge.txt}</span>
+      </div>
+      ${botoes.length ? `<div class="historico-acoes">${botoes.join("")}</div>` : ""}
+    </li>`;
+}
+
+function renderHistoricoLista(listaEl, peladas, limite) {
+  if (!listaEl) return;
+  const itens = (peladas || []).slice(0, limite ?? peladas.length);
+  if (!itens.length) {
+    listaEl.innerHTML = `<li><span>Nenhuma pelada salva ainda</span><span class="meta">—</span></li>`;
+    return;
+  }
+  listaEl.innerHTML = itens.map((p) => htmlItemHistorico(p)).join("");
+}
+
+async function carregarHistoricoPeladas() {
+  try {
+    const lista = await PeladaAPI.listarMinhas();
+    estado.historicoPeladas = (lista || []).filter((p) => p && p.id);
+    if (estado.historicoPeladas[0]) {
+      estado.ultimaPelada = estado.historicoPeladas[0];
+      localStorage.setItem("pelada_ultima_id", String(estado.historicoPeladas[0].id));
+    }
+    return estado.historicoPeladas;
+  } catch (_) {
+    return estado.historicoPeladas || [];
+  }
+}
+
+function peladasParaHistoricoHome(idAtiva) {
+  return (estado.historicoPeladas || []).filter((p) => !idAtiva || Number(p.id) !== Number(idAtiva));
+}
+
+async function abrirSumulaPelada(peladaId) {
+  await comLoading(async () => {
+    const resumo = await PeladaAPI.resumo(peladaId);
+    estado.peladaId = peladaId;
+    estado.resumoAtual = resumo;
+    estado.sumulaManual = false;
+    const boxAtraso = document.getElementById("box-atraso-fim");
+    if (boxAtraso) boxAtraso.classList.remove("oculto");
+    renderResumoOficial(resumo);
+    await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
+    mostrarTela("tela-fim");
+  }, "Carregando súmula...");
+}
+
+async function continuarPeladaPorId(peladaId) {
+  const pelada =
+    (estado.historicoPeladas || []).find((p) => Number(p.id) === Number(peladaId)) ||
+    (estado.peladaAtiva?.id === peladaId ? estado.peladaAtiva : null) ||
+    (await PeladaAPI.buscar(peladaId).catch(() => null));
+
+  if (!pelada?.id) {
+    toast("Pelada não encontrada");
+    return;
+  }
+
+  await comLoading(async () => {
+    if (pelada.status === "ENCERRADA") {
+      if (!podeContinuarPelada(pelada)) {
+        throw new Error("Passou das 24 horas — só dá para ver a súmula");
+      }
+      await PeladaAPI.reabrir(pelada.id);
+      const payload = await PeladaAPI.retomarPorId(pelada.id);
+      if (payload?.pelada) {
+        await aplicarRetomada(payload);
+      } else {
+        await retomarPelada({ ...pelada, status: "EM_ANDAMENTO" });
+      }
+      toast("Pelada retomada — pode seguir com mais partidas");
+      return;
+    }
+
+    estado.peladaAtiva = pelada;
+    if (Number(localStorage.getItem(PELADA_KEY)) === Number(pelada.id) && tentarRetomarDoCelular(pelada.id)) {
+      return;
+    }
+    const payload = await PeladaAPI.retomarPorId(pelada.id).catch(() => null);
+    if (payload?.pelada) {
+      await aplicarRetomada(payload);
+    } else {
+      await retomarPelada(pelada);
+    }
+  }, "Abrindo pelada...");
+}
+
+function configurarCliqueHistorico(listaEl) {
+  if (!listaEl || listaEl._histBound) return;
+  listaEl._histBound = true;
+  listaEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-hist-acao]");
+    if (!btn) return;
+    const id = Number(btn.dataset.peladaId);
+    const acao = btn.dataset.histAcao;
+    try {
+      if (acao === "continuar") await continuarPeladaPorId(id);
+      else if (acao === "sumula") await abrirSumulaPelada(id);
+    } catch (err) {
+      toast(err.message);
+    }
+  });
 }
 
 function estrelasTexto(n) {
@@ -1263,65 +1442,47 @@ async function entrarNaHome() {
   atualizarUserBar();
   mostrarTela("tela-inicio");
   const box = document.getElementById("box-continuar");
-  const boxUltima = document.getElementById("box-ultima-pelada");
+  const boxHistorico = document.getElementById("box-historico-recente");
+  const listaHome = document.getElementById("lista-historico-home");
   if (box) box.classList.add("oculto");
-  if (boxUltima) boxUltima.classList.add("oculto");
+  if (boxHistorico) boxHistorico.classList.add("oculto");
+
+  configurarCliqueHistorico(listaHome);
+  configurarCliqueHistorico(document.getElementById("lista-historico-completo"));
 
   const local = LocalJogo.obter();
   const temLocal = !!(local?.peladaId && (local.partida || local.finalizarPendente || (local.times || []).length));
+  let idAtiva = null;
 
   try {
     const ativa = await PeladaAPI.ativa();
     if (ativa && ativa.id) {
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
+      idAtiva = ativa.id;
       if (box) {
         document.querySelector("#box-continuar .continuar-txt").textContent =
           "Você tem uma pelada em andamento.";
         box.classList.remove("oculto");
       }
-      return;
+    } else {
+      estado.peladaAtiva = null;
     }
-    estado.peladaAtiva = null;
   } catch (_) {
     /* API oscilando */
   }
 
   if (temLocal && box) {
     box.classList.remove("oculto");
+    if (local.peladaId) idAtiva = local.peladaId;
   }
 
-  try {
-    const lista = await PeladaAPI.listarMinhas();
-    const ultima = (lista || []).find((p) => p && p.id);
-    if (!ultima) return;
-    estado.ultimaPelada = ultima;
-    localStorage.setItem("pelada_ultima_id", String(ultima.id));
+  const peladas = await carregarHistoricoPeladas();
+  const recentes = peladasParaHistoricoHome(idAtiva);
 
-    if (ultima.status === "ENCERRADA" && boxUltima && !temLocal) {
-      document.getElementById("ultima-pelada-nome").textContent = ultima.nome || "Pelada Oficial";
-      const quando = ultima.encerradaEm || ultima.criadaEm;
-      document.getElementById("ultima-pelada-meta").textContent = quando
-        ? `Encerrada em ${formatarDataBr(quando)} · pode continuar com mais partidas`
-        : "Pode continuar com mais partidas";
-      boxUltima.classList.remove("oculto");
-    } else if (
-      (ultima.status === "AGUARDANDO" || ultima.status === "EM_ANDAMENTO") &&
-      box &&
-      !temLocal
-    ) {
-      estado.peladaAtiva = ultima;
-      box.classList.remove("oculto");
-    }
-  } catch (_) {
-    const idLocal = localStorage.getItem("pelada_ultima_id");
-    if (idLocal && boxUltima && !temLocal) {
-      document.getElementById("ultima-pelada-nome").textContent = "Última pelada";
-      document.getElementById("ultima-pelada-meta").textContent =
-        "Toque para tentar reabrir quando o servidor responder";
-      estado.ultimaPelada = { id: Number(idLocal), status: "ENCERRADA", nome: "Pelada Oficial" };
-      boxUltima.classList.remove("oculto");
-    }
+  if (recentes.length && boxHistorico && listaHome) {
+    renderHistoricoLista(listaHome, recentes, 5);
+    boxHistorico.classList.remove("oculto");
   }
 }
 
@@ -1660,49 +1821,45 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("btn-continuar-ultima")?.addEventListener("click", async () => {
-  const ultima = estado.ultimaPelada;
-  if (!ultima?.id) {
-    toast("Nenhuma pelada recente");
-    return;
-  }
+document.getElementById("btn-mais-topo")?.addEventListener("click", () => {
+  mostrarTela("tela-mais");
+});
+
+document.getElementById("btn-voltar-mais")?.addEventListener("click", () => {
+  mostrarTela("tela-inicio");
+});
+
+document.getElementById("btn-menu-historico")?.addEventListener("click", async () => {
   try {
     await comLoading(async () => {
-      await PeladaAPI.reabrir(ultima.id);
-      const payload = await PeladaAPI.retomarPorId(ultima.id);
-      if (payload?.pelada) {
-        await aplicarRetomada(payload);
-      } else {
-        await retomarPelada({ ...ultima, status: "EM_ANDAMENTO" });
-      }
-      toast("Pelada reaberta — pode seguir com mais partidas");
-    }, "Reabrindo pelada...");
+      const peladas = await carregarHistoricoPeladas();
+      renderHistoricoLista(document.getElementById("lista-historico-completo"), peladas);
+      mostrarTela("tela-historico");
+    }, "Carregando histórico...");
   } catch (err) {
     toast(err.message);
   }
 });
 
-document.getElementById("btn-ver-sumula-ultima")?.addEventListener("click", async () => {
-  const ultima = estado.ultimaPelada;
-  if (!ultima?.id) {
-    toast("Nenhuma pelada recente");
-    return;
-  }
+document.getElementById("btn-menu-sumula")?.addEventListener("click", () => {
+  estado.telaAntesSumula = "tela-mais";
+  abrirTelaSumulaManual();
+});
+
+document.getElementById("btn-ver-historico")?.addEventListener("click", async () => {
   try {
     await comLoading(async () => {
-      const resumo = await PeladaAPI.resumo(ultima.id);
-      estado.peladaId = ultima.id;
-      estado.resumoAtual = resumo;
-      estado.sumulaManual = false;
-      const boxAtraso = document.getElementById("box-atraso-fim");
-      if (boxAtraso) boxAtraso.classList.remove("oculto");
-      renderResumoOficial(resumo);
-      await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
-      mostrarTela("tela-fim");
-    }, "Carregando súmula...");
+      const peladas = await carregarHistoricoPeladas();
+      renderHistoricoLista(document.getElementById("lista-historico-completo"), peladas);
+      mostrarTela("tela-historico");
+    }, "Carregando histórico...");
   } catch (err) {
     toast(err.message);
   }
+});
+
+document.getElementById("btn-voltar-historico")?.addEventListener("click", () => {
+  mostrarTela("tela-inicio");
 });
 
 montarSeletorEstrelas();
@@ -2048,8 +2205,7 @@ document.getElementById("btn-compartilhar").addEventListener("click", async () =
 });
 
 function abrirTelaSumulaManual() {
-  const ativa = document.querySelector(".tela.ativa");
-  estado.telaAntesSumula = ativa?.id || "tela-inicio";
+  estado.telaAntesSumula = estado.telaAntesSumula || "tela-mais";
   const ta = document.getElementById("texto-sumula-manual");
   if (ta && !ta.value.trim()) ta.value = EXEMPLO_SUMULA;
   mostrarTela("tela-sumula-manual");
@@ -2071,10 +2227,12 @@ function gerarSumulaManualAgora() {
   }
 }
 
-document.getElementById("btn-gerar-sumula")?.addEventListener("click", abrirTelaSumulaManual);
-document.getElementById("btn-gerar-sumula-auth")?.addEventListener("click", abrirTelaSumulaManual);
+document.getElementById("btn-gerar-sumula-auth")?.addEventListener("click", () => {
+  estado.telaAntesSumula = "tela-auth";
+  abrirTelaSumulaManual();
+});
 document.getElementById("btn-sumula-voltar")?.addEventListener("click", () => {
-  mostrarTela(estado.telaAntesSumula || "tela-inicio");
+  mostrarTela(estado.telaAntesSumula || "tela-mais");
 });
 document.getElementById("btn-sumula-exemplo")?.addEventListener("click", () => {
   document.getElementById("texto-sumula-manual").value = EXEMPLO_SUMULA;
