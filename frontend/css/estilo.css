@@ -101,9 +101,13 @@ body {
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.btn-config-topo svg {
+.btn-config-topo svg,
+.btn-config-topo img {
   width: 22px;
   height: 22px;
+  display: block;
+  /* SVG preto do arquivo → branco no topo verde */
+  filter: brightness(0) invert(1);
 }
 
 .btn-config-topo:active {
