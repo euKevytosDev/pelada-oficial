@@ -239,7 +239,11 @@ const PeladaAPI = {
     }
   },
   iniciarPartida: (peladaId, dados) =>
-    api(`/peladas/${peladaId}/partidas`, { method: "POST", body: JSON.stringify(dados) }),
+    api(`/peladas/${peladaId}/partidas`, {
+      method: "POST",
+      body: JSON.stringify(dados),
+      retry: 8,
+    }),
   listarPartidas: (peladaId) => api(`/peladas/${peladaId}/partidas`),
   buscarPartida: async (partidaId) => {
     try {

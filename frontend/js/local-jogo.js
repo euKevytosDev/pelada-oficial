@@ -1,26 +1,30 @@
 /**
- * Jogo no celular primeiro — sync com o servidor depois.
- * Cada lance tem um id único (clientLanceId) para nunca duplicar no sync.
+ * Jogo no celular primeiro — sync suave depois.
+ * Classificação e placar valem neste navegador até a 13ª rodada,
+ * mesmo se o servidor oscilar.
  */
 const LocalJogo = (() => {
-  const STORE_KEY = "pelada_jogo_local_v2";
-  const STORE_KEY_OLD = "pelada_jogo_local_v1";
+  const STORE_KEY = "pelada_jogo_local_v3";
+  const LEGACY_KEYS = ["pelada_jogo_local_v2", "pelada_jogo_local_v1", "pelada_fila_lances", "pelada_fila_finalizar"];
 
   function ler() {
     try {
-      const v2 = localStorage.getItem(STORE_KEY);
-      if (v2) return JSON.parse(v2);
-      // migra v1 → limpa fila antiga (podia duplicar gols)
-      const v1 = localStorage.getItem(STORE_KEY_OLD);
-      if (v1) {
-        localStorage.removeItem(STORE_KEY_OLD);
-        const old = JSON.parse(v1);
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+
+      // migra legado (mantém times/partida; descarta fila velha que podia duplicar)
+      for (const key of ["pelada_jogo_local_v2", "pelada_jogo_local_v1"]) {
+        const oldRaw = localStorage.getItem(key);
+        if (!oldRaw) continue;
+        localStorage.removeItem(key);
+        const old = JSON.parse(oldRaw);
         return {
           peladaId: old.peladaId,
-          partida: old.partida,
+          partida: old.partida || null,
           times: old.times || [],
           lancesPendentes: [],
-          finalizarPendente: !!old.finalizarPendente,
+          finalizarPendente: false,
+          syncPausadoAte: 0,
           atualizadoEm: Date.now(),
         };
       }
@@ -40,9 +44,18 @@ const LocalJogo = (() => {
 
   function limpar() {
     gravar(null);
-    localStorage.removeItem(STORE_KEY_OLD);
-    localStorage.removeItem("pelada_fila_lances");
-    localStorage.removeItem("pelada_fila_finalizar");
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+  }
+
+  /** Limpa só a partida aberta; mantém classificação local. */
+  function limparPartidaAberta() {
+    const atual = ler();
+    if (!atual) return;
+    atual.partida = null;
+    atual.lancesPendentes = [];
+    atual.finalizarPendente = false;
+    atual.atualizadoEm = Date.now();
+    gravar(atual);
   }
 
   function obter() {
@@ -50,13 +63,18 @@ const LocalJogo = (() => {
   }
 
   function salvarPartida(peladaId, partida, times) {
-    const atual = ler() || { lancesPendentes: [], finalizarPendente: false };
+    const atual = ler() || {
+      lancesPendentes: [],
+      finalizarPendente: false,
+      syncPausadoAte: 0,
+    };
     gravar({
       peladaId,
       partida,
-      times: times || atual.times || [],
+      times: times && times.length ? times : atual.times || [],
       lancesPendentes: atual.lancesPendentes || [],
       finalizarPendente: !!atual.finalizarPendente,
+      syncPausadoAte: atual.syncPausadoAte || 0,
       atualizadoEm: Date.now(),
     });
   }
@@ -70,9 +88,14 @@ const LocalJogo = (() => {
   }
 
   function salvarTimes(times) {
-    const atual = ler();
-    if (!atual) return;
-    atual.times = times;
+    const atual = ler() || {
+      peladaId: null,
+      partida: null,
+      lancesPendentes: [],
+      finalizarPendente: false,
+      syncPausadoAte: 0,
+    };
+    atual.times = times || [];
     atual.atualizadoEm = Date.now();
     gravar(atual);
   }
@@ -88,10 +111,10 @@ const LocalJogo = (() => {
       times: [],
       lancesPendentes: [],
       finalizarPendente: false,
+      syncPausadoAte: 0,
     };
     atual.lancesPendentes = atual.lancesPendentes || [];
     const clientLanceId = payload.clientLanceId || novoClientLanceId();
-    // Não enfileira o mesmo id duas vezes
     if (atual.lancesPendentes.some((l) => l.id === clientLanceId || l.payload?.clientLanceId === clientLanceId)) {
       gravar(atual);
       return clientLanceId;
@@ -144,6 +167,18 @@ const LocalJogo = (() => {
     return !!(ler()?.finalizarPendente);
   }
 
+  function pausarSync(ms) {
+    const atual = ler();
+    if (!atual) return;
+    atual.syncPausadoAte = Date.now() + ms;
+    gravar(atual);
+  }
+
+  function syncPausado() {
+    const ate = ler()?.syncPausadoAte || 0;
+    return Date.now() < ate;
+  }
+
   function qtdPendentes() {
     const a = ler();
     if (!a) return 0;
@@ -156,6 +191,7 @@ const LocalJogo = (() => {
     atualizarPartida,
     salvarTimes,
     limpar,
+    limparPartidaAberta,
     novoClientLanceId,
     enfileirarLance,
     listarLancesPendentes,
@@ -163,6 +199,8 @@ const LocalJogo = (() => {
     registrarTentativa,
     marcarFinalizarPendente,
     temFinalizarPendente,
+    pausarSync,
+    syncPausado,
     qtdPendentes,
   };
 })();
