@@ -1906,7 +1906,6 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       try {
         const elenco = await PeladaAPI.listarElenco();
         jogadores = (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
-          id: j.id,
           nome: j.nome,
           estrelas: j.estrelas,
           goleiro: !!j.goleiro,
