@@ -19,7 +19,8 @@ const estado = {
   resumoAtual: null,
   sumulaManual: false,
   telaAntesSumula: "tela-inicio",
-  telaVoltarUtil: "tela-inicio",
+  telaAntesConfig: "tela-inicio",
+  telaAntesHistorico: "tela-inicio",
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -32,7 +33,7 @@ function mostrarTela(id) {
   const titulos = {
     "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
-    "tela-mais": "Mais opções",
+    "tela-configuracoes": "Configurações",
     "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
@@ -1760,7 +1761,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
   }
 });
 
-document.getElementById("btn-sair").addEventListener("click", () => {
+function sairConta() {
   limparSessao();
   estado.peladaId = null;
   estado.times = [];
@@ -1770,7 +1771,9 @@ document.getElementById("btn-sair").addEventListener("click", () => {
   atualizarUserBar();
   mostrarTela("tela-auth");
   toast("Você saiu");
-});
+}
+
+document.getElementById("cfg-sair")?.addEventListener("click", sairConta);
 
 document.getElementById("btn-continuar").addEventListener("click", async () => {
   const btn = document.getElementById("btn-continuar");
@@ -1821,15 +1824,36 @@ document.getElementById("btn-continuar").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("btn-mais-topo")?.addEventListener("click", () => {
-  mostrarTela("tela-mais");
+document.getElementById("btn-config")?.addEventListener("click", () => {
+  const ativa = document.querySelector(".tela.ativa");
+  estado.telaAntesConfig = ativa?.id || "tela-inicio";
+  ConfigApp.sincronizarTelaConfig();
+  mostrarTela("tela-configuracoes");
 });
 
-document.getElementById("btn-voltar-mais")?.addEventListener("click", () => {
-  mostrarTela("tela-inicio");
+document.getElementById("btn-voltar-config")?.addEventListener("click", () => {
+  mostrarTela(estado.telaAntesConfig || "tela-inicio");
 });
 
-document.getElementById("btn-menu-historico")?.addEventListener("click", async () => {
+document.querySelectorAll("[data-tema-opt]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    ConfigApp.definirTema(btn.dataset.temaOpt);
+    toast("Tema atualizado");
+  });
+});
+
+document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
+  const nome = document.getElementById("cfg-nome-pelada")?.value?.trim();
+  const qtd = parseInt(document.getElementById("cfg-qtd-times")?.value, 10);
+  ConfigApp.salvarPrefs({
+    nomePelada: nome || "Pelada Oficial",
+    qtdTimes: Number.isFinite(qtd) ? qtd : 2,
+  });
+  toast("Padrões salvos");
+});
+
+async function abrirHistoricoCompleto(origem) {
+  estado.telaAntesHistorico = origem || "tela-inicio";
   try {
     await comLoading(async () => {
       const peladas = await carregarHistoricoPeladas();
@@ -1839,30 +1863,27 @@ document.getElementById("btn-menu-historico")?.addEventListener("click", async (
   } catch (err) {
     toast(err.message);
   }
+}
+
+document.getElementById("cfg-historico")?.addEventListener("click", () => {
+  abrirHistoricoCompleto("tela-configuracoes");
 });
 
-document.getElementById("btn-menu-sumula")?.addEventListener("click", () => {
-  estado.telaAntesSumula = "tela-mais";
+document.getElementById("cfg-sumula")?.addEventListener("click", () => {
+  estado.telaAntesSumula = "tela-configuracoes";
   abrirTelaSumulaManual();
 });
 
-document.getElementById("btn-ver-historico")?.addEventListener("click", async () => {
-  try {
-    await comLoading(async () => {
-      const peladas = await carregarHistoricoPeladas();
-      renderHistoricoLista(document.getElementById("lista-historico-completo"), peladas);
-      mostrarTela("tela-historico");
-    }, "Carregando histórico...");
-  } catch (err) {
-    toast(err.message);
-  }
+document.getElementById("btn-ver-historico")?.addEventListener("click", () => {
+  abrirHistoricoCompleto("tela-inicio");
 });
 
 document.getElementById("btn-voltar-historico")?.addEventListener("click", () => {
-  mostrarTela("tela-inicio");
+  mostrarTela(estado.telaAntesHistorico || "tela-inicio");
 });
 
 montarSeletorEstrelas();
+ConfigApp.init();
 bootAuth();
 // Sync silencioso só se tiver pendência importante (finalizar / fila)
 setTimeout(() => {
@@ -2205,7 +2226,7 @@ document.getElementById("btn-compartilhar").addEventListener("click", async () =
 });
 
 function abrirTelaSumulaManual() {
-  estado.telaAntesSumula = estado.telaAntesSumula || "tela-mais";
+  estado.telaAntesSumula = estado.telaAntesSumula || "tela-inicio";
   const ta = document.getElementById("texto-sumula-manual");
   if (ta && !ta.value.trim()) ta.value = EXEMPLO_SUMULA;
   mostrarTela("tela-sumula-manual");
@@ -2232,7 +2253,7 @@ document.getElementById("btn-gerar-sumula-auth")?.addEventListener("click", () =
   abrirTelaSumulaManual();
 });
 document.getElementById("btn-sumula-voltar")?.addEventListener("click", () => {
-  mostrarTela(estado.telaAntesSumula || "tela-mais");
+  mostrarTela(estado.telaAntesSumula || "tela-inicio");
 });
 document.getElementById("btn-sumula-exemplo")?.addEventListener("click", () => {
   document.getElementById("texto-sumula-manual").value = EXEMPLO_SUMULA;

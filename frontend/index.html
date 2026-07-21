@@ -6,6 +6,15 @@
   <meta name="theme-color" content="#0B3D2E" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Pelada Oficial</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem("pelada_tema") || "system";
+      var dark =
+        t === "dark" ||
+        (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      if (dark) document.documentElement.setAttribute("data-theme", "dark");
+    })();
+  </script>
   <link rel="stylesheet" href="css/estilo.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +24,11 @@
 <body>
   <div class="app">
     <header class="topo">
-      <div class="marca">
+      <button type="button" class="btn-config-topo" id="btn-config" aria-label="Configurações" title="Configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm8.14 4.26 1.45 1.13a.6.6 0 0 1 .22.65l-1.38 2.39a.6.6 0 0 1-.58.29l-1.78-.14-.76 1.62a.6.6 0 0 1-.54.35h-2.76a.6.6 0 0 1-.54-.35l-.76-1.62-1.78.14a.6.6 0 0 1-.58-.29L2.19 14.44a.6.6 0 0 1 .22-.65l1.45-1.13-.14-1.78a.6.6 0 0 1 .35-.54l1.62-.76V8.4l-1.62-.76a.6.6 0 0 1-.35-.54l.14-1.78a.6.6 0 0 1 .65-.22l1.45 1.13 1.78-.14a.6.6 0 0 1 .54.35l.76 1.62h2.76l.76-1.62a.6.6 0 0 1 .54-.35l1.78.14 1.45-1.13a.6.6 0 0 1 .65.22l.14 1.78a.6.6 0 0 1-.35.54l-1.62.76v1.62l1.62.76a.6.6 0 0 1 .35.54l-.14 1.78z"/></svg>
+      </button>
+      <div class="topo-corpo">
+        <div class="marca">
         <svg class="marca-bola" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
           <defs>
             <radialGradient id="bola-base" cx="32%" cy="28%" r="70%">
@@ -50,8 +63,7 @@
       <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
       <div class="user-bar oculto" id="user-bar">
         <span id="user-nome"></span>
-        <button type="button" class="btn-mini" id="btn-mais-topo">Mais</button>
-        <button type="button" class="btn-mini" id="btn-sair">Sair</button>
+      </div>
       </div>
     </header>
 
@@ -141,14 +153,54 @@
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
       </section>
 
-      <section class="tela" id="tela-mais">
-        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-mais">← Voltar</button>
-        <h2 class="lista-titulo">Mais opções</h2>
-        <div class="card-form menu-mais">
-          <button type="button" class="btn btn-secundario btn-block" id="btn-menu-historico">Histórico de peladas</button>
-          <button type="button" class="btn btn-secundario btn-block" id="btn-menu-sumula">Gerar súmula (colar texto)</button>
+      <section class="tela" id="tela-configuracoes">
+        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-config">← Voltar</button>
+        <h2 class="lista-titulo">Configurações</h2>
+
+        <div class="card-form config-bloco">
+          <h3 class="config-titulo">Aparência</h3>
+          <p class="dica config-dica">Escolha o tema do app neste celular.</p>
+          <div class="config-segmento" role="group" aria-label="Tema">
+            <button type="button" class="config-seg-btn" data-tema-opt="light">Claro</button>
+            <button type="button" class="config-seg-btn" data-tema-opt="dark">Escuro</button>
+            <button type="button" class="config-seg-btn" data-tema-opt="system">Automático</button>
+          </div>
         </div>
-        <p class="dica">Use a súmula manual quando marcar o jogo na planilha ou no papel.</p>
+
+        <div class="card-form config-bloco">
+          <h3 class="config-titulo">Pelada padrão</h3>
+          <p class="dica config-dica">Valores sugeridos ao criar uma nova pelada.</p>
+          <label>
+            Nome padrão
+            <input type="text" id="cfg-nome-pelada" maxlength="100" value="Pelada Oficial" />
+          </label>
+          <label>
+            Quantidade de times
+            <select id="cfg-qtd-times">
+              <option value="2">2 times</option>
+              <option value="3">3 times</option>
+              <option value="4">4 times</option>
+            </select>
+          </label>
+          <button type="button" class="btn btn-principal" id="btn-salvar-prefs">Salvar padrões</button>
+        </div>
+
+        <div class="card-form config-bloco">
+          <h3 class="config-titulo">Ferramentas</h3>
+          <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
+          <button type="button" class="btn btn-secundario btn-block" id="cfg-sumula">Gerar súmula (colar texto)</button>
+        </div>
+
+        <div class="card-form config-bloco" id="cfg-conta-bloco">
+          <h3 class="config-titulo">Conta</h3>
+          <p class="cfg-conta-linha" id="cfg-conta-email">—</p>
+          <button type="button" class="btn btn-perigo btn-block" id="cfg-sair">Sair da conta</button>
+        </div>
+
+        <div class="config-sobre">
+          <p><strong>Pelada Oficial</strong></p>
+          <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0 · Retomar até 24h</p>
+        </div>
       </section>
 
       <section class="tela" id="tela-historico">
@@ -342,10 +394,11 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=20260721f"></script>
-  <script src="js/local-jogo.js?v=20260721f"></script>
-  <script src="js/resumo.js?v=20260721f"></script>
-  <script src="js/sumula-manual.js?v=20260721f"></script>
-  <script src="js/app.js?v=20260721f"></script>
+  <script src="js/api.js?v=20260721h"></script>
+  <script src="js/config.js?v=20260721h"></script>
+  <script src="js/local-jogo.js?v=20260721h"></script>
+  <script src="js/resumo.js?v=20260721h"></script>
+  <script src="js/sumula-manual.js?v=20260721h"></script>
+  <script src="js/app.js?v=20260721h"></script>
 </body>
 </html>
