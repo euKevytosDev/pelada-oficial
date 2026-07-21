@@ -289,6 +289,11 @@ function montarResumoDeTexto(textoBruto) {
     }
   });
   artilharia.sort((a, b) => b.gols - a.gols || a.nome.localeCompare(b.nome, "pt-BR"));
+  // Só o artilheiro líder (e empatados, se houver)
+  if (artilharia.length) {
+    const maxGols = artilharia[0].gols;
+    artilharia.splice(0, artilharia.length, ...artilharia.filter((a) => a.gols === maxGols));
+  }
   golsSofridos.sort((a, b) => a.quantidade - b.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const pegarCampo = (label) => {

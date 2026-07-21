@@ -73,6 +73,14 @@ function listaSimples(itens, vazio) {
     .join("")}</ul>`;
 }
 
+/** Só o líder da artilharia; se empatar, mantém todos empatados. */
+function artilheirosLideres(lista) {
+  if (!lista || !lista.length) return [];
+  const max = Math.max(...lista.map((a) => Number(a.gols ?? a.quantidade) || 0));
+  if (max <= 0) return [];
+  return lista.filter((a) => (Number(a.gols ?? a.quantidade) || 0) === max);
+}
+
 function listaObservacoes(itens) {
   if (!itens || !itens.length) return `<p class="vazio">Nenhuma observação.</p>`;
   return `<ul class="lista-resumo">${itens
@@ -176,7 +184,7 @@ function renderResumoOficial(resumo) {
 
     <section class="resumo-bloco">
       <h3>Artilharia</h3>
-      ${listaSimples(resumo.artilharia, "Nenhum gol marcado.")}
+      ${listaSimples(artilheirosLideres(resumo.artilharia), "Nenhum gol marcado.")}
     </section>
 
     <section class="resumo-bloco">
@@ -239,10 +247,11 @@ function textoResumoWhatsApp(resumo) {
   }
   if (premios.bolaMurcha) linhas.push(`😅 Bola Murcha: ${premios.bolaMurcha.nome}`);
 
-  if ((resumo.artilharia || []).length) {
+  const artilheiros = artilheirosLideres(resumo.artilharia);
+  if (artilheiros.length) {
     linhas.push("");
-    linhas.push("*Artilharia*");
-    resumo.artilharia.forEach((a) => linhas.push(`• ${a.nome}: ${a.gols || a.quantidade}`));
+    linhas.push(artilheiros.length > 1 ? "*Artilharia (empate)*" : "*Artilharia*");
+    artilheiros.forEach((a) => linhas.push(`• ${a.nome}: ${a.gols || a.quantidade}`));
   }
 
   if ((resumo.golsSofridos || []).length) {
