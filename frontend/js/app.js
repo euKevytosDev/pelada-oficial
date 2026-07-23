@@ -430,7 +430,7 @@ function cancelarModalPendente() {
   fecharModal();
 }
 
-function escolherOpcao(titulo, opcoes) {
+function escolherOpcao(titulo, opcoes, opts = {}) {
   return new Promise((resolve) => {
     if (!opcoes.length) {
       toast("Nenhuma opção disponível");
@@ -438,9 +438,10 @@ function escolherOpcao(titulo, opcoes) {
       return;
     }
 
+    const layout = opts.layout === "grade" ? "grade" : "lista";
     modalEsperaResolve = resolve;
     const html = `
-      <div class="opcoes">
+      <div class="opcoes opcoes-${layout}">
         ${opcoes
           .map((o) => {
             const extra = o.goleiro ? " opcao-goleiro" : "";
@@ -720,7 +721,8 @@ async function escolherTimeParaMover(jogadorId, timeOrigemId) {
   }
   const timeId = await escolherOpcao(
     "Mover para qual time?",
-    destinos.map((t) => ({ id: t.id, label: `${t.nome} (${t.totalEstrelas}★)` }))
+    destinos.map((t) => ({ id: t.id, label: `${t.nome} (${t.totalEstrelas}★)` })),
+    { layout: "grade" }
   );
   if (!timeId) return;
   await moverJogadorParaTime(jogadorId, timeId);
@@ -1006,14 +1008,16 @@ async function iniciarPartidaComEscolha() {
   // Sempre pergunta Time A e Time B (2, 3 ou 4 times)
   const timeAId = await escolherOpcao(
     "Quem joga? Time A",
-    times.map((t) => ({ id: t.id, label: t.nome }))
+    times.map((t) => ({ id: t.id, label: t.nome })),
+    { layout: "grade" }
   );
   if (!timeAId) return;
 
   const restantes = times.filter((t) => String(t.id) !== String(timeAId));
   const timeBId = await escolherOpcao(
     "Quem joga? Time B",
-    restantes.map((t) => ({ id: t.id, label: t.nome }))
+    restantes.map((t) => ({ id: t.id, label: t.nome })),
+    { layout: "grade" }
   );
   if (!timeBId) return;
 
@@ -1049,9 +1053,11 @@ function elencoDoTimeParaLance(partida, timeId) {
 }
 
 function opcoesJogadoresLance(jogadores) {
-  return jogadores.map((j) => ({
+  return ordenarPorEstrelasAsc(jogadores).map((j) => ({
     id: j.id,
-    label: j.goleiro ? `${j.nome} (goleiro)` : j.nome,
+    label: j.goleiro
+      ? `${j.nome} (goleiro)`
+      : `${j.nome} · ${Number(j.estrelas) || 0}★`,
     goleiro: !!j.goleiro,
   }));
 }
@@ -1069,10 +1075,14 @@ async function registrarEventoAoVivo(tipo) {
   let jogadoresDoTime = [];
 
   if (tipo === "GOL_CONTRA") {
-    timeId = await escolherOpcao("Time que sofreu o gol contra?", [
-      { id: partida.timeA.id, label: partida.timeA.nome },
-      { id: partida.timeB.id, label: partida.timeB.nome },
-    ]);
+    timeId = await escolherOpcao(
+      "Time que sofreu o gol contra?",
+      [
+        { id: partida.timeA.id, label: partida.timeA.nome },
+        { id: partida.timeB.id, label: partida.timeB.nome },
+      ],
+      { layout: "grade" }
+    );
     if (!timeId) return;
 
     jogadoresDoTime = elencoDoTimeParaLance(partida, timeId);
@@ -1083,10 +1093,14 @@ async function registrarEventoAoVivo(tipo) {
     );
     if (!jogadorId) return;
   } else {
-    timeId = await escolherOpcao("Qual time?", [
-      { id: partida.timeA.id, label: partida.timeA.nome },
-      { id: partida.timeB.id, label: partida.timeB.nome },
-    ]);
+    timeId = await escolherOpcao(
+      "Qual time?",
+      [
+        { id: partida.timeA.id, label: partida.timeA.nome },
+        { id: partida.timeB.id, label: partida.timeB.nome },
+      ],
+      { layout: "grade" }
+    );
     if (!timeId) return;
 
     jogadoresDoTime = elencoDoTimeParaLance(partida, timeId);

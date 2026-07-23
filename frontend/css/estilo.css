@@ -974,10 +974,18 @@ td.num, th.num {
 
 .opcoes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 6px;
   max-height: none;
   overflow: visible;
+  grid-template-columns: 1fr;
+}
+
+.opcoes-grade {
+  grid-template-columns: 1fr 1fr;
+}
+
+.opcoes-lista {
+  grid-template-columns: 1fr;
 }
 
 .opcao {
