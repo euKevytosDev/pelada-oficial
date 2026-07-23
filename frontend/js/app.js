@@ -169,19 +169,76 @@ function renderHistoricoLista(listaEl, peladas, limite, opcoes) {
 async function carregarHistoricoPeladas() {
   try {
     const lista = await PeladaAPI.listarMinhas();
-    estado.historicoPeladas = (lista || []).filter((p) => p && p.id);
+    const ocultos = new Set(lerApagarPendentes().map(String));
+    estado.historicoPeladas = (lista || []).filter((p) => p && p.id && !ocultos.has(String(p.id)));
     if (estado.historicoPeladas[0]) {
       estado.ultimaPelada = estado.historicoPeladas[0];
       localStorage.setItem("pelada_ultima_id", String(estado.historicoPeladas[0].id));
     }
     return estado.historicoPeladas;
   } catch (_) {
-    return estado.historicoPeladas || [];
+    const ocultos = new Set(lerApagarPendentes().map(String));
+    return (estado.historicoPeladas || []).filter((p) => p && !ocultos.has(String(p.id)));
   }
 }
 
 function peladasParaHistoricoHome(idAtiva) {
-  return (estado.historicoPeladas || []).filter((p) => !idAtiva || Number(p.id) !== Number(idAtiva));
+  const ocultos = new Set(lerApagarPendentes().map(String));
+  return (estado.historicoPeladas || []).filter(
+    (p) =>
+      p &&
+      !ocultos.has(String(p.id)) &&
+      (!idAtiva || Number(p.id) !== Number(idAtiva))
+  );
+}
+
+const APAGAR_PENDENTE_KEY = "pelada_apagar_pendente";
+
+function lerApagarPendentes() {
+  try {
+    const raw = localStorage.getItem(APAGAR_PENDENTE_KEY);
+    const lista = raw ? JSON.parse(raw) : [];
+    return Array.isArray(lista) ? lista.map(String) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function salvarApagarPendentes(ids) {
+  const unicos = [...new Set((ids || []).map(String).filter(Boolean))];
+  if (!unicos.length) localStorage.removeItem(APAGAR_PENDENTE_KEY);
+  else localStorage.setItem(APAGAR_PENDENTE_KEY, JSON.stringify(unicos));
+}
+
+function marcarApagarPendente(peladaId) {
+  const ids = lerApagarPendentes();
+  const id = String(peladaId);
+  if (!ids.includes(id)) ids.push(id);
+  salvarApagarPendentes(ids);
+}
+
+function limparApagarPendente(peladaId) {
+  salvarApagarPendentes(lerApagarPendentes().filter((id) => id !== String(peladaId)));
+}
+
+/** Apaga no servidor em segundo plano (sem travar a tela). */
+async function sincronizarApaguesPendentes() {
+  if (!getToken()) return;
+  const pendentes = lerApagarPendentes();
+  if (!pendentes.length) return;
+  for (const id of pendentes) {
+    try {
+      await PeladaAPI.apagar(id);
+      limparApagarPendente(id);
+    } catch (err) {
+      const msg = String(err?.message || "").toLowerCase();
+      // Já não existe no servidor — pode tirar da fila
+      if (msg.includes("404") || msg.includes("não encontrada") || msg.includes("nao encontrada")) {
+        limparApagarPendente(id);
+      }
+      // Rede/Render lento: tenta de novo depois
+    }
+  }
 }
 
 async function abrirSumulaPelada(peladaId) {
@@ -243,27 +300,33 @@ async function apagarPeladaPorId(peladaId) {
   const nome = pelada?.nome || "esta pelada";
   if (!confirm(`Apagar "${nome}"?\n\nNão dá para desfazer.`)) return;
 
-  await comLoading(async () => {
-    await PeladaAPI.apagar(peladaId);
-    estado.historicoPeladas = (estado.historicoPeladas || []).filter(
-      (p) => Number(p.id) !== Number(peladaId)
-    );
-    if (Number(localStorage.getItem(PELADA_KEY)) === Number(peladaId)) {
-      localStorage.removeItem(PELADA_KEY);
-    }
-    const local = LocalJogo.obter();
-    if (local?.peladaId && Number(local.peladaId) === Number(peladaId)) {
-      LocalJogo.limpar();
-    }
-    if (Number(localStorage.getItem("pelada_ultima_id")) === Number(peladaId)) {
-      const prox = estado.historicoPeladas[0];
-      if (prox?.id) localStorage.setItem("pelada_ultima_id", String(prox.id));
-      else localStorage.removeItem("pelada_ultima_id");
-      estado.ultimaPelada = prox || null;
-    }
-    await atualizarHistoricoHome();
-  }, "Apagando...");
+  // Some da tela na hora — sync do DELETE em segundo plano
+  marcarApagarPendente(peladaId);
+  estado.historicoPeladas = (estado.historicoPeladas || []).filter(
+    (p) => Number(p.id) !== Number(peladaId)
+  );
+  if (Number(localStorage.getItem(PELADA_KEY)) === Number(peladaId)) {
+    localStorage.removeItem(PELADA_KEY);
+  }
+  const local = LocalJogo.obter();
+  if (local?.peladaId && Number(local.peladaId) === Number(peladaId)) {
+    LocalJogo.limpar();
+  }
+  if (Number(localStorage.getItem("pelada_ultima_id")) === Number(peladaId)) {
+    const prox = estado.historicoPeladas[0];
+    if (prox?.id) localStorage.setItem("pelada_ultima_id", String(prox.id));
+    else localStorage.removeItem("pelada_ultima_id");
+    estado.ultimaPelada = prox || null;
+  }
+
+  await atualizarHistoricoHome();
+  const listaCompleta = document.getElementById("lista-historico-completo");
+  if (listaCompleta && document.getElementById("tela-historico")?.classList.contains("ativa")) {
+    renderHistoricoLista(listaCompleta, estado.historicoPeladas, null, { mostrarApagar: true });
+  }
+
   toast("Pelada apagada");
+  sincronizarApaguesPendentes().catch(() => {});
 }
 
 async function atualizarHistoricoHome() {
@@ -1460,6 +1523,7 @@ function atualizarUserBar() {
 async function entrarNaHome() {
   atualizarUserBar();
   mostrarTela("tela-inicio");
+  sincronizarApaguesPendentes().catch(() => {});
   const box = document.getElementById("box-continuar");
   const boxHistorico = document.getElementById("box-historico-recente");
   const listaHome = document.getElementById("lista-historico-home");
@@ -1915,6 +1979,7 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 montarSeletorEstrelas();
 ConfigApp.init();
 bootAuth();
+setTimeout(() => sincronizarApaguesPendentes().catch(() => {}), 2500);
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {

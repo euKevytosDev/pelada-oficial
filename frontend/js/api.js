@@ -234,7 +234,8 @@ const PeladaAPI = {
       retry: 4,
     }),
   reabrir: (peladaId) => api(`/peladas/${peladaId}/reabrir`, { method: "POST", body: "{}" }),
-  apagar: (peladaId) => api(`/peladas/${peladaId}`, { method: "DELETE" }),
+  apagar: (peladaId) =>
+    api(`/peladas/${peladaId}`, { method: "DELETE", retry: 2 }),
   retomarPorId: (peladaId) => api(`/peladas/${peladaId}/retomar`),
   resumo: async (peladaId) => {
     try {
