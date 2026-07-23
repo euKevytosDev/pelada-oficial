@@ -67,6 +67,7 @@ public class SyncCompletaRequest {
         private String timeClientId;
         private String jogadorClientId;
         private String goleiroClientId;
+        private String assistenciaClientId;
     }
 
     @Getter

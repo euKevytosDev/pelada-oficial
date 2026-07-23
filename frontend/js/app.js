@@ -805,7 +805,8 @@ function renderPartida(partida) {
       .map((e) => {
         let texto = "";
         if (e.tipo === "GOL") {
-          texto = `Gol de ${e.jogadorNome} (${e.timeNome}) · GK ${e.goleiroNome || "?"}`;
+          const ass = e.assistenciaNome ? ` · assist. ${e.assistenciaNome}` : "";
+          texto = `Gol de ${e.jogadorNome} (${e.timeNome})${ass} · GK ${e.goleiroNome || "?"}`;
         } else if (e.tipo === "GOL_CONTRA") {
           texto = `Gol contra de ${e.jogadorNome} (${e.timeNome})`;
         } else if (e.tipo === "CARTAO_AMARELO") {
@@ -1000,6 +1001,8 @@ async function registrarEventoAoVivo(tipo) {
   let jogadorId;
   let goleiroId = null;
   let goleiroNome = null;
+  let assistenciaId = null;
+  let assistenciaNome = null;
   let jogadoresDoTime = [];
 
   if (tipo === "GOL_CONTRA") {
@@ -1032,6 +1035,18 @@ async function registrarEventoAoVivo(tipo) {
     if (!jogadorId) return;
 
     if (tipo === "GOL") {
+      const colegas = jogadoresDoTime.filter((j) => String(j.id) !== String(jogadorId));
+      const opcoesAssist = [
+        { id: "__sem__", label: "Sem assistência" },
+        ...opcoesJogadoresLance(colegas),
+      ];
+      const assistEscolhida = await escolherOpcao("Quem deu a assistência?", opcoesAssist);
+      if (!assistEscolhida) return;
+      if (String(assistEscolhida) !== "__sem__") {
+        assistenciaId = assistEscolhida;
+        assistenciaNome = (colegas.find((j) => String(j.id) === String(assistenciaId)) || {}).nome || null;
+      }
+
       const timeDefensorId =
         String(timeId) === String(partida.timeA.id) ? partida.timeB.id : partida.timeA.id;
       const goleiros = partida.goleirosPelada || [];
@@ -1065,6 +1080,8 @@ async function registrarEventoAoVivo(tipo) {
     jogadorId,
     goleiroId,
     goleiroNome,
+    assistenciaId,
+    assistenciaNome,
     jogadoresDoTime,
   };
 
@@ -1082,6 +1099,10 @@ function aplicarLanceLocal(partidaId, contexto) {
     || { id: contexto.jogadorId, nome: "Jogador" };
   const time = contexto.timeId && String(contexto.timeId) === String(base.timeA.id) ? base.timeA : base.timeB;
   const goleiro = (base.goleirosPelada || []).find((g) => String(g.id) === String(contexto.goleiroId)) || null;
+  const assistencia = (contexto.jogadoresDoTime || []).find((j) => String(j.id) === String(contexto.assistenciaId))
+    || (contexto.assistenciaId
+      ? { id: contexto.assistenciaId, nome: contexto.assistenciaNome || "Assistência" }
+      : null);
   const timeNome =
     String(contexto.timeId) === String(base.timeA.id) ? base.timeA.nome : base.timeB.nome;
 
@@ -1116,12 +1137,15 @@ function aplicarLanceLocal(partidaId, contexto) {
     jogador,
     time,
     goleiro,
+    assistencia,
     timeId: contexto.timeId,
     timeNome,
     jogadorId: contexto.jogadorId,
     jogadorNome: jogador.nome || "Jogador",
     goleiroId: contexto.goleiroId || null,
     goleiroNome: contexto.goleiroNome || null,
+    assistenciaId: contexto.assistenciaId || null,
+    assistenciaNome: contexto.assistenciaNome || null,
   });
 
   // Só no celular — sync só ao finalizar rodada / encerrar

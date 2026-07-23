@@ -100,6 +100,7 @@ const LocalJogo = (() => {
         apto: j.apto !== false,
         gols: 0,
         golsContra: 0,
+        assistencias: 0,
         cartoesAmarelos: 0,
         cartoesVermelhos: 0,
         golsSofridos: 0,
@@ -134,6 +135,7 @@ const LocalJogo = (() => {
         apto: true,
         gols: 0,
         golsContra: 0,
+        assistencias: 0,
         cartoesAmarelos: 0,
         cartoesVermelhos: 0,
         golsSofridos: 0,
@@ -442,6 +444,10 @@ const LocalJogo = (() => {
         if (ev.tipo === "GOL") {
           j.gols = (j.gols || 0) + 1;
           if (gk) gk.golsSofridos = (gk.golsSofridos || 0) + 1;
+          const ass = (s.jogadores || []).find(
+            (x) => String(x.id) === String(ev.assistencia?.id || ev.assistenciaId)
+          );
+          if (ass) ass.assistencias = (ass.assistencias || 0) + 1;
         } else if (ev.tipo === "GOL_CONTRA") {
           j.golsContra = (j.golsContra || 0) + 1;
         } else if (ev.tipo === "CARTAO_AMARELO") {
@@ -481,6 +487,7 @@ const LocalJogo = (() => {
     (s.jogadores || []).forEach((j) => {
       j.gols = 0;
       j.golsContra = 0;
+      j.assistencias = 0;
       j.cartoesAmarelos = 0;
       j.cartoesVermelhos = 0;
       j.golsSofridos = 0;
@@ -494,6 +501,10 @@ const LocalJogo = (() => {
         if (ev.tipo === "GOL") {
           j.gols += 1;
           if (gk) gk.golsSofridos += 1;
+          const ass = (s.jogadores || []).find(
+            (x) => String(x.id) === String(ev.assistencia?.id || ev.assistenciaId)
+          );
+          if (ass) ass.assistencias = (ass.assistencias || 0) + 1;
         } else if (ev.tipo === "GOL_CONTRA") j.golsContra += 1;
         else if (ev.tipo === "CARTAO_AMARELO") j.cartoesAmarelos += 1;
         else if (ev.tipo === "CARTAO_VERMELHO") j.cartoesVermelhos += 1;
@@ -596,6 +607,8 @@ const LocalJogo = (() => {
           timeClientId: String(e.time?.id || e.timeId),
           jogadorClientId: String(e.jogador?.id || e.jogadorId),
           goleiroClientId: e.goleiro?.id || e.goleiroId ? String(e.goleiro?.id || e.goleiroId) : null,
+          assistenciaClientId:
+            e.assistencia?.id || e.assistenciaId ? String(e.assistencia?.id || e.assistenciaId) : null,
         })),
       })),
       observacoes: (s.observacoes || []).map((o) => ({

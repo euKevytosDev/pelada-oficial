@@ -17,6 +17,9 @@ public class RegistrarEventoRequest {
     /** Obrigatório quando tipo = GOL (goleiro que sofreu). */
     private Long goleiroId;
 
+    /** Opcional quando tipo = GOL (quem deu a assistência). */
+    private Long assistenciaId;
+
     /** Id único do celular — evita gravar o mesmo gol duas vezes no sync. */
     private String clientLanceId;
 
@@ -50,6 +53,14 @@ public class RegistrarEventoRequest {
 
     public void setGoleiroId(Long goleiroId) {
         this.goleiroId = goleiroId;
+    }
+
+    public Long getAssistenciaId() {
+        return assistenciaId;
+    }
+
+    public void setAssistenciaId(Long assistenciaId) {
+        this.assistenciaId = assistenciaId;
     }
 
     public String getClientLanceId() {

@@ -44,6 +44,12 @@ public class SchemaPatchRunner implements ApplicationRunner {
                 // H2 pode não aceitar índice parcial
             }
             log.info("Schema OK: coluna eventos_partida.client_lance_id verificada");
+
+            jdbc.execute("""
+                ALTER TABLE eventos_partida
+                ADD COLUMN IF NOT EXISTS assistencia_id bigint
+                """);
+            log.info("Schema OK: coluna eventos_partida.assistencia_id verificada");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
             log.warn("Não foi possível garantir colunas de schema: {}", e.getMessage());

@@ -130,6 +130,7 @@ public class PartidaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
 
         Jogador goleiro = null;
+        Jogador assistencia = null;
 
         if (request.getTipo() == TipoEvento.GOL) {
             if (request.getGoleiroId() == null) {
@@ -139,6 +140,18 @@ public class PartidaService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goleiro não encontrado"));
             if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione um goleiro cadastrado");
+            }
+
+            if (request.getAssistenciaId() != null) {
+                if (request.getAssistenciaId().equals(request.getJogadorId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assistência não pode ser do mesmo autor do gol");
+                }
+                assistencia = jogadorRepository.findById(request.getAssistenciaId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assistência não encontrada"));
+                if (Boolean.TRUE.equals(assistencia.getGoleiro())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Goleiro não pode dar assistência");
+                }
+                assistencia.setAssistencias(assistencia.getAssistencias() + 1);
             }
 
             // Placar sobe para o time que fez o gol
@@ -166,7 +179,7 @@ public class PartidaService {
             jogador.setCartoesVermelhos(jogador.getCartoesVermelhos() + 1);
         }
 
-        EventoPartida evento = new EventoPartida(request.getTipo(), partida, time, jogador, goleiro);
+        EventoPartida evento = new EventoPartida(request.getTipo(), partida, time, jogador, goleiro, assistencia);
         if (clientLanceId != null && !clientLanceId.isBlank()) {
             evento.setClientLanceId(clientLanceId.trim());
         }
@@ -303,6 +316,10 @@ public class PartidaService {
             if (evento.getGoleiro() != null) {
                 Jogador gk = evento.getGoleiro();
                 gk.setGolsSofridos(Math.max(0, gk.getGolsSofridos() - 1));
+            }
+            if (evento.getAssistencia() != null) {
+                Jogador a = evento.getAssistencia();
+                a.setAssistencias(Math.max(0, a.getAssistencias() - 1));
             }
         } else if (evento.getTipo() == TipoEvento.GOL_CONTRA) {
             if (time.getId().equals(partida.getTimeA().getId())) {

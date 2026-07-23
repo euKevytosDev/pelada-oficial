@@ -158,6 +158,8 @@ public class PartidaController {
         map.put("jogadorNome", evento.getJogador().getNome());
         map.put("goleiroId", evento.getGoleiro() != null ? evento.getGoleiro().getId() : null);
         map.put("goleiroNome", evento.getGoleiro() != null ? evento.getGoleiro().getNome() : null);
+        map.put("assistenciaId", evento.getAssistencia() != null ? evento.getAssistencia().getId() : null);
+        map.put("assistenciaNome", evento.getAssistencia() != null ? evento.getAssistencia().getNome() : null);
         map.put("ocorridoEm", evento.getOcorridoEm());
         return map;
     }

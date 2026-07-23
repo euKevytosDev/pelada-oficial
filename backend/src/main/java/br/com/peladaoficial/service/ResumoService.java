@@ -258,6 +258,7 @@ public class ResumoService {
             em.put("tipo", e.getTipo().name());
             em.put("jogadorNome", e.getJogador() != null ? e.getJogador().getNome() : "?");
             em.put("timeNome", e.getTime() != null ? e.getTime().getNome() : null);
+            em.put("assistenciaNome", e.getAssistencia() != null ? e.getAssistencia().getNome() : null);
             return em;
         }).collect(Collectors.toList());
         map.put("eventos", lances);
@@ -265,38 +266,50 @@ public class ResumoService {
         return map;
     }
 
-    /** Texto compacto: "Gols: João, Pedro · Amarelo: Carlos" */
+    /** Texto compacto: "Gols: João (Pedro), Marcos · Amarelo: Carlos" */
     private String montarDetalhePartida(List<Map<String, Object>> lances) {
         if (lances == null || lances.isEmpty()) {
             return "";
         }
-        LinkedHashMap<String, List<String>> grupos = new LinkedHashMap<>();
-        grupos.put("GOL", new ArrayList<>());
-        grupos.put("GOL_CONTRA", new ArrayList<>());
-        grupos.put("CARTAO_AMARELO", new ArrayList<>());
-        grupos.put("CARTAO_VERMELHO", new ArrayList<>());
+        List<String> gols = new ArrayList<>();
+        List<String> assists = new ArrayList<>();
+        List<String> contra = new ArrayList<>();
+        List<String> amarelo = new ArrayList<>();
+        List<String> vermelho = new ArrayList<>();
 
         for (Map<String, Object> e : lances) {
             String tipo = String.valueOf(e.get("tipo"));
             String nome = String.valueOf(e.getOrDefault("jogadorNome", "?"));
-            List<String> lista = grupos.get(tipo);
-            if (lista != null) {
-                lista.add(nome);
+            String ass = e.get("assistenciaNome") != null ? String.valueOf(e.get("assistenciaNome")) : null;
+            if ("GOL".equals(tipo)) {
+                gols.add(ass != null && !ass.isBlank() && !"null".equals(ass) ? nome + " (" + ass + ")" : nome);
+                if (ass != null && !ass.isBlank() && !"null".equals(ass)) {
+                    assists.add(ass);
+                }
+            } else if ("GOL_CONTRA".equals(tipo)) {
+                contra.add(nome);
+            } else if ("CARTAO_AMARELO".equals(tipo)) {
+                amarelo.add(nome);
+            } else if ("CARTAO_VERMELHO".equals(tipo)) {
+                vermelho.add(nome);
             }
         }
 
         List<String> partes = new ArrayList<>();
-        if (!grupos.get("GOL").isEmpty()) {
-            partes.add("Gols: " + nomesAgrupados(grupos.get("GOL")));
+        if (!gols.isEmpty()) {
+            partes.add("Gols: " + String.join(", ", gols));
         }
-        if (!grupos.get("GOL_CONTRA").isEmpty()) {
-            partes.add("Contra: " + nomesAgrupados(grupos.get("GOL_CONTRA")));
+        if (!assists.isEmpty()) {
+            partes.add("Assist.: " + nomesAgrupados(assists));
         }
-        if (!grupos.get("CARTAO_AMARELO").isEmpty()) {
-            partes.add("Amarelo: " + nomesAgrupados(grupos.get("CARTAO_AMARELO")));
+        if (!contra.isEmpty()) {
+            partes.add("Contra: " + nomesAgrupados(contra));
         }
-        if (!grupos.get("CARTAO_VERMELHO").isEmpty()) {
-            partes.add("Vermelho: " + nomesAgrupados(grupos.get("CARTAO_VERMELHO")));
+        if (!amarelo.isEmpty()) {
+            partes.add("Amarelo: " + nomesAgrupados(amarelo));
+        }
+        if (!vermelho.isEmpty()) {
+            partes.add("Vermelho: " + nomesAgrupados(vermelho));
         }
         return String.join(" · ", partes);
     }
@@ -353,10 +366,57 @@ public class ResumoService {
                     .filter(j -> j.getGols() == maxGols)
                     .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
-            premios.put("bolaDeOuro", premioEmpate(artilheiros, maxGols + " gol" + (maxGols == 1 ? "" : "s")));
+            Map<String, Object> artilheiro = premioEmpate(artilheiros, maxGols + " gol" + (maxGols == 1 ? "" : "s"));
+            premios.put("artilheiro", artilheiro);
+            premios.put("bolaDeOuro", artilheiro); // compat
         } else {
+            premios.put("artilheiro", null);
             premios.put("bolaDeOuro", null);
         }
+
+        // Craque: gol 2 pts, assistência 1, amarelo -1, vermelho -2
+        record CraqueScore(Jogador jogador, int pontos) {}
+        List<CraqueScore> craques = linha.stream()
+                .map(j -> {
+                    int pts = (j.getGols() != null ? j.getGols() : 0) * 2
+                            + (j.getAssistencias() != null ? j.getAssistencias() : 0)
+                            - (j.getCartoesAmarelos() != null ? j.getCartoesAmarelos() : 0)
+                            - (j.getCartoesVermelhos() != null ? j.getCartoesVermelhos() : 0) * 2;
+                    return new CraqueScore(j, pts);
+                })
+                .filter(c -> c.pontos() > 0
+                        || (c.jogador().getGols() != null && c.jogador().getGols() > 0)
+                        || (c.jogador().getAssistencias() != null && c.jogador().getAssistencias() > 0)
+                        || (c.jogador().getCartoesAmarelos() != null && c.jogador().getCartoesAmarelos() > 0)
+                        || (c.jogador().getCartoesVermelhos() != null && c.jogador().getCartoesVermelhos() > 0))
+                .sorted(Comparator.comparingInt(CraqueScore::pontos).reversed()
+                        .thenComparing(c -> c.jogador().getNome(), String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+        if (!craques.isEmpty()) {
+            int maxPts = craques.get(0).pontos();
+            List<Jogador> tops = craques.stream()
+                    .filter(c -> c.pontos() == maxPts)
+                    .map(CraqueScore::jogador)
+                    .collect(Collectors.toList());
+            premios.put("craque", premioEmpate(tops, maxPts + " pt" + (maxPts == 1 ? "" : "s") + " (gol 2 · assistência 1 · A -1 · V -2)"));
+        } else {
+            premios.put("craque", null);
+        }
+
+        int maxAssist = linha.stream()
+                .mapToInt(j -> j.getAssistencias() != null ? j.getAssistencias() : 0)
+                .max()
+                .orElse(0);
+        if (maxAssist > 0) {
+            List<Jogador> garcons = linha.stream()
+                    .filter(j -> (j.getAssistencias() != null ? j.getAssistencias() : 0) == maxAssist)
+                    .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
+                    .collect(Collectors.toList());
+            premios.put("garcom", premioEmpate(garcons, maxAssist + " assistência" + (maxAssist == 1 ? "" : "s")));
+        } else {
+            premios.put("garcom", null);
+        }
+        premios.put("bolaMurcha", null);
 
         List<Jogador> goleiros = jogadores.stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
@@ -370,30 +430,6 @@ public class ResumoService {
             premios.put("luvaDeOuro", premioEmpate(luvas, minSofridos + " sofrido" + (minSofridos == 1 ? "" : "s")));
         } else {
             premios.put("luvaDeOuro", null);
-        }
-
-        Optional<Jogador> murcha = linha.stream()
-                .filter(j -> j.getGolsContra() > 0)
-                .max(Comparator.comparingInt(Jogador::getGolsContra));
-        if (murcha.isEmpty()) {
-            murcha = linha.stream()
-                    .filter(j -> j.getTime() != null)
-                    .min(Comparator.comparingInt(Jogador::getPontos)
-                            .thenComparingInt(Jogador::getGols)
-                            .thenComparing(Jogador::getNome));
-        }
-        if (murcha.isPresent()) {
-            Jogador j = murcha.get();
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("nome", j.getNome());
-            m.put("nomes", List.of(j.getNome()));
-            m.put("empate", false);
-            m.put("detalhe", j.getGolsContra() > 0
-                    ? j.getGolsContra() + " gol(s) contra"
-                    : j.getPontos() + " pts");
-            premios.put("bolaMurcha", m);
-        } else {
-            premios.put("bolaMurcha", null);
         }
 
         return premios;

@@ -39,19 +39,24 @@ function textoDetalhePartida(partida) {
   if (!eventos.length) return "";
 
   const gols = [];
+  const assists = [];
   const contra = [];
   const amarelo = [];
   const vermelho = [];
   eventos.forEach((e) => {
     const nome = e.jogadorNome || e.nome || "?";
-    if (e.tipo === "GOL") gols.push(nome);
-    else if (e.tipo === "GOL_CONTRA") contra.push(nome);
+    if (e.tipo === "GOL") {
+      const ass = e.assistenciaNome;
+      gols.push(ass ? `${nome} (${ass})` : nome);
+      if (ass) assists.push(ass);
+    } else if (e.tipo === "GOL_CONTRA") contra.push(nome);
     else if (e.tipo === "CARTAO_AMARELO") amarelo.push(nome);
     else if (e.tipo === "CARTAO_VERMELHO") vermelho.push(nome);
   });
 
   const partes = [];
-  if (gols.length) partes.push(`Gols: ${nomesAgrupados(gols)}`);
+  if (gols.length) partes.push(`Gols: ${gols.join(", ")}`);
+  if (assists.length) partes.push(`Assist.: ${nomesAgrupados(assists)}`);
   if (contra.length) partes.push(`Contra: ${nomesAgrupados(contra)}`);
   if (amarelo.length) partes.push(`Amarelo: ${nomesAgrupados(amarelo)}`);
   if (vermelho.length) partes.push(`Vermelho: ${nomesAgrupados(vermelho)}`);
@@ -213,9 +218,10 @@ function renderResumoOficial(resumo) {
       <h3>Premiação</h3>
       <div class="premios">
         ${premioCard("Campeão", premios.campeao)}
-        ${premioCard("Bola de Ouro", premios.bolaDeOuro)}
+        ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro)}
+        ${premioCard("Craque", premios.craque)}
+        ${premioCard("Garçom", premios.garcom)}
         ${premioCard("Luva de Ouro", premios.luvaDeOuro)}
-        ${premioCard("Bola Murcha", premios.bolaMurcha)}
       </div>
     </section>
 
@@ -279,15 +285,23 @@ function textoResumoWhatsApp(resumo) {
   linhas.push("");
   linhas.push("*Premiação*");
   if (premios.campeao) linhas.push(`🏆 Campeão: ${premios.campeao.nome}`);
-  if (premios.bolaDeOuro) {
-    const label = premios.bolaDeOuro.empate ? "Bola de Ouro (empate)" : "Bola de Ouro";
-    linhas.push(`⚽ ${label}: ${premios.bolaDeOuro.nome} (${premios.bolaDeOuro.detalhe})`);
+  const artilheiro = premios.artilheiro || premios.bolaDeOuro;
+  if (artilheiro) {
+    const label = artilheiro.empate ? "Artilheiro (empate)" : "Artilheiro";
+    linhas.push(`⚽ ${label}: ${artilheiro.nome} (${artilheiro.detalhe})`);
+  }
+  if (premios.craque) {
+    const label = premios.craque.empate ? "Craque (empate)" : "Craque";
+    linhas.push(`⭐ ${label}: ${premios.craque.nome} (${premios.craque.detalhe})`);
+  }
+  if (premios.garcom) {
+    const label = premios.garcom.empate ? "Garçom (empate)" : "Garçom";
+    linhas.push(`🎯 ${label}: ${premios.garcom.nome} (${premios.garcom.detalhe})`);
   }
   if (premios.luvaDeOuro) {
     const label = premios.luvaDeOuro.empate ? "Luva de Ouro (empate)" : "Luva de Ouro";
     linhas.push(`🧤 ${label}: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
   }
-  if (premios.bolaMurcha) linhas.push(`😅 Bola Murcha: ${premios.bolaMurcha.nome}`);
 
   const artilheiros = artilheirosLideres(resumo.artilharia);
   if (artilheiros.length) {

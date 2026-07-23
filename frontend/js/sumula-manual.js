@@ -66,9 +66,10 @@ Partidas
 13ª	Gabriel	1 x 0	Abelardo
 
 Campeão: Gabriel
-Bola de Ouro: Gabriel
-Luva de Ouro: Júnior e Jonatan
-Bola Murcha: Nenhum`;
+Artilheiro: Gabriel
+Craque: Gabriel
+Garçom: Nenhum
+Luva de Ouro: Júnior e Jonatan`;
 
 function parseDataBrParaIso(texto) {
   const m = String(texto || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -306,7 +307,10 @@ function montarResumoDeTexto(textoBruto) {
     campeao: classificacao[0]
       ? { nome: classificacao[0].nome, nomes: [classificacao[0].nome], empate: false, detalhe: `${classificacao[0].pontos} pts` }
       : null,
+    artilheiro: null,
     bolaDeOuro: null,
+    craque: null,
+    garcom: null,
     luvaDeOuro: null,
     bolaMurcha: null,
   };
@@ -314,12 +318,14 @@ function montarResumoDeTexto(textoBruto) {
   if (artilharia.length) {
     const max = artilharia[0].gols;
     const tops = artilharia.filter((a) => a.gols === max);
-    premios.bolaDeOuro = {
+    const premio = {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
       empate: tops.length > 1,
       detalhe: `${max} gol${max === 1 ? "" : "s"}`,
     };
+    premios.artilheiro = premio;
+    premios.bolaDeOuro = premio;
   }
   if (golsSofridos.length) {
     const min = golsSofridos[0].quantidade;
@@ -333,23 +339,30 @@ function montarResumoDeTexto(textoBruto) {
   }
 
   const campeaoTxt = pegarCampo("Campe[aã]o");
-  const bolaTxt = pegarCampo("Bola de Ouro");
+  const artilheiroTxt = pegarCampo("Artilheiro") || pegarCampo("Bola de Ouro");
+  const craqueTxt = pegarCampo("Craque");
+  const garcomTxt = pegarCampo("Gar[cç]om") || pegarCampo("Assist[eê]ncia");
   const luvaTxt = pegarCampo("Luva de Ouro");
-  const murchaTxt = pegarCampo("Bola Murcha");
   if (campeaoTxt !== null) {
     const p = parsePremioTexto(campeaoTxt);
     if (p) premios.campeao = { ...p, detalhe: premios.campeao?.detalhe || "" };
   }
-  if (bolaTxt !== null) {
-    const p = parsePremioTexto(bolaTxt);
-    premios.bolaDeOuro = p ? { ...p, detalhe: premios.bolaDeOuro?.detalhe || "" } : null;
+  if (artilheiroTxt !== null) {
+    const p = parsePremioTexto(artilheiroTxt);
+    premios.artilheiro = p ? { ...p, detalhe: premios.artilheiro?.detalhe || "" } : null;
+    premios.bolaDeOuro = premios.artilheiro;
+  }
+  if (craqueTxt !== null) {
+    const p = parsePremioTexto(craqueTxt);
+    premios.craque = p ? { ...p, detalhe: premios.craque?.detalhe || "" } : null;
+  }
+  if (garcomTxt !== null) {
+    const p = parsePremioTexto(garcomTxt);
+    premios.garcom = p ? { ...p, detalhe: premios.garcom?.detalhe || "" } : null;
   }
   if (luvaTxt !== null) {
     const p = parsePremioTexto(luvaTxt);
     premios.luvaDeOuro = p ? { ...p, detalhe: premios.luvaDeOuro?.detalhe || "" } : null;
-  }
-  if (murchaTxt !== null) {
-    premios.bolaMurcha = parsePremioTexto(murchaTxt);
   }
 
   const times = timesOrdem.map((nome) => {
@@ -407,9 +420,10 @@ function baixarPlanilhaCsv(resumo) {
   row("Prêmio", "Vencedor");
   const premios = resumo.premios || {};
   row("Campeão", premios.campeao?.nome || "—");
-  row("Bola de Ouro", premios.bolaDeOuro?.nome || "—");
+  row("Artilheiro", (premios.artilheiro || premios.bolaDeOuro)?.nome || "—");
+  row("Craque", premios.craque?.nome || "—");
+  row("Garçom", premios.garcom?.nome || "—");
   row("Luva de Ouro", premios.luvaDeOuro?.nome || "—");
-  row("Bola Murcha", premios.bolaMurcha?.nome || "—");
   row("");
   row("TIMES");
   (resumo.times || []).forEach((t) => {

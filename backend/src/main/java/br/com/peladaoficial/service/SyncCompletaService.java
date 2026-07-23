@@ -199,6 +199,7 @@ public class SyncCompletaService {
         }
         Jogador jogador = buscar(jogadores, item.getJogadorClientId(), "jogador do evento");
         Jogador goleiro = null;
+        Jogador assistencia = null;
 
         if (item.getTipo() == TipoEvento.GOL) {
             goleiro = buscar(jogadores, item.getGoleiroClientId(), "goleiro do evento");
@@ -207,6 +208,16 @@ public class SyncCompletaService {
             }
             jogador.setGols(jogador.getGols() + 1);
             goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
+            if (item.getAssistenciaClientId() != null && !item.getAssistenciaClientId().isBlank()) {
+                if (item.getAssistenciaClientId().trim().equals(item.getJogadorClientId().trim())) {
+                    throw erro("Assistência não pode ser do mesmo autor do gol");
+                }
+                assistencia = buscar(jogadores, item.getAssistenciaClientId(), "assistência do evento");
+                if (Boolean.TRUE.equals(assistencia.getGoleiro())) {
+                    throw erro("Goleiro não pode dar assistência");
+                }
+                assistencia.setAssistencias(assistencia.getAssistencias() + 1);
+            }
         } else if (item.getTipo() == TipoEvento.GOL_CONTRA) {
             jogador.setGolsContra(jogador.getGolsContra() + 1);
         } else if (item.getTipo() == TipoEvento.CARTAO_AMARELO) {
@@ -215,7 +226,7 @@ public class SyncCompletaService {
             jogador.setCartoesVermelhos(jogador.getCartoesVermelhos() + 1);
         }
 
-        EventoPartida evento = new EventoPartida(item.getTipo(), partida, time, jogador, goleiro);
+        EventoPartida evento = new EventoPartida(item.getTipo(), partida, time, jogador, goleiro, assistencia);
         if (item.getClientLanceId() != null && !item.getClientLanceId().isBlank()) {
             evento.setClientLanceId(item.getClientLanceId().trim());
         }

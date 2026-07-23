@@ -43,6 +43,11 @@ public class EventoPartida {
     @JoinColumn(name = "goleiro_id")
     private Jogador goleiro;
 
+    /** Quem deu a assistência (opcional, só em GOL). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assistencia_id")
+    private Jogador assistencia;
+
     @Column(nullable = false)
     private LocalDateTime ocorridoEm = LocalDateTime.now();
 
@@ -58,5 +63,10 @@ public class EventoPartida {
         this.time = time;
         this.jogador = jogador;
         this.goleiro = goleiro;
+    }
+
+    public EventoPartida(TipoEvento tipo, Partida partida, Time time, Jogador jogador, Jogador goleiro, Jogador assistencia) {
+        this(tipo, partida, time, jogador, goleiro);
+        this.assistencia = assistencia;
     }
 }
