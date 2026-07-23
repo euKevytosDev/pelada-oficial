@@ -936,6 +936,8 @@ td.num, th.num {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal.oculto {
@@ -955,35 +957,42 @@ td.num, th.num {
   max-width: 430px;
   background: var(--bg-card);
   border-radius: 22px 22px 0 0;
-  padding: 18px 16px 24px;
+  padding: 16px 14px 20px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   animation: sobe 0.25s ease;
   pointer-events: auto;
+  margin-top: auto;
 }
 
 .modal-caixa h3 {
   margin: 0;
   font-family: var(--fonte-titulo);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   text-transform: uppercase;
 }
 
 .opcoes {
   display: grid;
-  gap: 8px;
-  max-height: 45vh;
-  overflow: auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
 }
 
 .opcao {
   text-align: left;
-  padding: 14px;
+  padding: 11px 10px;
   border-radius: 12px;
   border: 1px solid var(--linha);
   background: #f7faf8;
   font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--texto);
   cursor: pointer;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .opcao-goleiro {
