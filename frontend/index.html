@@ -18,13 +18,36 @@
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260723b" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260723d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
+  <div id="splash" class="splash" role="status" aria-live="polite" aria-label="Carregando Pelada Oficial">
+    <div class="splash-conteudo">
+      <img class="splash-bola" src="soccer-ball-svgrepo-com.svg" alt="" width="88" height="88" />
+      <p class="splash-nome">Pelada Oficial</p>
+      <div class="splash-barra" aria-hidden="true">
+        <div class="splash-barra-fill"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var el = document.getElementById("splash");
+      if (!el) return;
+      var reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var espera = reduzido ? 350 : 2000;
+      window.setTimeout(function () {
+        el.classList.add("splash-sair");
+        window.setTimeout(function () {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 420);
+      }, espera);
+    })();
+  </script>
   <div class="app">
     <header class="topo">
       <button type="button" class="btn-config-topo" id="btn-config" aria-label="Configurações" title="Configurações">

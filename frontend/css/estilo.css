@@ -50,6 +50,92 @@ html, body {
     linear-gradient(180deg, #0b3d2e 0%, #0f4f3b 28%, var(--bg-corpo-1) 28%, var(--bg-corpo-2) 100%);
 }
 
+/* Entrada / splash */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 35%, rgba(31, 170, 108, 0.35), transparent 55%),
+    linear-gradient(165deg, #071a14 0%, #0b3d2e 42%, #0f4f3b 100%);
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.splash-sair {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.splash-bola {
+  width: 88px;
+  height: 88px;
+  display: block;
+  filter: brightness(0) invert(1) drop-shadow(0 8px 20px rgba(0, 0, 0, 0.35));
+  animation: splash-bola 1.6s ease-in-out infinite;
+}
+
+.splash-nome {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1;
+}
+
+.splash-barra {
+  width: min(200px, 56vw);
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.splash-barra-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1faa6c, #f5c518);
+  animation: splash-barra 1.85s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes splash-bola {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.04); }
+}
+
+@keyframes splash-barra {
+  0% { width: 0%; }
+  15% { width: 28%; }
+  55% { width: 72%; }
+  100% { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-bola {
+    animation: none;
+  }
+  .splash-barra-fill {
+    animation-duration: 0.3s;
+  }
+}
+
 html[data-theme="dark"] body {
   background:
     radial-gradient(circle at top, rgba(31, 170, 108, 0.1), transparent 42%),
