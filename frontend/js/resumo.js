@@ -142,10 +142,8 @@ function premioCard(titulo, premio) {
   }
   const nomes = premio.nomes && premio.nomes.length ? premio.nomes : [premio.nome];
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
-  const empateLabel = premio.empate ? `<p class="premio-empate">Empate</p>` : "";
   return `<article class="premio">
     <h4>${titulo}</h4>
-    ${empateLabel}
     ${nomesHtml}
     <p class="premio-detalhe">${premio.detalhe || ""}</p>
   </article>`;
@@ -217,7 +215,7 @@ function renderResumoOficial(resumo) {
     <section class="resumo-bloco premios-grid">
       <h3>Premiação</h3>
       <div class="premios">
-        ${premioCard("Campeão", premios.campeao)}
+        ${premioCard("Time Campeão", premios.campeao)}
         ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro)}
         ${premioCard("Craque", premios.craque)}
         ${premioCard("Garçom", premios.garcom)}
@@ -284,29 +282,25 @@ function textoResumoWhatsApp(resumo) {
   const premios = resumo.premios || {};
   linhas.push("");
   linhas.push("*Premiação*");
-  if (premios.campeao) linhas.push(`🏆 Campeão: ${premios.campeao.nome}`);
+  if (premios.campeao) linhas.push(`🏆 Time Campeão: ${premios.campeao.nome}`);
   const artilheiro = premios.artilheiro || premios.bolaDeOuro;
   if (artilheiro) {
-    const label = artilheiro.empate ? "Artilheiro (empate)" : "Artilheiro";
-    linhas.push(`⚽ ${label}: ${artilheiro.nome} (${artilheiro.detalhe})`);
+    linhas.push(`⚽ Artilheiro: ${artilheiro.nome} (${artilheiro.detalhe})`);
   }
   if (premios.craque) {
-    const label = premios.craque.empate ? "Craque (empate)" : "Craque";
-    linhas.push(`⭐ ${label}: ${premios.craque.nome} (${premios.craque.detalhe})`);
+    linhas.push(`⭐ Craque: ${premios.craque.nome} (${premios.craque.detalhe})`);
   }
   if (premios.garcom) {
-    const label = premios.garcom.empate ? "Garçom (empate)" : "Garçom";
-    linhas.push(`🎯 ${label}: ${premios.garcom.nome} (${premios.garcom.detalhe})`);
+    linhas.push(`🎯 Garçom: ${premios.garcom.nome} (${premios.garcom.detalhe})`);
   }
   if (premios.luvaDeOuro) {
-    const label = premios.luvaDeOuro.empate ? "Luva de Ouro (empate)" : "Luva de Ouro";
-    linhas.push(`🧤 ${label}: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
+    linhas.push(`🧤 Luva de Ouro: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
   }
 
   const artilheiros = artilheirosLideres(resumo.artilharia);
   if (artilheiros.length) {
     linhas.push("");
-    linhas.push(artilheiros.length > 1 ? "*Artilharia (empate)*" : "*Artilharia*");
+    linhas.push("*Artilharia*");
     artilheiros.forEach((a) => linhas.push(`• ${a.nome}: ${a.gols || a.quantidade}`));
   }
 

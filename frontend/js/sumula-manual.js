@@ -65,7 +65,7 @@ Partidas
 12ª	Gabriel	2 x 1	Victor Santos
 13ª	Gabriel	1 x 0	Abelardo
 
-Campeão: Gabriel
+Time Campeão: Gabriel
 Artilheiro: Gabriel
 Craque: Gabriel
 Garçom: Nenhum
@@ -419,7 +419,7 @@ function baixarPlanilhaCsv(resumo) {
   row("PREMIAÇÃO");
   row("Prêmio", "Vencedor");
   const premios = resumo.premios || {};
-  row("Campeão", premios.campeao?.nome || "—");
+  row("Time Campeão", premios.campeao?.nome || "—");
   row("Artilheiro", (premios.artilheiro || premios.bolaDeOuro)?.nome || "—");
   row("Craque", premios.craque?.nome || "—");
   row("Garçom", premios.garcom?.nome || "—");
