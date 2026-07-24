@@ -190,6 +190,7 @@ async function api(caminho, opcoes = {}) {
 const AuthAPI = {
   cadastro: (dados) => api("/auth/cadastro", { method: "POST", body: JSON.stringify(dados), retry: false }),
   login: (dados) => api("/auth/login", { method: "POST", body: JSON.stringify(dados), retry: false }),
+  google: (dados) => api("/auth/google", { method: "POST", body: JSON.stringify(dados), retry: false }),
 };
 
 const PeladaAPI = {

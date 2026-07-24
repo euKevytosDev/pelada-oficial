@@ -18,3 +18,5 @@ services:
         sync: false
       - key: APP_JWT_SECRET
         generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        value: 14692725836-8n7a4aisfk1sjmvadnn400joq1j6rjdi.apps.googleusercontent.com

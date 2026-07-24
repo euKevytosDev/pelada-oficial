@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * Conta do organizador da pelada (SaaS / login).
+ * Pode ter senha (e-mail) e/ou googleId (login Google).
  */
 @Entity
 @Table(name = "usuarios")
@@ -27,8 +28,12 @@ public class Usuario {
     @Column(nullable = false, length = 80)
     private String nome;
 
-    @Column(nullable = false, length = 200)
+    /** Null quando a conta entrou só pelo Google. */
+    @Column(length = 200)
     private String senhaHash;
+
+    @Column(unique = true, length = 64)
+    private String googleId;
 
     @Column(nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();

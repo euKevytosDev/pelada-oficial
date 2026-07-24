@@ -1,10 +1,12 @@
 package br.com.peladaoficial.service;
 
 import br.com.peladaoficial.dto.CadastroRequest;
+import br.com.peladaoficial.dto.GoogleLoginRequest;
 import br.com.peladaoficial.dto.LoginRequest;
 import br.com.peladaoficial.model.Usuario;
 import br.com.peladaoficial.repository.UsuarioRepository;
 import br.com.peladaoficial.security.JwtService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,13 +22,16 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       GoogleTokenVerifier googleTokenVerifier) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     @Transactional
@@ -51,10 +56,51 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos"));
 
+        if (usuario.getSenhaHash() == null || usuario.getSenhaHash().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Esta conta usa login com Google");
+        }
+
         if (!passwordEncoder.matches(request.getSenha(), usuario.getSenhaHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos");
         }
         return respostaAuth(usuario);
+    }
+
+    @Transactional
+    public Map<String, Object> loginGoogle(GoogleLoginRequest request) {
+        GoogleIdToken.Payload payload = googleTokenVerifier.verificar(request.getIdToken());
+        String googleId = payload.getSubject();
+        String email = payload.getEmail().trim().toLowerCase();
+        String nome = nomeDoPayload(payload);
+
+        Usuario usuario = usuarioRepository.findByGoogleId(googleId).orElse(null);
+        if (usuario == null) {
+            usuario = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
+            if (usuario != null) {
+                usuario.setGoogleId(googleId);
+                if (usuario.getNome() == null || usuario.getNome().isBlank()) {
+                    usuario.setNome(nome);
+                }
+            } else {
+                usuario = new Usuario(email, nome, null);
+                usuario.setGoogleId(googleId);
+            }
+            usuarioRepository.save(usuario);
+        }
+
+        return respostaAuth(usuario);
+    }
+
+    private static String nomeDoPayload(GoogleIdToken.Payload payload) {
+        Object name = payload.get("name");
+        if (name != null && !String.valueOf(name).isBlank()) {
+            String n = String.valueOf(name).trim();
+            return n.length() > 80 ? n.substring(0, 80) : n;
+        }
+        String email = payload.getEmail();
+        int at = email.indexOf('@');
+        String base = at > 0 ? email.substring(0, at) : email;
+        return base.length() > 80 ? base.substring(0, 80) : base;
     }
 
     private Map<String, Object> respostaAuth(Usuario usuario) {

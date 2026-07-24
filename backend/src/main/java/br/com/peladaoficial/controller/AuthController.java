@@ -1,6 +1,7 @@
 package br.com.peladaoficial.controller;
 
 import br.com.peladaoficial.dto.CadastroRequest;
+import br.com.peladaoficial.dto.GoogleLoginRequest;
 import br.com.peladaoficial.dto.LoginRequest;
 import br.com.peladaoficial.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,5 +27,10 @@ public class AuthController {
     @PostMapping("/login")
     public Map<String, Object> login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/google")
+    public Map<String, Object> loginGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        return authService.loginGoogle(request);
     }
 }

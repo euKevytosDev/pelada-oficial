@@ -1869,6 +1869,64 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
   }
 });
 
+const GOOGLE_CLIENT_ID =
+  "14692725836-8n7a4aisfk1sjmvadnn400joq1j6rjdi.apps.googleusercontent.com";
+
+async function entrarComGoogle(credential) {
+  await comLoading(async () => {
+    const data = await AuthAPI.google({ idToken: credential });
+    salvarSessao(data.token, data.usuario);
+    toast(`Olá, ${data.usuario.nome}!`);
+    await entrarNaHome();
+  }, "Entrando com Google...");
+}
+
+function montarBotaoGoogle() {
+  const alvo = document.getElementById("btn-google-login");
+  if (!alvo || !window.google?.accounts?.id) return false;
+
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: async (resposta) => {
+      if (!resposta?.credential) {
+        toast("Google não retornou login");
+        return;
+      }
+      try {
+        await entrarComGoogle(resposta.credential);
+      } catch (err) {
+        toast(err.message || "Falha no login Google");
+      }
+    },
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  });
+
+  const largura = Math.min(Math.floor(alvo.parentElement?.clientWidth || 320), 400);
+  google.accounts.id.renderButton(alvo, {
+    theme: "outline",
+    size: "large",
+    type: "standard",
+    text: "continue_with",
+    shape: "rectangular",
+    logo_alignment: "left",
+    width: largura,
+    locale: "pt-BR",
+  });
+  return true;
+}
+
+function iniciarGoogleLogin() {
+  if (montarBotaoGoogle()) return;
+  let tentativas = 0;
+  const timer = window.setInterval(() => {
+    tentativas += 1;
+    if (montarBotaoGoogle() || tentativas > 40) {
+      window.clearInterval(timer);
+    }
+  }, 150);
+}
+
 function sairConta() {
   limparSessao();
   estado.peladaId = null;
@@ -1993,6 +2051,7 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 montarSeletorEstrelas();
 ConfigApp.init();
 bootAuth();
+iniciarGoogleLogin();
 setTimeout(() => sincronizarApaguesPendentes().catch(() => {}), 2500);
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();

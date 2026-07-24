@@ -18,7 +18,7 @@
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260723d" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260724a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -113,6 +113,12 @@
           </label>
           <button type="submit" class="btn btn-principal">Criar conta</button>
         </form>
+
+        <div class="auth-divisor" aria-hidden="true"><span>ou</span></div>
+        <div id="google-login-wrap" class="google-login-wrap">
+          <div id="btn-google-login"></div>
+        </div>
+
         <p class="dica">Seus resultados ficam salvos na sua conta.</p>
         <div class="acoes-finas" style="margin-top:12px">
           <button type="button" class="btn btn-secundario" id="btn-gerar-sumula-auth">Gerar súmula (sem marcar jogo)</button>
@@ -391,11 +397,12 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=20260721p"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/api.js?v=20260724a"></script>
   <script src="js/config.js?v=20260721p"></script>
   <script src="js/local-jogo.js?v=20260721p"></script>
   <script src="js/resumo.js?v=20260723c"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260721p"></script>
+  <script src="js/app.js?v=20260724a"></script>
 </body>
 </html>

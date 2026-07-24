@@ -50,6 +50,26 @@ public class SchemaPatchRunner implements ApplicationRunner {
                 ADD COLUMN IF NOT EXISTS assistencia_id bigint
                 """);
             log.info("Schema OK: coluna eventos_partida.assistencia_id verificada");
+
+            jdbc.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS google_id varchar(64)
+                """);
+            try {
+                jdbc.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS uk_usuarios_google_id
+                    ON usuarios (google_id)
+                    WHERE google_id IS NOT NULL
+                    """);
+            } catch (Exception ignored) {
+                // H2 / índice parcial
+            }
+            try {
+                jdbc.execute("ALTER TABLE usuarios ALTER COLUMN senha_hash DROP NOT NULL");
+            } catch (Exception ignored) {
+                // já nullable ou dialeto diferente
+            }
+            log.info("Schema OK: colunas usuarios.google_id / senha_hash verificadas");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
             log.warn("Não foi possível garantir colunas de schema: {}", e.getMessage());
