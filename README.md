@@ -1,131 +1,108 @@
 # Pelada Oficial
 
-Site **mobile-first** para controlar pelada entre amigos: cadastrar jogadores, sortear times equilibrados, marcar gols/cartões ao vivo e pontuar até encerrar a pelada.
+App web mobile-first pra organizar pelada entre amigos: cadastra jogadores, sorteia times equilibrados, marca gol/cartão ao vivo e fecha a classificação no fim.
 
-> Futuro: virar app na Play Store (base web mobile já pensada para isso).
+A ideia no longo prazo é empacotar pra Play Store (Capacitor). Por enquanto roda no navegador, com cara de app de celular.
 
-**GitHub Pages (frontend):** https://eukevytosdev.github.io/pelada-oficial/
+**Front no GitHub Pages:** https://eukevytosdev.github.io/pelada-oficial/
 
-> O site no Pages é só a parte visual (HTML/CSS/JS). Para cadastrar jogadores e sortear de verdade, o backend Spring Boot precisa estar rodando (hoje a API aponta para `localhost:8080`).
+> O Pages só serve o visual. Cadastro, login e sorteio dependem do backend Spring Boot (hoje o front aponta pra `localhost:8080`).
 
----
+## Como está dividido
 
-## Como o projeto está organizado
-
-```
+```text
 pelada-oficial/
-├── frontend/          ← HTML + CSS + JavaScript (abra no VS Code)
-├── backend/           ← Java Spring Boot (abra no IntelliJ)
-├── docker-compose.yml ← Sobe o PostgreSQL
+├── frontend/           # HTML + CSS + JS
+├── backend/            # Spring Boot
+├── docker-compose.yml  # PostgreSQL (opcional)
 └── README.md
 ```
 
-| Pasta | Ferramenta | O que faz |
-|-------|------------|-----------|
-| `frontend/` | VS Code | Telas do celular |
-| `backend/` | IntelliJ | API e regras do jogo |
-| `docker-compose.yml` | Docker | Banco PostgreSQL |
+| Pasta | Abre no | Função |
+|-------|---------|--------|
+| `frontend/` | VS Code / Cursor | Telas |
+| `backend/` | IntelliJ (ou terminal) | API e regras |
+| `docker-compose.yml` | Docker | Postgres |
 
----
+Monorepo de propósito: front e back andam juntos no mesmo fluxo do jogo.
 
-## Conta (SaaS / login)
+## Conta e sessão
 
-1. Abra o frontend e **crie uma conta** (e-mail + senha)
-2. Faça login — a pelada fica salva no seu usuário
-3. Se fechar o app no meio do jogo, entre de novo e clique em **Continuar pelada**
-4. O banco local (H2 em arquivo) também guarda os dados mesmo reiniciando o Spring
+1. Cria conta (e-mail + senha)  
+2. Login — a pelada fica ligada ao usuário  
+3. Se fechar no meio, entra de novo e usa **Continuar pelada**  
 
-> GitHub Pages mostra o visual; para login/API funcionar, o backend precisa estar rodando (ou publicado na nuvem depois).
+No dia a dia de desenvolvimento uso H2 em arquivo: reinicia o Spring e os dados ainda estão lá. Postgres fica pra quando for sério.
 
----
+## Regras que já estão no código
 
-## Regras do jogo (já no código)
+- Jogador de linha tem nível de **1 a 10 estrelas**
+- **Goleiro** cadastra separado e fica fixo no time (dá pra emprestar se faltar)
+- Sorteio aleatório, mas equilibrado — só linha, sem misturar goleiro no algoritmo
+- Nome do time editável; se vazio, usa o jogador com mais estrelas
+- Na partida: gol, gol contra, amarelo, vermelho
+- Gol contra: escolhe quem sofreu; o placar sobe pro adversário
+- Pontos: vitória 3 · empate 1 · derrota 0
+- Rodadas seguem até **Encerrar pelada**
 
-- Cada jogador de linha tem **estrelas (nível 1 a 10)**
-- **Goleiros** são cadastrados à parte e ficam fixos no time (podem ser emprestados se o time não tiver)
-- Sorteio **aleatório + equilibrado** só com jogadores de linha
-- Nome do time: editável; se ficar vazio, usa o **jogador com mais estrelas**
-- Durante a partida: **gol**, **gol contra**, **cartão amarelo/vermelho**
-- Gol contra: escolhe o time que sofreu e o jogador desse time (placar sobe para o adversário)
-- Pontos: **vitória 3** · **empate 1** · **derrota 0**
-- Rodadas continuam até clicar em **Encerrar pelada**
+## Subir o projeto
 
----
+### 1. Banco
 
-## Passo a passo para rodar
+**Mais fácil agora:** não configura nada — o profile padrão usa H2.
 
-### 1) Banco de dados
+**PostgreSQL depois:**
 
-**Agora (mais fácil):** o backend sobe com **H2** (banco em memória). Não precisa configurar nada.
+1. Roda `backend/scripts/criar-banco-postgres.sql` no pgAdmin  
+2. Em `application.properties`:
 
-**Depois (PostgreSQL 18 que você já tem):**
-1. Abra o **pgAdmin 4**
-2. Rode o script `backend/scripts/criar-banco-postgres.sql`
-3. Em `backend/src/main/resources/application.properties`, troque para:
-   ```properties
-   spring.profiles.active=postgres
-   ```
+```properties
+spring.profiles.active=postgres
+```
 
-Ou use Docker (se instalar o Docker Desktop):
+Ou sobe com Docker:
 
 ```bash
 docker compose up -d
 ```
 
-### 2) Rodar o backend (IntelliJ)
-
-1. Abra a pasta `backend` no IntelliJ
-2. Espere o Maven baixar as dependências
-3. Rode a classe `PeladaOficialApplication`
-4. API fica em: `http://localhost:8080`
-
-Ou pelo terminal:
+### 2. Backend
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-### 3) Abrir o frontend (VS Code)
+API em `http://localhost:8080`.
 
-1. Abra a pasta `frontend` no VS Code
-2. Abra o arquivo `index.html`
-3. Use a extensão **Live Server** (ou abra o arquivo no Chrome do celular na mesma rede depois)
+No IntelliJ: abre a pasta `backend` e roda `PeladaOficialApplication`.
 
-O frontend chama a API em `http://localhost:8080/api`.
+### 3. Frontend
 
----
+Abre `frontend/index.html` com Live Server (ou no Chrome). As chamadas vão pra `http://localhost:8080/api`.
 
 ## Fluxo no celular
 
-1. **Começar pelada** → escolhe quantos times  
-2. **Adicionar jogadores** → nome + estrelas  
-3. **Sortear times** → times equilibrados  
-4. **Iniciar partida** → marca gol/cartões ao vivo  
-5. **Finalizar partida** → atualiza classificação  
-6. **Nova rodada** ou **Encerrar pelada**
+1. Começar pelada → quantos times  
+2. Adicionar jogadores (nome + estrelas)  
+3. Sortear times  
+4. Partida ao vivo (gol / cartão)  
+5. Finalizar → classificação atualiza  
+6. Nova rodada ou encerrar  
 
----
+## Arquivos pra olhar primeiro
 
-## Principais arquivos para você estudar
+**Front:** `frontend/js/app.js` (telas), `frontend/js/api.js` (HTTP), `frontend/css/estilo.css`
 
-### Frontend
-- `frontend/index.html` → estrutura das telas
-- `frontend/css/estilo.css` → visual mobile
-- `frontend/js/api.js` → chamadas para o Spring Boot
-- `frontend/js/app.js` → lógica das telas
+**Back:** `service/` (sorteio, pontos, eventos), `controller/` (`/api/...`), `model/` (Jogador, Pelada, Time, Partida, Evento)
 
-### Backend
-- `model/` → tabelas (Jogador, Pelada, Time, Partida, Evento)
-- `controller/` → URLs da API (`/api/...`)
-- `service/` → regras (sorteio, pontos, eventos)
-- `repository/` → acesso ao PostgreSQL
+## Próximo
 
----
+- Ajustar regras com o pessoal da pelada  
+- Estatísticas por jogador  
+- Publicar a API (hoje o Pages fica “bonito, mas offline”)  
+- Capacitor → Play Store  
 
-## Próximos passos (quando você passar as orientações)
+## Autor
 
-- Ajustar telas e regras do jeito que você quiser
-- Login / várias peladas salvas
-- Estatísticas por jogador
-- Empacotar com Capacitor para Play Store
+Raian Kevin — [@euKevytosDev](https://github.com/euKevytosDev)
