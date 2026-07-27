@@ -669,6 +669,238 @@ const LocalJogo = (() => {
     );
   }
 
+  function premioDeNomes(itens, detalhe) {
+    if (!itens || !itens.length) return null;
+    const nomes = itens.map((i) => i.nome).filter(Boolean);
+    if (!nomes.length) return null;
+    return {
+      nome: nomes.join(" / "),
+      nomes,
+      empate: nomes.length > 1,
+      detalhe: detalhe || "",
+    };
+  }
+
+  /** Súmula gerada no celular (mesma forma do backend) — funciona sem internet. */
+  function montarResumoLocal() {
+    const s = ler();
+    if (!s) throw new Error("Nenhuma pelada local para gerar súmula");
+
+    const timesEnrich = listarTimes();
+    const partidas = [...(s.rodadasFinalizadas || [])];
+
+    const golsPorJogador = new Map();
+    const assistPorJogador = new Map();
+    const amareloPorJogador = new Map();
+    const vermelhoPorJogador = new Map();
+    const golsContraPorJogador = new Map();
+    const nomePorId = new Map();
+
+    (s.jogadores || []).forEach((j) => {
+      nomePorId.set(String(j.id), j.nome);
+    });
+
+    const bump = (map, id, nome, n = 1) => {
+      if (!id) return;
+      const key = String(id);
+      const cur = map.get(key) || { id: key, nome: nome || nomePorId.get(key) || "?", quantidade: 0 };
+      cur.quantidade += n;
+      if (nome) cur.nome = nome;
+      map.set(key, cur);
+    };
+
+    partidas.forEach((p) => {
+      (p.eventos || []).forEach((e) => {
+        const jId = e.jogador?.id || e.jogadorId;
+        const jNome = e.jogador?.nome || e.jogadorNome;
+        if (e.tipo === "GOL") {
+          bump(golsPorJogador, jId, jNome);
+          const aId = e.assistencia?.id || e.assistenciaId;
+          const aNome = e.assistencia?.nome || e.assistenciaNome;
+          if (aId) bump(assistPorJogador, aId, aNome);
+        } else if (e.tipo === "GOL_CONTRA") {
+          bump(golsContraPorJogador, jId, jNome);
+        } else if (e.tipo === "CARTAO_AMARELO") {
+          bump(amareloPorJogador, jId, jNome);
+        } else if (e.tipo === "CARTAO_VERMELHO") {
+          bump(vermelhoPorJogador, jId, jNome);
+        }
+      });
+    });
+
+    const golsMap = new Map([...golsPorJogador.values()].map((g) => [g.id, g.quantidade]));
+    const times = timesEnrich.map((t) => {
+      const jogadores = (t.jogadores || []).map((j) => ({
+        nome: j.nome,
+        gols: golsMap.get(String(j.id)) || 0,
+      }));
+      const gk = t.goleiro
+        ? {
+            nome: t.goleiro.nome,
+            golsSofridos: t.goleiro.golsSofridos || 0,
+          }
+        : null;
+      return {
+        nome: t.nome,
+        cor: t.cor,
+        goleiro: gk,
+        jogadores,
+      };
+    });
+
+    const classificacao = [...timesEnrich]
+      .map((t) => {
+        const jogos = (t.vitorias || 0) + (t.empates || 0) + (t.derrotas || 0);
+        const gp = t.golsPro || 0;
+        const gc = t.golsContra || 0;
+        const pts = t.pontos || 0;
+        return {
+          nome: t.nome,
+          pontos: pts,
+          jogos,
+          vitorias: t.vitorias || 0,
+          empates: t.empates || 0,
+          derrotas: t.derrotas || 0,
+          golsPro: gp,
+          golsContra: gc,
+          saldo: gp - gc,
+          aproveitamento: jogos ? Math.round((pts / (jogos * 3)) * 100) : 0,
+        };
+      })
+      .sort((a, b) => {
+        if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+        if (b.saldo !== a.saldo) return b.saldo - a.saldo;
+        return b.golsPro - a.golsPro;
+      })
+      .map((t, i) => ({ ...t, posicao: i + 1 }));
+
+    let artilharia = [...golsPorJogador.values()]
+      .map((g) => ({ nome: g.nome, gols: g.quantidade, quantidade: g.quantidade }))
+      .sort((a, b) => b.gols - a.gols || a.nome.localeCompare(b.nome, "pt-BR"));
+    if (artilharia.length) {
+      const max = artilharia[0].gols;
+      artilharia = artilharia.filter((a) => a.gols === max);
+    }
+
+    const golsSofridos = timesEnrich
+      .filter((t) => t.goleiro)
+      .map((t) => ({
+        nome: t.goleiro.nome,
+        quantidade: t.goleiro.golsSofridos || 0,
+        golsSofridos: t.goleiro.golsSofridos || 0,
+        time: t.nome,
+      }))
+      .sort((a, b) => a.quantidade - b.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
+
+    const cartoesAmarelos = [...amareloPorJogador.values()]
+      .map((c) => ({ nome: c.nome, quantidade: c.quantidade }))
+      .sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
+    const cartoesVermelhos = [...vermelhoPorJogador.values()]
+      .map((c) => ({ nome: c.nome, quantidade: c.quantidade }))
+      .sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
+    const golsContra = [...golsContraPorJogador.values()]
+      .map((c) => ({ nome: c.nome, quantidade: c.quantidade }))
+      .sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
+
+    const linha = (s.jogadores || []).filter((j) => !j.goleiro);
+    const pontuacaoCraque = (j) => {
+      const g = golsPorJogador.get(String(j.id))?.quantidade || 0;
+      const a = assistPorJogador.get(String(j.id))?.quantidade || 0;
+      const am = amareloPorJogador.get(String(j.id))?.quantidade || 0;
+      const v = vermelhoPorJogador.get(String(j.id))?.quantidade || 0;
+      return g * 2 + a * 1 - am - v * 2;
+    };
+
+    const premios = {
+      campeao: classificacao[0]
+        ? premioDeNomes([{ nome: classificacao[0].nome }], `${classificacao[0].pontos} pts`)
+        : null,
+      artilheiro: null,
+      bolaDeOuro: null,
+      craque: null,
+      garcom: null,
+      luvaDeOuro: null,
+      bolaMurcha: null,
+    };
+
+    if (artilharia.length) {
+      const max = artilharia[0].gols;
+      premios.artilheiro = premioDeNomes(artilharia, `${max} gol${max === 1 ? "" : "s"}`);
+      premios.bolaDeOuro = premios.artilheiro;
+    }
+
+    const scores = linha.map((j) => ({ nome: j.nome, pts: pontuacaoCraque(j) }));
+    if (scores.length) {
+      const maxCraque = Math.max(...scores.map((x) => x.pts));
+      const tops = scores.filter((x) => x.pts === maxCraque);
+      premios.craque = premioDeNomes(
+        tops,
+        `${maxCraque} pt${maxCraque === 1 ? "" : "s"} (gol 2 · assistência 1 · A -1 · V -2)`
+      );
+    }
+
+    const assists = [...assistPorJogador.values()];
+    if (assists.length) {
+      const maxA = Math.max(...assists.map((a) => a.quantidade));
+      const tops = assists.filter((a) => a.quantidade === maxA);
+      premios.garcom = premioDeNomes(tops, `${maxA} assistência${maxA === 1 ? "" : "s"}`);
+    }
+
+    if (golsSofridos.length) {
+      const min = golsSofridos[0].quantidade;
+      const tops = golsSofridos.filter((g) => g.quantidade === min);
+      premios.luvaDeOuro = premioDeNomes(tops, `${min} sofrido${min === 1 ? "" : "s"}`);
+    }
+
+    const partidasResumo = partidas.map((p) => ({
+      numero: p.numeroRodada,
+      numeroRodada: p.numeroRodada,
+      timeA: p.timeA?.nome || p.timeANome,
+      timeB: p.timeB?.nome || p.timeBNome,
+      golsA: p.golsTimeA || 0,
+      golsB: p.golsTimeB || 0,
+      golsTimeA: p.golsTimeA || 0,
+      golsTimeB: p.golsTimeB || 0,
+      corA: p.timeA?.cor,
+      corB: p.timeB?.cor,
+      status: "FINALIZADA",
+    }));
+
+    const observacoes = (s.observacoes || []).map((o) => {
+      const jog = (s.jogadores || []).find((j) => String(j.id) === String(o.jogadorId));
+      return {
+        jogadorNome: jog?.nome || o.jogadorNome || null,
+        tipo: o.tipo || "ATRASO",
+        horario: o.horario || null,
+        texto: o.texto || null,
+      };
+    });
+
+    const agora = new Date().toISOString();
+    return {
+      pelada: {
+        id: s.peladaId || null,
+        nome: s.nome || "Pelada Oficial",
+        status: "ENCERRADA",
+        criadaEm: s.criadaEm || agora,
+        encerradaEm: agora,
+      },
+      classificacao,
+      times,
+      artilharia,
+      golsSofridos,
+      cartoesAmarelos,
+      cartoesVermelhos,
+      totalAmarelos: cartoesAmarelos.reduce((a, c) => a + c.quantidade, 0),
+      totalVermelhos: cartoesVermelhos.reduce((a, c) => a + c.quantidade, 0),
+      golsContra,
+      observacoes,
+      partidas: partidasResumo,
+      premios,
+      _local: true,
+    };
+  }
+
   return {
     obter,
     iniciarPeladaLocal,
@@ -693,6 +925,7 @@ const LocalJogo = (() => {
     listarObservacoes,
     removerObservacaoLocal,
     montarPayloadSync,
+    montarResumoLocal,
     novoClientLanceId,
     enfileirarLance,
     listarLancesPendentes,

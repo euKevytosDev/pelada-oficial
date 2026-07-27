@@ -193,6 +193,7 @@ function peladasParaHistoricoHome(idAtiva) {
 }
 
 const APAGAR_PENDENTE_KEY = "pelada_apagar_pendente";
+const SYNC_ENCERRAR_KEY = "pelada_sync_encerrar_pendente";
 
 function lerApagarPendentes() {
   try {
@@ -221,6 +222,46 @@ function limparApagarPendente(peladaId) {
   salvarApagarPendentes(lerApagarPendentes().filter((id) => id !== String(peladaId)));
 }
 
+function lerSyncEncerrarPendente() {
+  try {
+    const raw = localStorage.getItem(SYNC_ENCERRAR_KEY);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    if (!item || !item.payload) return null;
+    return item;
+  } catch (_) {
+    return null;
+  }
+}
+
+function salvarSyncEncerrarPendente(item) {
+  if (!item) localStorage.removeItem(SYNC_ENCERRAR_KEY);
+  else localStorage.setItem(SYNC_ENCERRAR_KEY, JSON.stringify(item));
+}
+
+function limparSyncEncerrarPendente() {
+  localStorage.removeItem(SYNC_ENCERRAR_KEY);
+}
+
+function atualizarStatusSyncFim(estadoSync) {
+  const el = document.getElementById("status-sync-fim");
+  if (!el) return;
+  el.classList.remove("oculto", "ok", "erro", "enviando");
+  if (estadoSync === "ok") {
+    el.classList.add("ok");
+    el.textContent = "Salvo na sua conta.";
+  } else if (estadoSync === "enviando") {
+    el.classList.add("enviando");
+    el.textContent = "Enviando para a conta…";
+  } else if (estadoSync === "erro") {
+    el.classList.add("erro");
+    el.textContent = "Sem internet agora — a súmula já está aqui. Enviaremos à conta quando voltar.";
+  } else {
+    el.classList.add("oculto");
+    el.textContent = "";
+  }
+}
+
 /** Apaga no servidor em segundo plano (sem travar a tela). */
 async function sincronizarApaguesPendentes() {
   if (!getToken()) return;
@@ -241,6 +282,55 @@ async function sincronizarApaguesPendentes() {
   }
 }
 
+/** Envia pelada encerrada que ficou na fila (rede caiu / Render dormindo). */
+async function sincronizarEncerrarPendente() {
+  if (!getToken()) return false;
+  const item = lerSyncEncerrarPendente();
+  if (!item?.payload) return false;
+
+  atualizarStatusSyncFim("enviando");
+  try {
+    let peladaId = item.peladaId;
+    if (!peladaId) {
+      const criada = await PeladaAPI.criar({
+        nome: item.nome || "Pelada Oficial",
+        quantidadeTimes: item.quantidadeTimes || 2,
+        importarElenco: false,
+      });
+      peladaId = criada.id;
+      item.peladaId = peladaId;
+      salvarSyncEncerrarPendente(item);
+    }
+
+    const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
+    limparSyncEncerrarPendente();
+    localStorage.setItem("pelada_ultima_id", String(peladaId));
+
+    estado.peladaId = peladaId;
+    estado.ultimaPelada = {
+      id: peladaId,
+      nome: resumo?.pelada?.nome || item.nome || "Pelada Oficial",
+      status: "ENCERRADA",
+      encerradaEm: resumo?.pelada?.encerradaEm,
+    };
+
+    const telaFimAtiva = document.getElementById("tela-fim")?.classList.contains("ativa");
+    if (telaFimAtiva) {
+      estado.resumoAtual = resumo;
+      estado.sumulaManual = false;
+      renderResumoOficial(resumo);
+      const boxAtraso = document.getElementById("box-atraso-fim");
+      if (boxAtraso) boxAtraso.classList.remove("oculto");
+      await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
+    }
+    atualizarStatusSyncFim("ok");
+    return true;
+  } catch (_) {
+    atualizarStatusSyncFim("erro");
+    return false;
+  }
+}
+
 async function abrirSumulaPelada(peladaId) {
   await comLoading(async () => {
     const resumo = await PeladaAPI.resumo(peladaId);
@@ -249,6 +339,7 @@ async function abrirSumulaPelada(peladaId) {
     estado.sumulaManual = false;
     const boxAtraso = document.getElementById("box-atraso-fim");
     if (boxAtraso) boxAtraso.classList.remove("oculto");
+    atualizarStatusSyncFim(null);
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
     mostrarTela("tela-fim");
@@ -1482,43 +1573,57 @@ async function salvarAtraso(sufixo = "") {
 }
 
 async function encerrarPelada() {
-  const ok = confirm("Encerrar a pelada agora? Tudo será enviado à sua conta (histórico + súmula).");
+  const ok = confirm(
+    "Encerrar a pelada agora?\n\nA súmula abre na hora. O envio à sua conta roda em segundo plano (mesmo sem internet)."
+  );
   if (!ok) return;
   if (estado.partidaAtual) {
     toast("Finalize ou saia da partida aberta antes de encerrar");
     return;
   }
-  await comLoading(async () => {
-    const local = LocalJogo.obter();
-    let peladaId = estado.peladaId || local?.peladaId;
-    if (!peladaId) {
-      const criada = await PeladaAPI.criar({
-        nome: local?.nome || "Pelada Oficial",
-        quantidadeTimes: local?.quantidadeTimes || 2,
-        importarElenco: false,
-      });
-      peladaId = criada.id;
-      estado.peladaId = peladaId;
-    }
-    const payload = LocalJogo.montarPayloadSync();
-    const resumo = await PeladaAPI.sincronizarCompleta(peladaId, payload);
-    localStorage.setItem("pelada_ultima_id", String(peladaId));
-    LocalJogo.limpar();
-    estado.resumoAtual = resumo;
-    estado.sumulaManual = false;
-    estado.ultimaPelada = {
-      id: peladaId,
-      nome: resumo?.pelada?.nome || "Pelada Oficial",
-      status: "ENCERRADA",
-      encerradaEm: resumo?.pelada?.encerradaEm,
-    };
-    const boxAtraso = document.getElementById("box-atraso-fim");
-    if (boxAtraso) boxAtraso.classList.remove("oculto");
-    renderResumoOficial(resumo);
-    await carregarObservacoes(null, "atraso-jogador-fim");
-    mostrarTela("tela-fim");
-  }, "Enviando pelada e gerando súmula...");
-  toast("Pelada encerrada");
+  if (!LocalJogo.temJogoLocal()) {
+    toast("Nada para encerrar neste celular");
+    return;
+  }
+
+  const local = LocalJogo.obter();
+  const resumo = LocalJogo.montarResumoLocal();
+  const payload = LocalJogo.montarPayloadSync();
+  const peladaId = estado.peladaId || local?.peladaId || null;
+
+  salvarSyncEncerrarPendente({
+    peladaId,
+    nome: local?.nome || resumo?.pelada?.nome || "Pelada Oficial",
+    quantidadeTimes: local?.quantidadeTimes || 2,
+    payload,
+    ts: Date.now(),
+  });
+
+  LocalJogo.limpar();
+  estado.partidaAtual = null;
+  estado.times = [];
+  estado.peladaAtiva = null;
+  estado.peladaId = peladaId;
+  estado.resumoAtual = resumo;
+  estado.sumulaManual = false;
+  estado.ultimaPelada = {
+    id: peladaId,
+    nome: resumo?.pelada?.nome || "Pelada Oficial",
+    status: "ENCERRADA",
+    encerradaEm: resumo?.pelada?.encerradaEm,
+  };
+
+  const boxAtraso = document.getElementById("box-atraso-fim");
+  if (boxAtraso) boxAtraso.classList.add("oculto");
+  renderResumoOficial(resumo);
+  atualizarStatusSyncFim("enviando");
+  mostrarTela("tela-fim");
+  toast("Pelada encerrada — súmula pronta");
+
+  const enviou = await sincronizarEncerrarPendente();
+  if (!enviou) {
+    toast("Súmula ok. Conta sincroniza quando a rede voltar.");
+  }
 }
 
 /* ---------- eventos ---------- */
@@ -1538,6 +1643,7 @@ async function entrarNaHome() {
   atualizarUserBar();
   mostrarTela("tela-inicio");
   sincronizarApaguesPendentes().catch(() => {});
+  sincronizarEncerrarPendente().catch(() => {});
   const box = document.getElementById("box-continuar");
   const boxHistorico = document.getElementById("box-historico-recente");
   const listaHome = document.getElementById("lista-historico-home");
@@ -2052,7 +2158,15 @@ montarSeletorEstrelas();
 ConfigApp.init();
 bootAuth();
 iniciarGoogleLogin();
-setTimeout(() => sincronizarApaguesPendentes().catch(() => {}), 2500);
+setTimeout(() => {
+  sincronizarApaguesPendentes().catch(() => {});
+  sincronizarEncerrarPendente().catch(() => {});
+}, 2500);
+
+window.addEventListener("online", () => {
+  sincronizarApaguesPendentes().catch(() => {});
+  sincronizarEncerrarPendente().catch(() => {});
+});
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
@@ -2388,14 +2502,6 @@ document.getElementById("btn-nova-rodada").addEventListener("click", async () =>
     await iniciarPartidaComEscolha();
   } catch (err) {
     toast(err.message || "Não deu para abrir a partida — tente de novo");
-  }
-});
-
-document.getElementById("btn-encerrar-pelada").addEventListener("click", async () => {
-  try {
-    await encerrarPelada();
-  } catch (err) {
-    toast(err.message);
   }
 });
 

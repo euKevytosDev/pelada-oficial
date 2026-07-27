@@ -724,6 +724,50 @@ input:focus, select:focus, textarea:focus {
   color: var(--vermelho);
 }
 
+.btn-link-perigo {
+  background: transparent;
+  color: var(--vermelho);
+  border: 1px solid rgba(214, 40, 40, 0.35);
+  font-weight: 600;
+}
+
+.btn-link-perigo:active {
+  background: rgba(214, 40, 40, 0.08);
+}
+
+.status-sync-fim {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-sync-fim.enviando {
+  background: rgba(31, 170, 108, 0.12);
+  color: var(--verde-campo);
+}
+
+.status-sync-fim.ok {
+  background: rgba(31, 170, 108, 0.18);
+  color: var(--verde-campo);
+}
+
+.status-sync-fim.erro {
+  background: rgba(245, 197, 24, 0.22);
+  color: #5c4a00;
+}
+
+html[data-theme="dark"] .status-sync-fim.enviando,
+html[data-theme="dark"] .status-sync-fim.ok {
+  color: var(--verde-vivo);
+}
+
+html[data-theme="dark"] .status-sync-fim.erro {
+  color: #f5d76e;
+}
+
 .btn-gol {
   background: var(--verde-vivo);
   color: #fff;
