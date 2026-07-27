@@ -194,7 +194,76 @@ function peladasParaHistoricoHome(idAtiva) {
 
 const APAGAR_PENDENTE_KEY = "pelada_apagar_pendente";
 const SYNC_ENCERRAR_KEY = "pelada_sync_encerrar_pendente";
+const ELENCO_LOCAL_KEY = "pelada_elenco_conta_local";
 
+function salvarElencoLocalBackup(jogadores) {
+  try {
+    const lista = (jogadores || [])
+      .filter((j) => j && j.nome)
+      .map((j) => ({
+        nome: String(j.nome).trim(),
+        estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
+        goleiro: !!j.goleiro,
+        apto: j.apto !== false,
+      }));
+    if (!lista.length) return;
+    localStorage.setItem(ELENCO_LOCAL_KEY, JSON.stringify(lista));
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function lerElencoLocalBackup() {
+  try {
+    const raw = localStorage.getItem(ELENCO_LOCAL_KEY);
+    const lista = raw ? JSON.parse(raw) : [];
+    return Array.isArray(lista) ? lista : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function carregarElencoParaNovaPelada() {
+  try {
+    const elenco = await PeladaAPI.listarElenco();
+    const lista = (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
+      nome: j.nome,
+      estrelas: j.estrelas,
+      goleiro: !!j.goleiro,
+      apto: j.apto !== false,
+    }));
+    if (lista.length) {
+      salvarElencoLocalBackup(lista);
+      return lista;
+    }
+  } catch (_) {
+    /* cai no backup local */
+  }
+  return lerElencoLocalBackup();
+}
+
+function elencoDoPayload(payload) {
+  return (payload?.jogadores || []).map((j) => ({
+    nome: j.nome,
+    estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
+    goleiro: !!j.goleiro,
+  }));
+}
+
+/** Envia só o elenco (leve) — não depende do sync completo da pelada. */
+async function enviarElencoConta(jogadores) {
+  const itens = (jogadores || [])
+    .filter((j) => j?.nome)
+    .map((j) => ({
+      nome: String(j.nome).trim(),
+      estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
+      goleiro: !!j.goleiro,
+    }));
+  if (!itens.length) return false;
+  salvarElencoLocalBackup(itens);
+  await PeladaAPI.salvarElenco(itens);
+  return true;
+}
 function lerApagarPendentes() {
   try {
     const raw = localStorage.getItem(APAGAR_PENDENTE_KEY);
@@ -289,6 +358,14 @@ async function sincronizarEncerrarPendente() {
   if (!item?.payload) return false;
 
   atualizarStatusSyncFim("enviando");
+
+  // Elenco primeiro: mesmo se o sync completo falhar, a próxima pelada já tem os nomes
+  try {
+    await enviarElencoConta(elencoDoPayload(item.payload));
+  } catch (_) {
+    /* tenta de novo no fluxo completo / online */
+  }
+
   try {
     let peladaId = item.peladaId;
     if (!peladaId) {
@@ -325,7 +402,19 @@ async function sincronizarEncerrarPendente() {
     }
     atualizarStatusSyncFim("ok");
     return true;
-  } catch (_) {
+  } catch (err) {
+    const msg = String(err?.message || "").toLowerCase();
+    // Já encerrou no servidor: tira da fila, mas reforça o elenco
+    if (msg.includes("já encerrada") || msg.includes("ja encerrada")) {
+      try {
+        await enviarElencoConta(elencoDoPayload(item.payload));
+      } catch (_) {
+        /* backup local já existe */
+      }
+      limparSyncEncerrarPendente();
+      atualizarStatusSyncFim("ok");
+      return true;
+    }
     atualizarStatusSyncFim("erro");
     return false;
   }
@@ -1591,6 +1680,10 @@ async function encerrarPelada() {
   const payload = LocalJogo.montarPayloadSync();
   const peladaId = estado.peladaId || local?.peladaId || null;
 
+  // Backup imediato no celular + tentativa de gravar elenco na conta antes do sync pesado
+  salvarElencoLocalBackup(elencoDoPayload(payload));
+  enviarElencoConta(elencoDoPayload(payload)).catch(() => {});
+
   salvarSyncEncerrarPendente({
     peladaId,
     nome: local?.nome || resumo?.pelada?.nome || "Pelada Oficial",
@@ -2178,18 +2271,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       });
       estado.peladaId = pelada.id;
       localStorage.setItem(PELADA_KEY, String(pelada.id));
-      let jogadores = [];
-      try {
-        const elenco = await PeladaAPI.listarElenco();
-        jogadores = (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
-          nome: j.nome,
-          estrelas: j.estrelas,
-          goleiro: !!j.goleiro,
-          apto: j.apto !== false,
-        }));
-      } catch (_) {
-        /* elenco é opcional: o cadastro segue local */
-      }
+      const jogadores = await carregarElencoParaNovaPelada();
       LocalJogo.iniciarPeladaLocal({
         peladaId: pelada.id,
         nome: pelada.nome || document.getElementById("nome-pelada").value.trim(),
@@ -2199,7 +2281,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       const todos = await carregarCadastro();
       mostrarTela("tela-jogadores");
       if (todos.length) {
-        toast(`Elenco carregado no celular: ${todos.length} pessoa(s)`);
+        toast(`Elenco carregado: ${todos.length} pessoa(s)`);
       } else {
         toast("Pelada criada — cadastre no celular e envie ao encerrar");
       }

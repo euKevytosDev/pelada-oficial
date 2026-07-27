@@ -66,10 +66,13 @@ public class SyncCompletaService {
         criarPartidas(pelada, request.getPartidas(), times, jogadores);
         criarObservacoes(pelada, request.getObservacoes(), jogadores);
 
+        jogadorRepository.flush();
+
         if (Boolean.TRUE.equals(request.getEncerrar())) {
             pelada.setStatus(StatusPelada.ENCERRADA);
             pelada.setEncerradaEm(LocalDateTime.now());
-            peladaService.salvarElencoDaPelada(peladaId);
+            // Usa a lista já criada na memória (não depende de novo SELECT)
+            peladaService.substituirElenco(new ArrayList<>(jogadores.values()));
         } else {
             pelada.setStatus(times.isEmpty() ? StatusPelada.AGUARDANDO : StatusPelada.EM_ANDAMENTO);
             pelada.setEncerradaEm(null);

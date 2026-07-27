@@ -215,6 +215,8 @@ const PeladaAPI = {
     }
   },
   listarElenco: () => api("/peladas/elenco"),
+  salvarElenco: (itens) =>
+    api("/peladas/elenco", { method: "POST", body: JSON.stringify(itens), retry: 3 }),
   removerJogador: (peladaId, jogadorId) =>
     api(`/peladas/${peladaId}/jogadores/${jogadorId}`, { method: "DELETE" }),
   sortear: (peladaId) => api(`/peladas/${peladaId}/sortear`, { method: "POST", body: "{}" }),

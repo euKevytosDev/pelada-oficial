@@ -4,6 +4,7 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.ElencoItemRequest;
 import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.*;
@@ -87,26 +88,67 @@ public class PeladaService {
     /** Salva o elenco atual da pelada na conta (substitui o anterior). */
     @Transactional
     public void salvarElencoDaPelada(Long peladaId) {
-        Pelada pelada = buscar(peladaId);
-        Usuario dono = authSupport.usuarioAtual();
+        buscar(peladaId);
         List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
+        substituirElenco(jogadores);
+    }
 
+    /** Substitui o elenco permanente da conta pelos jogadores informados. */
+    @Transactional
+    public void substituirElenco(List<Jogador> jogadores) {
+        Usuario dono = authSupport.usuarioAtual();
         elencoRepository.deleteByUsuario(dono);
         elencoRepository.flush();
-
+        if (jogadores == null) return;
         for (Jogador j : jogadores) {
+            if (j == null || j.getNome() == null || j.getNome().isBlank()) continue;
             elencoRepository.save(new ElencoJogador(
                     dono,
-                    j.getNome(),
-                    j.getEstrelas(),
+                    j.getNome().trim(),
+                    j.getEstrelas() == null ? 3 : j.getEstrelas(),
                     Boolean.TRUE.equals(j.getGoleiro())
             ));
         }
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Salva o elenco direto do cliente (nomes/estrelas), sem depender da pelada no servidor.
+     * Usado no encerrar offline-first para não perder o elenco se o sync completo falhar.
+     */
+    @Transactional
+    public int salvarElencoSnapshot(List<ElencoItemRequest> itens) {
+        Usuario dono = authSupport.usuarioAtual();
+        elencoRepository.deleteByUsuario(dono);
+        elencoRepository.flush();
+        int salvos = 0;
+        if (itens == null) return 0;
+        for (ElencoItemRequest item : itens) {
+            if (item == null || item.getNome() == null || item.getNome().isBlank()) continue;
+            boolean goleiro = Boolean.TRUE.equals(item.getGoleiro());
+            int estrelas = goleiro ? 0 : (item.getEstrelas() == null ? 3 : item.getEstrelas());
+            elencoRepository.save(new ElencoJogador(dono, item.getNome().trim(), estrelas, goleiro));
+            salvos++;
+        }
+        return salvos;
+    }
+
+    @Transactional
     public List<ElencoJogador> listarElenco() {
-        return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(authSupport.usuarioAtual());
+        Usuario dono = authSupport.usuarioAtual();
+        List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+        if (!atual.isEmpty()) return atual;
+
+        // Recuperação: elenco permanente vazio → copia da última pelada encerrada
+        Optional<Pelada> ultima = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono).stream()
+                .filter((p) -> p.getStatus() == StatusPelada.ENCERRADA)
+                .findFirst();
+        if (ultima.isEmpty()) return List.of();
+
+        List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.get().getId());
+        if (jogadores.isEmpty()) return List.of();
+
+        substituirElenco(jogadores);
+        return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
     }
 
     @Transactional(readOnly = true)

@@ -4,6 +4,7 @@ import br.com.peladaoficial.dto.AdicionarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarJogadorRequest;
 import br.com.peladaoficial.dto.AtualizarTimeRequest;
 import br.com.peladaoficial.dto.CriarPeladaRequest;
+import br.com.peladaoficial.dto.ElencoItemRequest;
 import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.dto.SyncCompletaRequest;
@@ -82,6 +83,13 @@ public class PeladaController {
         return peladaService.listarElenco().stream()
                 .map(this::toElencoMap)
                 .collect(Collectors.toList());
+    }
+
+    /** Salva/substitui o elenco permanente da conta (independente do sync completo). */
+    @PostMapping("/elenco")
+    public Map<String, Object> salvarElenco(@Valid @RequestBody List<ElencoItemRequest> itens) {
+        int salvos = peladaService.salvarElencoSnapshot(itens);
+        return Map.of("salvos", salvos);
     }
 
     @GetMapping("/{id}")
