@@ -262,6 +262,7 @@ function elencoDoPayload(payload) {
       nome: j.nome,
       estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
       goleiro: !!j.goleiro,
+      apto: j.apto !== false,
     }))
   );
 }
@@ -272,6 +273,7 @@ async function enviarElencoConta(jogadores) {
     nome: j.nome,
     estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
     goleiro: !!j.goleiro,
+    apto: j.apto !== false,
   }));
   if (!itens.length) return false;
   salvarElencoLocalBackup(itens);
@@ -1148,14 +1150,16 @@ async function sortearTimes() {
   estado.goleiros = LocalJogo.listarGoleiros();
   renderTimes(times);
   mostrarTela("tela-times");
-  // Elenco da conta = snapshot deste momento (só no sorteio, não a cada edição)
+  // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
+  const todos = LocalJogo.listarJogadores();
+  const inaptos = todos.filter((j) => j.apto === false).length;
   const comGk = times.filter((t) => t.goleiro).length;
-  toast(
-    comGk
-      ? `Sorteado! ${comGk} goleiro(s) nos primeiros times`
-      : "Times sorteados! Sem goleiros cadastrados"
-  );
+  let msg = comGk
+    ? `Sorteado! ${comGk} goleiro(s) nos primeiros times`
+    : "Times sorteados! Sem goleiros cadastrados";
+  if (inaptos) msg += ` · ${inaptos} inapto(s) fora`;
+  toast(msg);
 }
 
 async function renomearTime(timeId) {

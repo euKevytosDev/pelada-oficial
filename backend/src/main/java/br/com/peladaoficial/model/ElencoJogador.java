@@ -7,7 +7,7 @@ import lombok.Setter;
 
 /**
  * Jogador/goleiro salvo na conta do usuário (elenco permanente).
- * Depois de encerrar a pelada, o elenco fica pronto para a próxima.
+ * Depois do sorteio/encerrar, o elenco fica pronto para a próxima pelada.
  */
 @Entity
 @Table(name = "elenco_jogadores")
@@ -33,10 +33,19 @@ public class ElencoJogador {
     @Column(nullable = false)
     private Boolean goleiro = false;
 
+    /** false = inapto (não entra no sorteio). */
+    @Column(nullable = false)
+    private Boolean apto = true;
+
     public ElencoJogador(Usuario usuario, String nome, Integer estrelas, boolean goleiro) {
+        this(usuario, nome, estrelas, goleiro, true);
+    }
+
+    public ElencoJogador(Usuario usuario, String nome, Integer estrelas, boolean goleiro, boolean apto) {
         this.usuario = usuario;
         this.nome = nome;
         this.estrelas = goleiro ? 0 : estrelas;
         this.goleiro = goleiro;
+        this.apto = apto;
     }
 }

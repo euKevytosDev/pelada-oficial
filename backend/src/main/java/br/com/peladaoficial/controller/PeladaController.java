@@ -282,6 +282,7 @@ public class PeladaController {
         map.put("nome", e.getNome());
         map.put("estrelas", e.getEstrelas());
         map.put("goleiro", Boolean.TRUE.equals(e.getGoleiro()));
+        map.put("apto", !Boolean.FALSE.equals(e.getApto()));
         return map;
     }
 

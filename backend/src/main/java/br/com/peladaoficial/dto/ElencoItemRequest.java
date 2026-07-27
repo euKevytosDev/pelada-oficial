@@ -14,4 +14,7 @@ public class ElencoItemRequest {
     private Integer estrelas;
 
     private Boolean goleiro;
+
+    /** false = inapto para o sorteio. */
+    private Boolean apto;
 }

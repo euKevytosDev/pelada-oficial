@@ -81,6 +81,7 @@ public class PeladaService {
                     Boolean.TRUE.equals(salvo.getGoleiro()),
                     pelada
             );
+            j.setApto(!Boolean.FALSE.equals(salvo.getApto()));
             jogadorRepository.save(j);
         }
     }
@@ -104,6 +105,7 @@ public class PeladaService {
                 item.setNome(j.getNome().trim());
                 item.setEstrelas(j.getEstrelas() == null ? 3 : j.getEstrelas());
                 item.setGoleiro(Boolean.TRUE.equals(j.getGoleiro()));
+                item.setApto(!Boolean.FALSE.equals(j.getApto()));
                 itens.add(item);
             }
         }
@@ -111,7 +113,7 @@ public class PeladaService {
     }
 
     /**
-     * Salva o elenco direto do cliente (nomes/estrelas), sem depender da pelada no servidor.
+     * Salva o elenco direto do cliente (nomes/estrelas/apto), sem depender da pelada no servidor.
      * Sempre substitui o elenco anterior e remove duplicatas (mesmo nome + goleiro).
      */
     @Transactional
@@ -124,8 +126,9 @@ public class PeladaService {
 
         for (ElencoItemRequest item : unicos) {
             boolean goleiro = Boolean.TRUE.equals(item.getGoleiro());
+            boolean apto = !Boolean.FALSE.equals(item.getApto());
             int estrelas = goleiro ? 0 : (item.getEstrelas() == null ? 3 : item.getEstrelas());
-            elencoRepository.save(new ElencoJogador(dono, item.getNome().trim(), estrelas, goleiro));
+            elencoRepository.save(new ElencoJogador(dono, item.getNome().trim(), estrelas, goleiro, apto));
         }
         return unicos.size();
     }
@@ -143,6 +146,7 @@ public class PeladaService {
             limpo.setNome(nome);
             limpo.setGoleiro(goleiro);
             limpo.setEstrelas(goleiro ? 0 : (item.getEstrelas() == null ? 3 : item.getEstrelas()));
+            limpo.setApto(!Boolean.FALSE.equals(item.getApto()));
             porChave.put(chave, limpo);
         }
         return new ArrayList<>(porChave.values());
@@ -174,6 +178,7 @@ public class PeladaService {
                 item.setNome(e.getNome());
                 item.setEstrelas(e.getEstrelas());
                 item.setGoleiro(Boolean.TRUE.equals(e.getGoleiro()));
+                item.setApto(!Boolean.FALSE.equals(e.getApto()));
                 return item;
             }).toList();
             salvarElencoSnapshot(limpos);

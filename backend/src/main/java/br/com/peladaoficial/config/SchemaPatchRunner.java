@@ -52,6 +52,12 @@ public class SchemaPatchRunner implements ApplicationRunner {
             log.info("Schema OK: coluna eventos_partida.assistencia_id verificada");
 
             jdbc.execute("""
+                ALTER TABLE elenco_jogadores
+                ADD COLUMN IF NOT EXISTS apto boolean NOT NULL DEFAULT true
+                """);
+            log.info("Schema OK: coluna elenco_jogadores.apto verificada");
+
+            jdbc.execute("""
                 ALTER TABLE usuarios
                 ADD COLUMN IF NOT EXISTS google_id varchar(64)
                 """);
