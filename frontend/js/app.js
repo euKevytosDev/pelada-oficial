@@ -1828,8 +1828,6 @@ async function entrarNaHome() {
     if (local.peladaId) idAtiva = local.peladaId;
   }
 
-  atualizarBloqueioNovaPelada();
-
   const peladas = await carregarHistoricoPeladas();
   const recentes = peladasParaHistoricoHome(idAtiva);
 
@@ -1837,21 +1835,6 @@ async function entrarNaHome() {
     renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
     boxHistorico.classList.remove("oculto");
   }
-}
-
-/** Bloqueia "Começar pelada" se já existir jogo local ou pelada ativa na conta. */
-function temPeladaPendente() {
-  if (LocalJogo.temJogoLocal()) return true;
-  if (estado.peladaAtiva && estado.peladaAtiva.id) return true;
-  return false;
-}
-
-function atualizarBloqueioNovaPelada() {
-  const form = document.getElementById("form-nova-pelada");
-  const aviso = document.getElementById("aviso-pelada-pendente");
-  const pendente = temPeladaPendente();
-  if (form) form.classList.toggle("oculto", pendente);
-  if (aviso) aviso.classList.toggle("oculto", !pendente);
 }
 
 async function retomarPelada(pelada) {
@@ -2332,25 +2315,8 @@ window.addEventListener("online", () => {
 });
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (temPeladaPendente()) {
-    atualizarBloqueioNovaPelada();
-    toast("Encerre a pelada em aberto antes de criar outra");
-    return;
-  }
   try {
     await comLoading(async () => {
-      // Revalida na API (evita abrir 2ª pelada se a conta já tem uma ativa)
-      try {
-        const ativa = await PeladaAPI.ativa();
-        if (ativa && ativa.id) {
-          estado.peladaAtiva = ativa;
-          atualizarBloqueioNovaPelada();
-          throw new Error("Você já tem uma pelada em andamento — continue ou encerre ela");
-        }
-      } catch (err) {
-        if (String(err.message || "").includes("em andamento")) throw err;
-      }
-
       const pelada = await PeladaAPI.criar({
         nome: document.getElementById("nome-pelada").value.trim(),
         quantidadeTimes: Number(document.getElementById("qtd-times").value),
