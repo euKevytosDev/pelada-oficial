@@ -1291,6 +1291,22 @@ function opcoesJogadoresLance(jogadores) {
   }));
 }
 
+/** Só filtra a lista da UI — não altera jogadores salvos. */
+function goleirosAptosParaSofrerGol(partida) {
+  const goleiros = partida?.goleirosPelada || [];
+  if (!goleiros.length) return [];
+  const aptoPorId = new Map(
+    (LocalJogo.listarJogadores() || [])
+      .filter((j) => j.goleiro)
+      .map((j) => [String(j.id), j.apto !== false])
+  );
+  return goleiros.filter((g) => {
+    const id = String(g.id);
+    if (!aptoPorId.has(id)) return true;
+    return aptoPorId.get(id);
+  });
+}
+
 async function registrarEventoAoVivo(tipo) {
   const partida = estado.partidaAtual;
   if (!partida) return;
@@ -1355,10 +1371,10 @@ async function registrarEventoAoVivo(tipo) {
 
       const timeDefensorId =
         String(timeId) === String(partida.timeA.id) ? partida.timeB.id : partida.timeA.id;
-      const goleiros = partida.goleirosPelada || [];
+      const goleiros = goleirosAptosParaSofrerGol(partida);
 
       if (!goleiros.length) {
-        toast("Cadastre goleiros para marcar o gol");
+        toast("Nenhum goleiro apto para marcar o gol sofrido");
         return;
       }
 
