@@ -198,14 +198,7 @@ const ELENCO_LOCAL_KEY = "pelada_elenco_conta_local";
 
 function salvarElencoLocalBackup(jogadores) {
   try {
-    const lista = (jogadores || [])
-      .filter((j) => j && j.nome)
-      .map((j) => ({
-        nome: String(j.nome).trim(),
-        estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
-        goleiro: !!j.goleiro,
-        apto: j.apto !== false,
-      }));
+    const lista = deduplicarElencoLocal(jogadores);
     if (!lista.length) return;
     localStorage.setItem(ELENCO_LOCAL_KEY, JSON.stringify(lista));
   } catch (_) {
@@ -217,21 +210,42 @@ function lerElencoLocalBackup() {
   try {
     const raw = localStorage.getItem(ELENCO_LOCAL_KEY);
     const lista = raw ? JSON.parse(raw) : [];
-    return Array.isArray(lista) ? lista : [];
+    return Array.isArray(lista) ? deduplicarElencoLocal(lista) : [];
   } catch (_) {
     return [];
   }
 }
 
+/** Um nome + goleiro por conta (evita lista duplicada na tela / no backup). */
+function deduplicarElencoLocal(jogadores) {
+  const mapa = new Map();
+  (jogadores || []).forEach((j) => {
+    if (!j?.nome) return;
+    const nome = String(j.nome).trim();
+    if (!nome) return;
+    const goleiro = !!j.goleiro;
+    const chave = `${nome.toLowerCase()}|${goleiro}`;
+    mapa.set(chave, {
+      nome,
+      estrelas: goleiro ? 0 : Number(j.estrelas) || 3,
+      goleiro,
+      apto: j.apto !== false,
+    });
+  });
+  return [...mapa.values()];
+}
+
 async function carregarElencoParaNovaPelada() {
   try {
     const elenco = await PeladaAPI.listarElenco();
-    const lista = (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
-      nome: j.nome,
-      estrelas: j.estrelas,
-      goleiro: !!j.goleiro,
-      apto: j.apto !== false,
-    }));
+    const lista = deduplicarElencoLocal(
+      (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
+        nome: j.nome,
+        estrelas: j.estrelas,
+        goleiro: !!j.goleiro,
+        apto: j.apto !== false,
+      }))
+    );
     if (lista.length) {
       salvarElencoLocalBackup(lista);
       return lista;
@@ -243,26 +257,36 @@ async function carregarElencoParaNovaPelada() {
 }
 
 function elencoDoPayload(payload) {
-  return (payload?.jogadores || []).map((j) => ({
+  return deduplicarElencoLocal(
+    (payload?.jogadores || []).map((j) => ({
+      nome: j.nome,
+      estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
+      goleiro: !!j.goleiro,
+    }))
+  );
+}
+
+/** Envia o elenco da conta (substitui o anterior no servidor). */
+async function enviarElencoConta(jogadores) {
+  const itens = deduplicarElencoLocal(jogadores).map((j) => ({
     nome: j.nome,
     estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
     goleiro: !!j.goleiro,
   }));
-}
-
-/** Envia só o elenco (leve) — não depende do sync completo da pelada. */
-async function enviarElencoConta(jogadores) {
-  const itens = (jogadores || [])
-    .filter((j) => j?.nome)
-    .map((j) => ({
-      nome: String(j.nome).trim(),
-      estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
-      goleiro: !!j.goleiro,
-    }));
   if (!itens.length) return false;
   salvarElencoLocalBackup(itens);
   await PeladaAPI.salvarElenco(itens);
   return true;
+}
+
+/** Sync do elenco só no sorteio — não a cada edição de jogador. */
+async function sincronizarElencoNoSorteio() {
+  if (!getToken()) return;
+  try {
+    await enviarElencoConta(LocalJogo.listarJogadores());
+  } catch (_) {
+    /* backup local já ficou; sobe no encerrar / quando a rede voltar */
+  }
 }
 function lerApagarPendentes() {
   try {
@@ -359,13 +383,6 @@ async function sincronizarEncerrarPendente() {
 
   atualizarStatusSyncFim("enviando");
 
-  // Elenco primeiro: mesmo se o sync completo falhar, a próxima pelada já tem os nomes
-  try {
-    await enviarElencoConta(elencoDoPayload(item.payload));
-  } catch (_) {
-    /* tenta de novo no fluxo completo / online */
-  }
-
   try {
     let peladaId = item.peladaId;
     if (!peladaId) {
@@ -404,7 +421,7 @@ async function sincronizarEncerrarPendente() {
     return true;
   } catch (err) {
     const msg = String(err?.message || "").toLowerCase();
-    // Já encerrou no servidor: tira da fila, mas reforça o elenco
+    // Já encerrou no servidor: tira da fila e garante elenco único na conta
     if (msg.includes("já encerrada") || msg.includes("ja encerrada")) {
       try {
         await enviarElencoConta(elencoDoPayload(item.payload));
@@ -414,6 +431,12 @@ async function sincronizarEncerrarPendente() {
       limparSyncEncerrarPendente();
       atualizarStatusSyncFim("ok");
       return true;
+    }
+    // Sync completo falhou: ainda assim tenta gravar só o elenco (uma vez)
+    try {
+      await enviarElencoConta(elencoDoPayload(item.payload));
+    } catch (_) {
+      /* fica na fila */
     }
     atualizarStatusSyncFim("erro");
     return false;
@@ -1125,6 +1148,8 @@ async function sortearTimes() {
   estado.goleiros = LocalJogo.listarGoleiros();
   renderTimes(times);
   mostrarTela("tela-times");
+  // Elenco da conta = snapshot deste momento (só no sorteio, não a cada edição)
+  sincronizarElencoNoSorteio();
   const comGk = times.filter((t) => t.goleiro).length;
   toast(
     comGk
@@ -1680,9 +1705,8 @@ async function encerrarPelada() {
   const payload = LocalJogo.montarPayloadSync();
   const peladaId = estado.peladaId || local?.peladaId || null;
 
-  // Backup imediato no celular + tentativa de gravar elenco na conta antes do sync pesado
+  // Backup local; elenco na conta sobe no sorteio e de novo se o sync completo falhar
   salvarElencoLocalBackup(elencoDoPayload(payload));
-  enviarElencoConta(elencoDoPayload(payload)).catch(() => {});
 
   salvarSyncEncerrarPendente({
     peladaId,
@@ -2283,7 +2307,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       if (todos.length) {
         toast(`Elenco carregado: ${todos.length} pessoa(s)`);
       } else {
-        toast("Pelada criada — cadastre no celular e envie ao encerrar");
+        toast("Pelada criada — cadastre os jogadores e sorteie os times");
       }
     }, "Criando pelada...");
   } catch (err) {

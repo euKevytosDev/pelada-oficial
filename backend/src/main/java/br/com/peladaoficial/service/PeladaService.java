@@ -96,59 +96,101 @@ public class PeladaService {
     /** Substitui o elenco permanente da conta pelos jogadores informados. */
     @Transactional
     public void substituirElenco(List<Jogador> jogadores) {
-        Usuario dono = authSupport.usuarioAtual();
-        elencoRepository.deleteByUsuario(dono);
-        elencoRepository.flush();
-        if (jogadores == null) return;
-        for (Jogador j : jogadores) {
-            if (j == null || j.getNome() == null || j.getNome().isBlank()) continue;
-            elencoRepository.save(new ElencoJogador(
-                    dono,
-                    j.getNome().trim(),
-                    j.getEstrelas() == null ? 3 : j.getEstrelas(),
-                    Boolean.TRUE.equals(j.getGoleiro())
-            ));
+        List<ElencoItemRequest> itens = new ArrayList<>();
+        if (jogadores != null) {
+            for (Jogador j : jogadores) {
+                if (j == null || j.getNome() == null || j.getNome().isBlank()) continue;
+                ElencoItemRequest item = new ElencoItemRequest();
+                item.setNome(j.getNome().trim());
+                item.setEstrelas(j.getEstrelas() == null ? 3 : j.getEstrelas());
+                item.setGoleiro(Boolean.TRUE.equals(j.getGoleiro()));
+                itens.add(item);
+            }
         }
+        salvarElencoSnapshot(itens);
     }
 
     /**
      * Salva o elenco direto do cliente (nomes/estrelas), sem depender da pelada no servidor.
-     * Usado no encerrar offline-first para não perder o elenco se o sync completo falhar.
+     * Sempre substitui o elenco anterior e remove duplicatas (mesmo nome + goleiro).
      */
     @Transactional
     public int salvarElencoSnapshot(List<ElencoItemRequest> itens) {
         Usuario dono = authSupport.usuarioAtual();
+        List<ElencoItemRequest> unicos = deduplicarElenco(itens);
+
         elencoRepository.deleteByUsuario(dono);
         elencoRepository.flush();
-        int salvos = 0;
-        if (itens == null) return 0;
-        for (ElencoItemRequest item : itens) {
-            if (item == null || item.getNome() == null || item.getNome().isBlank()) continue;
+
+        for (ElencoItemRequest item : unicos) {
             boolean goleiro = Boolean.TRUE.equals(item.getGoleiro());
             int estrelas = goleiro ? 0 : (item.getEstrelas() == null ? 3 : item.getEstrelas());
             elencoRepository.save(new ElencoJogador(dono, item.getNome().trim(), estrelas, goleiro));
-            salvos++;
         }
-        return salvos;
+        return unicos.size();
+    }
+
+    /** Remove duplicatas por nome (ignore case) + goleiro; mantém a última ocorrência. */
+    private List<ElencoItemRequest> deduplicarElenco(List<ElencoItemRequest> itens) {
+        if (itens == null || itens.isEmpty()) return List.of();
+        Map<String, ElencoItemRequest> porChave = new LinkedHashMap<>();
+        for (ElencoItemRequest item : itens) {
+            if (item == null || item.getNome() == null || item.getNome().isBlank()) continue;
+            String nome = item.getNome().trim();
+            boolean goleiro = Boolean.TRUE.equals(item.getGoleiro());
+            String chave = nome.toLowerCase(Locale.ROOT) + "|" + goleiro;
+            ElencoItemRequest limpo = new ElencoItemRequest();
+            limpo.setNome(nome);
+            limpo.setGoleiro(goleiro);
+            limpo.setEstrelas(goleiro ? 0 : (item.getEstrelas() == null ? 3 : item.getEstrelas()));
+            porChave.put(chave, limpo);
+        }
+        return new ArrayList<>(porChave.values());
     }
 
     @Transactional
     public List<ElencoJogador> listarElenco() {
         Usuario dono = authSupport.usuarioAtual();
         List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
-        if (!atual.isEmpty()) return atual;
 
-        // Recuperação: elenco permanente vazio → copia da última pelada encerrada
-        Optional<Pelada> ultima = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono).stream()
-                .filter((p) -> p.getStatus() == StatusPelada.ENCERRADA)
-                .findFirst();
-        if (ultima.isEmpty()) return List.of();
+        if (atual.isEmpty()) {
+            // Recuperação: elenco permanente vazio → copia da última pelada encerrada
+            Optional<Pelada> ultima = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono).stream()
+                    .filter((p) -> p.getStatus() == StatusPelada.ENCERRADA)
+                    .findFirst();
+            if (ultima.isEmpty()) return List.of();
 
-        List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.get().getId());
-        if (jogadores.isEmpty()) return List.of();
+            List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.get().getId());
+            if (jogadores.isEmpty()) return List.of();
 
-        substituirElenco(jogadores);
-        return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+            substituirElenco(jogadores);
+            return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+        }
+
+        // Limpa duplicatas antigas (ex.: corrida de sync) na próxima leitura
+        if (temDuplicataElenco(atual)) {
+            List<ElencoItemRequest> limpos = atual.stream().map(e -> {
+                ElencoItemRequest item = new ElencoItemRequest();
+                item.setNome(e.getNome());
+                item.setEstrelas(e.getEstrelas());
+                item.setGoleiro(Boolean.TRUE.equals(e.getGoleiro()));
+                return item;
+            }).toList();
+            salvarElencoSnapshot(limpos);
+            return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+        }
+
+        return atual;
+    }
+
+    private boolean temDuplicataElenco(List<ElencoJogador> lista) {
+        Set<String> vistos = new HashSet<>();
+        for (ElencoJogador e : lista) {
+            if (e.getNome() == null) continue;
+            String chave = e.getNome().trim().toLowerCase(Locale.ROOT) + "|" + Boolean.TRUE.equals(e.getGoleiro());
+            if (!vistos.add(chave)) return true;
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)
