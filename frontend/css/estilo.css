@@ -1548,10 +1548,20 @@ td.num, th.num {
 }
 
 .partida-lances {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
   font-size: 0.78rem;
   font-weight: 400;
   color: #8a9a92;
-  line-height: 1.35;
+  line-height: 1.45;
+}
+
+.partida-lances li {
+  margin: 0;
+  padding: 1px 0;
+  border: none;
+  display: block;
   word-break: break-word;
 }
 

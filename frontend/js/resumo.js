@@ -20,7 +20,7 @@ function formatarDataBr(iso) {
   return d.toLocaleDateString("pt-BR");
 }
 
-/** Agrupa nomes iguais: João, João → João (2) */
+/** Agrupa nomes iguais: João, João → João (2) — usado em listas compactas */
 function nomesAgrupados(nomes) {
   const contagem = new Map();
   (nomes || []).forEach((n) => {
@@ -32,35 +32,49 @@ function nomesAgrupados(nomes) {
     .join(", ");
 }
 
-/** Texto discreto dos lances: "Gols: A, B · Amarelo: C" */
-function textoDetalhePartida(partida) {
-  if (partida?.detalhe) return partida.detalhe;
+/**
+ * Lances da partida, um por linha, bem claros:
+ * "Gol: Fulano · Assistência: Beltrano"
+ * "Cartão amarelo: Ciclano"
+ */
+function linhasDetalhePartida(partida) {
   const eventos = partida?.eventos || [];
-  if (!eventos.length) return "";
+    if (!eventos.length) {
+      // detalhe do backend (novo: 1 linha por lance; antigo: · )
+      if (partida?.detalhe && typeof partida.detalhe === "string") {
+        return partida.detalhe
+          .split(/\n|·/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      return [];
+    }
 
-  const gols = [];
-  const assists = [];
-  const contra = [];
-  const amarelo = [];
-  const vermelho = [];
+  const linhas = [];
   eventos.forEach((e) => {
     const nome = e.jogadorNome || e.nome || "?";
-    if (e.tipo === "GOL") {
+    const tipo = e.tipo;
+    if (tipo === "GOL") {
       const ass = e.assistenciaNome;
-      gols.push(ass ? `${nome} (${ass})` : nome);
-      if (ass) assists.push(ass);
-    } else if (e.tipo === "GOL_CONTRA") contra.push(nome);
-    else if (e.tipo === "CARTAO_AMARELO") amarelo.push(nome);
-    else if (e.tipo === "CARTAO_VERMELHO") vermelho.push(nome);
+      if (ass && String(ass) !== "null" && String(ass).trim()) {
+        linhas.push(`Gol: ${nome} · Assistência: ${ass}`);
+      } else {
+        linhas.push(`Gol: ${nome}`);
+      }
+    } else if (tipo === "GOL_CONTRA") {
+      linhas.push(`Gol contra: ${nome}`);
+    } else if (tipo === "CARTAO_AMARELO") {
+      linhas.push(`Cartão amarelo: ${nome}`);
+    } else if (tipo === "CARTAO_VERMELHO") {
+      linhas.push(`Cartão vermelho: ${nome}`);
+    }
   });
+  return linhas;
+}
 
-  const partes = [];
-  if (gols.length) partes.push(`Gols: ${gols.join(", ")}`);
-  if (assists.length) partes.push(`Assist.: ${nomesAgrupados(assists)}`);
-  if (contra.length) partes.push(`Contra: ${nomesAgrupados(contra)}`);
-  if (amarelo.length) partes.push(`Amarelo: ${nomesAgrupados(amarelo)}`);
-  if (vermelho.length) partes.push(`Vermelho: ${nomesAgrupados(vermelho)}`);
-  return partes.join(" · ");
+/** Texto para WhatsApp (linhas com quebra). */
+function textoDetalhePartida(partida) {
+  return linhasDetalhePartida(partida).join("\n   ");
 }
 
 function tabelaBrasileirao(classificacao) {
@@ -179,7 +193,10 @@ function renderResumoOficial(resumo) {
   const partidasHtml = (resumo.partidas || []).length
     ? `<ul class="lista-partidas">${resumo.partidas
         .map((m) => {
-          const detalhe = textoDetalhePartida(m);
+          const linhas = linhasDetalhePartida(m);
+          const lancesHtml = linhas.length
+            ? `<ul class="partida-lances">${linhas.map((l) => `<li>${l}</li>`).join("")}</ul>`
+            : "";
           return `
         <li>
           <span class="rod">${String(m.numero).padStart(2, "0")}ª</span>
@@ -191,7 +208,7 @@ function renderResumoOficial(resumo) {
               <b>${m.golsB}</b>
               <strong style="color:${m.corB}">${m.timeB}</strong>
             </span>
-            ${detalhe ? `<span class="partida-lances">${detalhe}</span>` : ""}
+            ${lancesHtml}
           </div>
         </li>`;
         })
@@ -339,11 +356,11 @@ function textoResumoWhatsApp(resumo) {
     linhas.push("");
     linhas.push("*Partidas*");
     resumo.partidas.forEach((m) => {
-      const detalhe = textoDetalhePartida(m);
+      const lances = linhasDetalhePartida(m);
       linhas.push(
-        `${String(m.numero).padStart(2, "0")}ª ${m.timeA} ${m.golsA} x ${m.golsB} ${m.timeB}` +
-          (detalhe ? `\n   ${detalhe}` : "")
+        `${String(m.numero).padStart(2, "0")}ª ${m.timeA} ${m.golsA} x ${m.golsB} ${m.timeB}`
       );
+      lances.forEach((l) => linhas.push(`   ${l}`));
     });
   }
 

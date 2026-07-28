@@ -60,6 +60,8 @@ public class ResumoService {
                 j.getTime().getId();
             }
         });
+        // Inapto não entra na súmula / premiação (não jogou)
+        List<Jogador> aptos = jogadores.stream().filter(this::isApto).collect(Collectors.toList());
 
         List<Partida> partidas = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(peladaId);
         // ordem cronológica para o histórico
@@ -74,19 +76,19 @@ public class ResumoService {
         List<Map<String, Object>> timesDetalhe = times.stream().map(this::toTimeResumo).collect(Collectors.toList());
         List<Map<String, Object>> historico = partidasAsc.stream().map(this::toPartidaResumo).collect(Collectors.toList());
 
-        List<Map<String, Object>> amarelos = jogadores.stream()
+        List<Map<String, Object>> amarelos = aptos.stream()
                 .filter(j -> j.getCartoesAmarelos() != null && j.getCartoesAmarelos() > 0)
                 .sorted((a, b) -> Integer.compare(b.getCartoesAmarelos(), a.getCartoesAmarelos()))
                 .map(j -> cartaoMap(j, j.getCartoesAmarelos()))
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> vermelhos = jogadores.stream()
+        List<Map<String, Object>> vermelhos = aptos.stream()
                 .filter(j -> j.getCartoesVermelhos() != null && j.getCartoesVermelhos() > 0)
                 .sorted((a, b) -> Integer.compare(b.getCartoesVermelhos(), a.getCartoesVermelhos()))
                 .map(j -> cartaoMap(j, j.getCartoesVermelhos()))
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> golsContra = jogadores.stream()
+        List<Map<String, Object>> golsContra = aptos.stream()
                 .filter(j -> j.getGolsContra() != null && j.getGolsContra() > 0)
                 .sorted((a, b) -> Integer.compare(b.getGolsContra(), a.getGolsContra()))
                 .map(j -> {
@@ -98,7 +100,7 @@ public class ResumoService {
                 })
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> artilhariaCompleta = jogadores.stream()
+        List<Map<String, Object>> artilhariaCompleta = aptos.stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && j.getGols() > 0)
                 .sorted((a, b) -> Integer.compare(b.getGols(), a.getGols()))
                 .map(j -> {
@@ -122,7 +124,7 @@ public class ResumoService {
             }
         }
 
-        List<Map<String, Object>> golsSofridos = jogadores.stream()
+        List<Map<String, Object>> golsSofridos = aptos.stream()
                 .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
                 .sorted((a, b) -> Integer.compare(a.getGolsSofridos(), b.getGolsSofridos()))
                 .map(j -> {
@@ -163,8 +165,12 @@ public class ResumoService {
         body.put("totalVermelhos", vermelhos.stream().mapToInt(m -> (Integer) m.get("quantidade")).sum());
         body.put("golsContra", golsContra);
         body.put("observacoes", observacoes);
-        body.put("premios", montarPremios(classificacao, jogadores));
+        body.put("premios", montarPremios(classificacao, aptos));
         return body;
+    }
+
+    private boolean isApto(Jogador j) {
+        return j != null && !Boolean.FALSE.equals(j.getApto());
     }
 
     private List<Map<String, Object>> montarClassificacao(List<Time> times) {
@@ -216,7 +222,7 @@ public class ResumoService {
         map.put("nome", time.getNome());
         map.put("cor", time.getCor());
 
-        Optional<Jogador> gk = time.getGoleiroDoTime();
+        Optional<Jogador> gk = time.getGoleiroDoTime().filter(this::isApto);
         map.put("goleiro", gk.map(g -> Map.of(
                 "nome", g.getNome(),
                 "golsSofridos", g.getGolsSofridos()
@@ -224,6 +230,7 @@ public class ResumoService {
 
         List<Map<String, Object>> jogadores = time.getJogadores().stream()
                 .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .filter(this::isApto)
                 .sorted((a, b) -> Integer.compare(b.getGols(), a.getGols()))
                 .map(j -> {
                     Map<String, Object> jm = new LinkedHashMap<>();
@@ -266,52 +273,32 @@ public class ResumoService {
         return map;
     }
 
-    /** Texto compacto: "Gols: João (Pedro), Marcos · Amarelo: Carlos" */
+    /**
+     * Um lance por linha:
+     * Gol: João · Assistência: Pedro
+     * Cartão amarelo: Carlos
+     */
     private String montarDetalhePartida(List<Map<String, Object>> lances) {
         if (lances == null || lances.isEmpty()) {
             return "";
         }
-        List<String> gols = new ArrayList<>();
-        List<String> assists = new ArrayList<>();
-        List<String> contra = new ArrayList<>();
-        List<String> amarelo = new ArrayList<>();
-        List<String> vermelho = new ArrayList<>();
-
+        List<String> linhas = new ArrayList<>();
         for (Map<String, Object> e : lances) {
             String tipo = String.valueOf(e.get("tipo"));
             String nome = String.valueOf(e.getOrDefault("jogadorNome", "?"));
             String ass = e.get("assistenciaNome") != null ? String.valueOf(e.get("assistenciaNome")) : null;
+            boolean temAss = ass != null && !ass.isBlank() && !"null".equals(ass);
             if ("GOL".equals(tipo)) {
-                gols.add(ass != null && !ass.isBlank() && !"null".equals(ass) ? nome + " (" + ass + ")" : nome);
-                if (ass != null && !ass.isBlank() && !"null".equals(ass)) {
-                    assists.add(ass);
-                }
+                linhas.add(temAss ? "Gol: " + nome + " · Assistência: " + ass : "Gol: " + nome);
             } else if ("GOL_CONTRA".equals(tipo)) {
-                contra.add(nome);
+                linhas.add("Gol contra: " + nome);
             } else if ("CARTAO_AMARELO".equals(tipo)) {
-                amarelo.add(nome);
+                linhas.add("Cartão amarelo: " + nome);
             } else if ("CARTAO_VERMELHO".equals(tipo)) {
-                vermelho.add(nome);
+                linhas.add("Cartão vermelho: " + nome);
             }
         }
-
-        List<String> partes = new ArrayList<>();
-        if (!gols.isEmpty()) {
-            partes.add("Gols: " + String.join(", ", gols));
-        }
-        if (!assists.isEmpty()) {
-            partes.add("Assist.: " + nomesAgrupados(assists));
-        }
-        if (!contra.isEmpty()) {
-            partes.add("Contra: " + nomesAgrupados(contra));
-        }
-        if (!amarelo.isEmpty()) {
-            partes.add("Amarelo: " + nomesAgrupados(amarelo));
-        }
-        if (!vermelho.isEmpty()) {
-            partes.add("Vermelho: " + nomesAgrupados(vermelho));
-        }
-        return String.join(" · ", partes);
+        return String.join("\n", linhas);
     }
 
     private String nomesAgrupados(List<String> nomes) {

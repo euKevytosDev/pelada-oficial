@@ -688,6 +688,8 @@ const LocalJogo = (() => {
 
     const timesEnrich = listarTimes();
     const partidas = [...(s.rodadasFinalizadas || [])];
+    const aptos = (s.jogadores || []).filter((j) => j.apto !== false);
+    const aptoIds = new Set(aptos.map((j) => String(j.id)));
 
     const golsPorJogador = new Map();
     const assistPorJogador = new Map();
@@ -696,12 +698,12 @@ const LocalJogo = (() => {
     const golsContraPorJogador = new Map();
     const nomePorId = new Map();
 
-    (s.jogadores || []).forEach((j) => {
+    aptos.forEach((j) => {
       nomePorId.set(String(j.id), j.nome);
     });
 
     const bump = (map, id, nome, n = 1) => {
-      if (!id) return;
+      if (!id || !aptoIds.has(String(id))) return;
       const key = String(id);
       const cur = map.get(key) || { id: key, nome: nome || nomePorId.get(key) || "?", quantidade: 0 };
       cur.quantidade += n;
@@ -730,14 +732,18 @@ const LocalJogo = (() => {
 
     const golsMap = new Map([...golsPorJogador.values()].map((g) => [g.id, g.quantidade]));
     const times = timesEnrich.map((t) => {
-      const jogadores = (t.jogadores || []).map((j) => ({
-        nome: j.nome,
-        gols: golsMap.get(String(j.id)) || 0,
-      }));
-      const gk = t.goleiro
+      const jogadores = (t.jogadores || [])
+        .filter((j) => aptoIds.has(String(j.id)))
+        .map((j) => ({
+          nome: j.nome,
+          gols: golsMap.get(String(j.id)) || 0,
+        }));
+      const gkRaw = t.goleiro;
+      const gkApto = gkRaw && aptoIds.has(String(gkRaw.id));
+      const gk = gkApto
         ? {
-            nome: t.goleiro.nome,
-            golsSofridos: t.goleiro.golsSofridos || 0,
+            nome: gkRaw.nome,
+            golsSofridos: gkRaw.golsSofridos || 0,
           }
         : null;
       return {
@@ -782,14 +788,17 @@ const LocalJogo = (() => {
       artilharia = artilharia.filter((a) => a.gols === max);
     }
 
-    const golsSofridos = timesEnrich
-      .filter((t) => t.goleiro)
-      .map((t) => ({
-        nome: t.goleiro.nome,
-        quantidade: t.goleiro.golsSofridos || 0,
-        golsSofridos: t.goleiro.golsSofridos || 0,
-        time: t.nome,
-      }))
+    const golsSofridos = aptos
+      .filter((j) => j.goleiro)
+      .map((j) => {
+        const time = timesEnrich.find((t) => t.goleiro && String(t.goleiro.id) === String(j.id));
+        return {
+          nome: j.nome,
+          quantidade: j.golsSofridos || 0,
+          golsSofridos: j.golsSofridos || 0,
+          time: time?.nome || "-",
+        };
+      })
       .sort((a, b) => a.quantidade - b.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
 
     const cartoesAmarelos = [...amareloPorJogador.values()]
@@ -802,7 +811,7 @@ const LocalJogo = (() => {
       .map((c) => ({ nome: c.nome, quantidade: c.quantidade }))
       .sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
 
-    const linha = (s.jogadores || []).filter((j) => !j.goleiro);
+    const linha = aptos.filter((j) => !j.goleiro);
     const pontuacaoCraque = (j) => {
       const g = golsPorJogador.get(String(j.id))?.quantidade || 0;
       const a = assistPorJogador.get(String(j.id))?.quantidade || 0;
@@ -864,6 +873,12 @@ const LocalJogo = (() => {
       corA: p.timeA?.cor,
       corB: p.timeB?.cor,
       status: "FINALIZADA",
+      eventos: (p.eventos || []).map((e) => ({
+        tipo: e.tipo,
+        jogadorNome: e.jogador?.nome || e.jogadorNome || "?",
+        assistenciaNome: e.assistencia?.nome || e.assistenciaNome || null,
+        timeNome: e.time?.nome || e.timeNome || null,
+      })),
     }));
 
     const observacoes = (s.observacoes || []).map((o) => {
