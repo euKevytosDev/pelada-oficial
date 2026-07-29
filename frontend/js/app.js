@@ -360,6 +360,8 @@ function limparSyncEncerrarPendente() {
 
 /** IDs que o usuário encerrou neste aparelho — não voltam em "Continuar". */
 const ENCERRADAS_LOCAL_KEY = "pelada_ids_encerradas_local";
+/** Flag: usuário encerrou e Continuar deve sumir até criar/jogar de novo. */
+const OCULTAR_CONTINUAR_KEY = "pelada_ocultar_continuar";
 
 function lerIdsEncerradasLocal() {
   try {
@@ -383,6 +385,18 @@ function foiEncerradaNesteAparelho(peladaId) {
   return lerIdsEncerradasLocal().includes(String(peladaId));
 }
 
+function marcarOcultarContinuar() {
+  localStorage.setItem(OCULTAR_CONTINUAR_KEY, "1");
+}
+
+function limparOcultarContinuar() {
+  localStorage.removeItem(OCULTAR_CONTINUAR_KEY);
+}
+
+function deveOcultarBoxContinuar() {
+  return localStorage.getItem(OCULTAR_CONTINUAR_KEY) === "1" || !!lerSyncEncerrarPendente()?.payload;
+}
+
 function syncEncerrarPendentePara(peladaId) {
   if (peladaId == null || peladaId === "") return false;
   const item = lerSyncEncerrarPendente();
@@ -391,7 +405,29 @@ function syncEncerrarPendentePara(peladaId) {
 
 /** Pelada ainda "ativa" no servidor, mas já encerrada neste celular. */
 function deveOcultarContinuar(peladaId) {
+  if (deveOcultarBoxContinuar()) return true;
   return foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId);
+}
+
+/** Fecha qualquer pelada ainda aberta na conta (fantasma de Continuar). */
+async function encerrarResiduosAtivosNoServidor() {
+  if (!getToken()) return;
+  try {
+    await PeladaAPI.encerrarAtivas();
+    return;
+  } catch (_) {
+    /* endpoint novo pode não ter subido ainda — fallback por loop */
+  }
+  for (let i = 0; i < 8; i++) {
+    try {
+      const ativa = await PeladaAPI.ativa();
+      if (!ativa?.id) break;
+      await PeladaAPI.encerrar(ativa.id);
+      marcarPeladaEncerradaLocal(ativa.id);
+    } catch (_) {
+      break;
+    }
+  }
 }
 
 function atualizarStatusSyncFim(estadoSync) {
@@ -468,10 +504,12 @@ async function sincronizarEncerrarPendente() {
     const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
     limparSyncEncerrarPendente();
     marcarPeladaEncerradaLocal(peladaId);
+    marcarOcultarContinuar();
     localStorage.setItem("pelada_ultima_id", String(peladaId));
 
     estado.peladaId = peladaId;
     estado.peladaAtiva = null;
+    await encerrarResiduosAtivosNoServidor().catch(() => {});
     estado.ultimaPelada = {
       id: peladaId,
       nome: resumo?.pelada?.nome || item.nome || "Pelada Oficial",
@@ -1810,6 +1848,7 @@ async function encerrarPelada() {
     ts: Date.now(),
   });
   marcarPeladaEncerradaLocal(peladaId);
+  marcarOcultarContinuar();
 
   LocalJogo.limpar();
   estado.partidaAtual = null;
@@ -1836,15 +1875,9 @@ async function encerrarPelada() {
   toast("Pelada encerrada — súmula pronta");
 
   const enviou = await sincronizarEncerrarPendente();
+  // Fecha qualquer outra pelada ainda "ativa" na conta (fantasma de Continuar)
+  await encerrarResiduosAtivosNoServidor().catch(() => {});
   if (!enviou) {
-    // Rede falhou no sync pesado: pelo menos marca ENCERRADA para sumir de Continuar
-    if (peladaId && getToken()) {
-      try {
-        await PeladaAPI.encerrar(peladaId);
-      } catch (_) {
-        /* fica na fila / marcado local */
-      }
-    }
     toast("Súmula ok. Conta sincroniza quando a rede voltar.");
   }
 }
@@ -1880,29 +1913,37 @@ async function entrarNaHome() {
   const temLocal = LocalJogo.temJogoLocal();
   let idAtiva = null;
 
+  if (deveOcultarBoxContinuar()) {
+    await encerrarResiduosAtivosNoServidor().catch(() => {});
+  }
+
   try {
     const ativa = await PeladaAPI.ativa();
     if (ativa && ativa.id && deveOcultarContinuar(ativa.id)) {
-      // Já encerrada neste aparelho — não mostra Continuar; sync em segundo plano
+      // Já encerrada neste aparelho — não mostra Continuar
       estado.peladaAtiva = null;
       idAtiva = null;
+      await encerrarResiduosAtivosNoServidor().catch(() => {});
     } else if (ativa && ativa.id) {
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
       idAtiva = ativa.id;
-      if (box) {
+      if (box && !deveOcultarBoxContinuar()) {
         document.querySelector("#box-continuar .continuar-txt").textContent =
           "Você tem uma pelada em andamento.";
         box.classList.remove("oculto");
       }
     } else {
       estado.peladaAtiva = null;
+      if (!lerSyncEncerrarPendente()?.payload) limparOcultarContinuar();
     }
   } catch (_) {
     /* API oscilando */
   }
 
-  if (temLocal && box && !deveOcultarContinuar(local?.peladaId)) {
+  // Jogo local só mostra Continuar se o usuário não acabou de encerrar
+  if (temLocal && box && !deveOcultarBoxContinuar()) {
+    limparOcultarContinuar();
     box.classList.remove("oculto");
     document.querySelector("#box-continuar .continuar-txt").textContent =
       "Você tem uma pelada salva neste celular.";
@@ -2398,6 +2439,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
   e.preventDefault();
   try {
     await comLoading(async () => {
+      limparOcultarContinuar();
       const pelada = await PeladaAPI.criar({
         nome: document.getElementById("nome-pelada").value.trim(),
         quantidadeTimes: Number(document.getElementById("qtd-times").value),

@@ -197,6 +197,15 @@ public class PeladaController {
         return resumoService.montar(id);
     }
 
+    /** Encerra todas as peladas ainda abertas da conta (some de Continuar). */
+    @PostMapping("/encerrar-ativas")
+    public Map<String, Object> encerrarAtivas() {
+        int n = peladaService.encerrarTodasAtivas();
+        Map<String, Object> out = new HashMap<>();
+        out.put("encerradas", n);
+        return out;
+    }
+
     /**
      * Substitui o estado local da pelada pelo snapshot offline em uma única transação.
      */

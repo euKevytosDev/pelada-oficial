@@ -59,6 +59,8 @@ public class PeladaService {
     @Transactional
     public Pelada criar(CriarPeladaRequest request) {
         Usuario dono = authSupport.usuarioAtual();
+        // Uma ativa por vez — evita fantasma em "Continuar pelada"
+        encerrarAtivasDoUsuario(dono);
         Pelada pelada = new Pelada();
         pelada.setNome(request.getNome());
         pelada.setQuantidadeTimes(request.getQuantidadeTimes());
@@ -70,6 +72,27 @@ public class PeladaService {
             importarElencoParaPelada(dono, pelada);
         }
         return pelada;
+    }
+
+    /** Encerra todas as peladas AGUARDANDO/EM_ANDAMENTO da conta. */
+    @Transactional
+    public int encerrarTodasAtivas() {
+        return encerrarAtivasDoUsuario(authSupport.usuarioAtual());
+    }
+
+    private int encerrarAtivasDoUsuario(Usuario dono) {
+        List<Pelada> ativas = peladaRepository.findByUsuarioAndStatusInOrderByCriadaEmDesc(
+                dono,
+                List.of(StatusPelada.AGUARDANDO, StatusPelada.EM_ANDAMENTO)
+        );
+        if (ativas == null || ativas.isEmpty()) return 0;
+        LocalDateTime agora = LocalDateTime.now();
+        for (Pelada p : ativas) {
+            p.setStatus(StatusPelada.ENCERRADA);
+            p.setEncerradaEm(agora);
+        }
+        peladaRepository.saveAll(ativas);
+        return ativas.size();
     }
 
     private void importarElencoParaPelada(Usuario dono, Pelada pelada) {

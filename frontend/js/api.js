@@ -230,6 +230,7 @@ const PeladaAPI = {
     }),
   listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
+  encerrarAtivas: () => api(`/peladas/encerrar-ativas`, { method: "POST", body: "{}" }),
   sincronizarCompleta: (peladaId, dados) =>
     api(`/peladas/${peladaId}/sincronizar-completa`, {
       method: "POST",

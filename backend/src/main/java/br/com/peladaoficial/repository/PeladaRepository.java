@@ -14,5 +14,8 @@ public interface PeladaRepository extends JpaRepository<Pelada, Long> {
     Optional<Pelada> findFirstByUsuarioAndStatusInOrderByCriadaEmDesc(
             Usuario usuario, List<StatusPelada> status);
 
+    List<Pelada> findByUsuarioAndStatusInOrderByCriadaEmDesc(
+            Usuario usuario, List<StatusPelada> status);
+
     Optional<Pelada> findByIdAndUsuario(Long id, Usuario usuario);
 }
