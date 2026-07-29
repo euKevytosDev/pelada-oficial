@@ -111,6 +111,13 @@ public class PeladaController {
         peladaService.removerPelada(id);
     }
 
+    /** Cancela pelada em criação/sorteio — some do histórico mesmo se ainda estiver ativa. */
+    @DeleteMapping("/{id}/descartar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void descartar(@PathVariable Long id) {
+        peladaService.descartarPelada(id);
+    }
+
     @PostMapping("/{id}/jogadores")
     public Map<String, Object> adicionarJogador(@PathVariable Long id,
                                                 @Valid @RequestBody AdicionarJogadorRequest request) {

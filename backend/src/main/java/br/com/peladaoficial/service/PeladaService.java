@@ -688,16 +688,33 @@ public class PeladaService {
         observacaoRepository.delete(obs);
     }
 
-    /** Remove pelada encerrada ou antiga da conta (não apaga a pelada em andamento). */
+    /**
+     * Remove pelada da conta.
+     * Rascunho (AGUARDANDO) pode ser descartado mesmo sendo a ativa — "Cancelar pelada".
+     * Pelada em jogo/encerrada: só apaga se não for a ativa em andamento.
+     */
     @Transactional
     public void removerPelada(Long id) {
         Pelada pelada = buscar(id);
-        buscarAtiva().ifPresent(ativa -> {
-            if (Objects.equals(ativa.getId(), pelada.getId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Não dá para apagar a pelada em andamento — continue ou encerre antes");
-            }
-        });
+        if (pelada.getStatus() != StatusPelada.AGUARDANDO) {
+            buscarAtiva().ifPresent(ativa -> {
+                if (Objects.equals(ativa.getId(), pelada.getId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Não dá para apagar a pelada em andamento — continue ou encerre antes");
+                }
+            });
+        }
+        observacaoRepository.deleteByPeladaId(id);
+        peladaRepository.delete(pelada);
+    }
+
+    /**
+     * Descarta a pelada atual (cadastro/sorteio) sem ir para o histórico.
+     * Usado pelo botão Cancelar pelada — remove mesmo se ainda estiver ativa.
+     */
+    @Transactional
+    public void descartarPelada(Long id) {
+        Pelada pelada = buscar(id);
         observacaoRepository.deleteByPeladaId(id);
         peladaRepository.delete(pelada);
     }

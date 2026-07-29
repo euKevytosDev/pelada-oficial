@@ -2574,10 +2574,58 @@ document.getElementById("btn-voltar-jogadores").addEventListener("click", async 
   }
 });
 
-document.getElementById("btn-voltar-inicio-jogadores")?.addEventListener("click", async () => {
-  toast("Pelada continua salva — use Continuar na home");
-  await entrarNaHome();
+document.getElementById("btn-cancelar-pelada")?.addEventListener("click", async () => {
+  try {
+    await cancelarPeladaEmCadastro();
+  } catch (err) {
+    toast(err.message || "Não deu para cancelar");
+  }
 });
+
+/** Descarta a pelada em criação: some do histórico e volta à home. */
+async function cancelarPeladaEmCadastro() {
+  const ok = confirm(
+    "Cancelar esta pelada?\n\nEla não fica no histórico. O elenco da sua conta continua salvo."
+  );
+  if (!ok) return;
+
+  const peladaId =
+    estado.peladaId ||
+    LocalJogo.obter()?.peladaId ||
+    Number(localStorage.getItem(PELADA_KEY)) ||
+    null;
+
+  LocalJogo.limpar();
+  estado.peladaId = null;
+  estado.peladaAtiva = null;
+  estado.partidaAtual = null;
+  estado.times = [];
+  limparOcultarContinuar();
+  localStorage.removeItem(PELADA_KEY);
+
+  if (peladaId) {
+    estado.historicoPeladas = (estado.historicoPeladas || []).filter(
+      (p) => Number(p.id) !== Number(peladaId)
+    );
+    marcarApagarPendente(peladaId);
+    try {
+      if (getToken()) {
+        try {
+          await PeladaAPI.descartar(peladaId);
+        } catch (_) {
+          await PeladaAPI.apagar(peladaId);
+        }
+        limparApagarPendente(peladaId);
+      }
+    } catch (_) {
+      // Fila em segundo plano; home já limpa
+      sincronizarApaguesPendentes().catch(() => {});
+    }
+  }
+
+  await entrarNaHome();
+  toast("Pelada cancelada");
+}
 
 async function voltarDaPartidaComSeguranca() {
   const partida = estado.partidaAtual;

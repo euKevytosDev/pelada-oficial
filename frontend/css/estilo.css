@@ -346,6 +346,23 @@ html[data-theme="dark"] .auth-tab.ativa {
   text-decoration: underline;
 }
 
+.btn-cancelar-pelada {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.btn-cancelar-pelada:hover {
+  color: #912018;
+}
+
+html[data-theme="dark"] .btn-cancelar-pelada {
+  color: #f97066;
+}
+
+html[data-theme="dark"] .btn-cancelar-pelada:hover {
+  color: #fda29b;
+}
+
 .btn-block {
   width: 100%;
   text-align: center;
