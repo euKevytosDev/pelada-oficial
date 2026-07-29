@@ -85,6 +85,14 @@ public class PeladaController {
                 .collect(Collectors.toList());
     }
 
+    /** Restaura elenco a partir das peladas antigas (maior lista de jogadores). */
+    @PostMapping("/elenco/recuperar")
+    public List<Map<String, Object>> recuperarElenco() {
+        return peladaService.forcarRecuperacaoElenco().stream()
+                .map(this::toElencoMap)
+                .collect(Collectors.toList());
+    }
+
     /** Salva/substitui o elenco permanente da conta (independente do sync completo). */
     @PostMapping("/elenco")
     public Map<String, Object> salvarElenco(@Valid @RequestBody List<ElencoItemRequest> itens) {

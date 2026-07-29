@@ -70,8 +70,10 @@ public class SyncCompletaService {
         if (Boolean.TRUE.equals(request.getEncerrar())) {
             pelada.setStatus(StatusPelada.ENCERRADA);
             pelada.setEncerradaEm(LocalDateTime.now());
-            // Usa a lista já criada na memória (não depende de novo SELECT)
-            peladaService.substituirElenco(new ArrayList<>(jogadores.values()));
+            // Só grava elenco se o snapshot trouxe jogadores (não zera a conta)
+            if (!jogadores.isEmpty()) {
+                peladaService.substituirElenco(new ArrayList<>(jogadores.values()));
+            }
         } else {
             pelada.setStatus(times.isEmpty() ? StatusPelada.AGUARDANDO : StatusPelada.EM_ANDAMENTO);
             pelada.setEncerradaEm(null);

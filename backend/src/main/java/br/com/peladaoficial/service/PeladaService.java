@@ -114,6 +114,10 @@ public class PeladaService {
     public void salvarElencoDaPelada(Long peladaId) {
         buscar(peladaId);
         List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
+        // Nunca apaga o elenco da conta ao encerrar pelada vazia/fantasma
+        if (jogadores == null || jogadores.isEmpty()) {
+            return;
+        }
         substituirElenco(jogadores);
     }
 
@@ -138,11 +142,18 @@ public class PeladaService {
     /**
      * Salva o elenco direto do cliente (nomes/estrelas/apto), sem depender da pelada no servidor.
      * Sempre substitui o elenco anterior e remove duplicatas (mesmo nome + goleiro).
+     * Lista vazia NÃO apaga elenco existente (proteção contra sync/encerrar fantasma).
      */
     @Transactional
     public int salvarElencoSnapshot(List<ElencoItemRequest> itens) {
         Usuario dono = authSupport.usuarioAtual();
         List<ElencoItemRequest> unicos = deduplicarElenco(itens);
+        List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+
+        if (unicos.isEmpty()) {
+            // Não zera o elenco da conta com POST/sync vazio
+            return atual.size();
+        }
 
         elencoRepository.deleteByUsuario(dono);
         elencoRepository.flush();
@@ -181,17 +192,10 @@ public class PeladaService {
         List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
 
         if (atual.isEmpty()) {
-            // Recuperação: elenco permanente vazio → copia da última pelada encerrada
-            Optional<Pelada> ultima = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono).stream()
-                    .filter((p) -> p.getStatus() == StatusPelada.ENCERRADA)
-                    .findFirst();
-            if (ultima.isEmpty()) return List.of();
-
-            List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.get().getId());
-            if (jogadores.isEmpty()) return List.of();
-
-            substituirElenco(jogadores);
-            return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+            // Recuperação: elenco vazio → restaura da pelada com mais jogadores
+            List<ElencoJogador> recuperado = recuperarElencoDasPeladas(dono);
+            if (!recuperado.isEmpty()) return recuperado;
+            return List.of();
         }
 
         // Limpa duplicatas antigas (ex.: corrida de sync) na próxima leitura
@@ -208,6 +212,50 @@ public class PeladaService {
             return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
         }
 
+        return atual;
+    }
+
+    /**
+     * Busca em todas as peladas da conta a lista com mais jogadores e restaura no elenco.
+     * Cobre o caso de encerrar fantasma ter zerado o elenco permanente.
+     */
+    @Transactional
+    public List<ElencoJogador> recuperarElencoDasPeladas(Usuario dono) {
+        List<Pelada> peladas = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono);
+        List<Jogador> melhor = List.of();
+        for (Pelada p : peladas) {
+            if (p == null || p.getId() == null) continue;
+            List<Jogador> js = jogadorRepository.findByPeladaIdOrderByNomeAsc(p.getId());
+            if (js != null && js.size() > melhor.size()) {
+                melhor = js;
+            }
+        }
+        if (melhor.isEmpty()) return List.of();
+        substituirElenco(melhor);
+        return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+    }
+
+    /** Endpoint explícito: tenta recuperar elenco das peladas antigas. */
+    @Transactional
+    public List<ElencoJogador> forcarRecuperacaoElenco() {
+        Usuario dono = authSupport.usuarioAtual();
+        List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+
+        List<Pelada> peladas = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono);
+        List<Jogador> melhor = List.of();
+        for (Pelada p : peladas) {
+            if (p == null || p.getId() == null) continue;
+            List<Jogador> js = jogadorRepository.findByPeladaIdOrderByNomeAsc(p.getId());
+            if (js != null && js.size() > melhor.size()) {
+                melhor = js;
+            }
+        }
+
+        // Restaura se achar lista maior que a atual (ex.: fantasma deixou 0–2 nomes)
+        if (melhor.size() > atual.size()) {
+            substituirElenco(melhor);
+            return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
+        }
         return atual;
     }
 

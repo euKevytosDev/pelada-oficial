@@ -238,6 +238,12 @@ function deduplicarElencoLocal(jogadores) {
 async function carregarElencoParaNovaPelada() {
   const backup = lerElencoLocalBackup();
   try {
+    // Tenta recuperar no servidor (peladas antigas) se o elenco permanente estiver vazio
+    try {
+      await PeladaAPI.recuperarElenco();
+    } catch (_) {
+      /* endpoint pode não ter subido; listarElenco já tenta recuperar */
+    }
     const elenco = await PeladaAPI.listarElenco();
     let lista = deduplicarElencoLocal(
       (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
@@ -252,6 +258,15 @@ async function carregarElencoParaNovaPelada() {
     if (lista.length) {
       salvarElencoLocalBackup(lista);
       return lista;
+    }
+    // Servidor vazio, celular ainda tem backup → devolve à conta
+    if (backup.length) {
+      try {
+        await enviarElencoConta(backup);
+      } catch (_) {
+        /* usa local mesmo assim */
+      }
+      return backup;
     }
   } catch (_) {
     /* cai no backup local */
@@ -409,24 +424,14 @@ function deveOcultarContinuar(peladaId) {
   return foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId);
 }
 
-/** Fecha qualquer pelada ainda aberta na conta (fantasma de Continuar). */
+/** Fecha qualquer pelada ainda aberta na conta (fantasma de Continuar).
+ *  NÃO usa POST /encerrar (esse regrava elenco e pode zerar a conta). */
 async function encerrarResiduosAtivosNoServidor() {
   if (!getToken()) return;
   try {
     await PeladaAPI.encerrarAtivas();
-    return;
   } catch (_) {
-    /* endpoint novo pode não ter subido ainda — fallback por loop */
-  }
-  for (let i = 0; i < 8; i++) {
-    try {
-      const ativa = await PeladaAPI.ativa();
-      if (!ativa?.id) break;
-      await PeladaAPI.encerrar(ativa.id);
-      marcarPeladaEncerradaLocal(ativa.id);
-    } catch (_) {
-      break;
-    }
+    /* endpoint ainda não no ar — não chama /encerrar individual (apaga elenco) */
   }
 }
 
@@ -480,16 +485,7 @@ async function sincronizarEncerrarPendente() {
   try {
     let peladaId = item.peladaId;
     if (!peladaId) {
-      // Evita deixar outra pelada "ativa" fantasma na conta
-      try {
-        const ativa = await PeladaAPI.ativa();
-        if (ativa?.id) {
-          await PeladaAPI.encerrar(ativa.id);
-          marcarPeladaEncerradaLocal(ativa.id);
-        }
-      } catch (_) {
-        /* segue criando */
-      }
+      // criar() já encerra ativas anteriores sem mexer no elenco da conta
       const criada = await PeladaAPI.criar({
         nome: item.nome || "Pelada Oficial",
         quantidadeTimes: item.quantidadeTimes || 2,
@@ -1900,6 +1896,15 @@ async function entrarNaHome() {
   mostrarTela("tela-inicio");
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
+  // Tenta restaurar elenco se foi zerado por encerrar fantasma
+  if (getToken()) {
+    PeladaAPI.recuperarElenco()
+      .then((elenco) => {
+        const lista = Array.isArray(elenco) ? elenco : [];
+        if (lista.length) salvarElencoLocalBackup(lista);
+      })
+      .catch(() => {});
+  }
   const box = document.getElementById("box-continuar");
   const boxHistorico = document.getElementById("box-historico-recente");
   const listaHome = document.getElementById("lista-historico-home");
