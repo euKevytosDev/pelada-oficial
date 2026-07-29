@@ -358,6 +358,42 @@ function limparSyncEncerrarPendente() {
   localStorage.removeItem(SYNC_ENCERRAR_KEY);
 }
 
+/** IDs que o usuário encerrou neste aparelho — não voltam em "Continuar". */
+const ENCERRADAS_LOCAL_KEY = "pelada_ids_encerradas_local";
+
+function lerIdsEncerradasLocal() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ENCERRADAS_LOCAL_KEY) || "[]");
+    return Array.isArray(raw) ? raw.map(String) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function marcarPeladaEncerradaLocal(peladaId) {
+  if (peladaId == null || peladaId === "") return;
+  const id = String(peladaId);
+  const ids = lerIdsEncerradasLocal().filter((x) => x !== id);
+  ids.push(id);
+  localStorage.setItem(ENCERRADAS_LOCAL_KEY, JSON.stringify(ids.slice(-80)));
+}
+
+function foiEncerradaNesteAparelho(peladaId) {
+  if (peladaId == null || peladaId === "") return false;
+  return lerIdsEncerradasLocal().includes(String(peladaId));
+}
+
+function syncEncerrarPendentePara(peladaId) {
+  if (peladaId == null || peladaId === "") return false;
+  const item = lerSyncEncerrarPendente();
+  return !!(item?.payload && item.peladaId != null && String(item.peladaId) === String(peladaId));
+}
+
+/** Pelada ainda "ativa" no servidor, mas já encerrada neste celular. */
+function deveOcultarContinuar(peladaId) {
+  return foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId);
+}
+
 function atualizarStatusSyncFim(estadoSync) {
   const el = document.getElementById("status-sync-fim");
   if (!el) return;
@@ -408,6 +444,16 @@ async function sincronizarEncerrarPendente() {
   try {
     let peladaId = item.peladaId;
     if (!peladaId) {
+      // Evita deixar outra pelada "ativa" fantasma na conta
+      try {
+        const ativa = await PeladaAPI.ativa();
+        if (ativa?.id) {
+          await PeladaAPI.encerrar(ativa.id);
+          marcarPeladaEncerradaLocal(ativa.id);
+        }
+      } catch (_) {
+        /* segue criando */
+      }
       const criada = await PeladaAPI.criar({
         nome: item.nome || "Pelada Oficial",
         quantidadeTimes: item.quantidadeTimes || 2,
@@ -416,13 +462,16 @@ async function sincronizarEncerrarPendente() {
       peladaId = criada.id;
       item.peladaId = peladaId;
       salvarSyncEncerrarPendente(item);
+      marcarPeladaEncerradaLocal(peladaId);
     }
 
     const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
     limparSyncEncerrarPendente();
+    marcarPeladaEncerradaLocal(peladaId);
     localStorage.setItem("pelada_ultima_id", String(peladaId));
 
     estado.peladaId = peladaId;
+    estado.peladaAtiva = null;
     estado.ultimaPelada = {
       id: peladaId,
       nome: resumo?.pelada?.nome || item.nome || "Pelada Oficial",
@@ -1760,6 +1809,7 @@ async function encerrarPelada() {
     payload,
     ts: Date.now(),
   });
+  marcarPeladaEncerradaLocal(peladaId);
 
   LocalJogo.limpar();
   estado.partidaAtual = null;
@@ -1775,6 +1825,9 @@ async function encerrarPelada() {
     encerradaEm: resumo?.pelada?.encerradaEm,
   };
 
+  const boxContinuar = document.getElementById("box-continuar");
+  if (boxContinuar) boxContinuar.classList.add("oculto");
+
   const boxAtraso = document.getElementById("box-atraso-fim");
   if (boxAtraso) boxAtraso.classList.add("oculto");
   renderResumoOficial(resumo);
@@ -1784,6 +1837,14 @@ async function encerrarPelada() {
 
   const enviou = await sincronizarEncerrarPendente();
   if (!enviou) {
+    // Rede falhou no sync pesado: pelo menos marca ENCERRADA para sumir de Continuar
+    if (peladaId && getToken()) {
+      try {
+        await PeladaAPI.encerrar(peladaId);
+      } catch (_) {
+        /* fica na fila / marcado local */
+      }
+    }
     toast("Súmula ok. Conta sincroniza quando a rede voltar.");
   }
 }
@@ -1821,7 +1882,11 @@ async function entrarNaHome() {
 
   try {
     const ativa = await PeladaAPI.ativa();
-    if (ativa && ativa.id) {
+    if (ativa && ativa.id && deveOcultarContinuar(ativa.id)) {
+      // Já encerrada neste aparelho — não mostra Continuar; sync em segundo plano
+      estado.peladaAtiva = null;
+      idAtiva = null;
+    } else if (ativa && ativa.id) {
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
       idAtiva = ativa.id;
@@ -1837,7 +1902,7 @@ async function entrarNaHome() {
     /* API oscilando */
   }
 
-  if (temLocal && box) {
+  if (temLocal && box && !deveOcultarContinuar(local?.peladaId)) {
     box.classList.remove("oculto");
     document.querySelector("#box-continuar .continuar-txt").textContent =
       "Você tem uma pelada salva neste celular.";

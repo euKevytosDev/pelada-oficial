@@ -52,9 +52,8 @@ public class SyncCompletaService {
     public Map<String, Object> sincronizar(Long peladaId, SyncCompletaRequest request) {
         Pelada pelada = peladaRepository.findByIdAndUsuario(peladaId, authSupport.usuarioAtual())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
-        if (pelada.getStatus() == StatusPelada.ENCERRADA) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pelada já encerrada");
-        }
+        // Permite reenviar snapshot mesmo se o cliente já marcou ENCERRADA
+        // (encerrar rápido no app para sumir de "Continuar", sync completo depois).
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Snapshot da pelada é obrigatório");
         }
