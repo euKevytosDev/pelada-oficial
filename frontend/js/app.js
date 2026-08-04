@@ -1187,15 +1187,36 @@ function ativarArrasteJogadores() {
 
 /* ========== Cronômetro da partida (7:00) ========== */
 const CRONO_SEGUNDOS_INICIAL = 7 * 60;
+const CRONO_RING_R = 52;
+const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~326.73
 
 let cronoSegundos = CRONO_SEGUNDOS_INICIAL;
 let cronoIntervalo = null;
 let cronoRodando = false;
 
 function formatarCrono(segundos) {
-  const m = Math.floor(Math.max(0, segundos) / 60);
-  const s = Math.max(0, segundos) % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const negativo = segundos < 0;
+  const abs = Math.abs(segundos);
+  const m = Math.floor(abs / 60);
+  const s = abs % 60;
+  const base = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return negativo ? `-${base}` : base;
+}
+
+function progressoCrono() {
+  // 0 no início (07:00) → 1 no zero; permanece 1 no negativo
+  const decorrido = CRONO_SEGUNDOS_INICIAL - cronoSegundos;
+  return Math.min(1, Math.max(0, decorrido / CRONO_SEGUNDOS_INICIAL));
+}
+
+function atualizarAnelCrono() {
+  const ring = document.getElementById("crono-ring-fg");
+  const box = document.getElementById("cronometro-partida");
+  if (!ring) return;
+  const p = progressoCrono();
+  ring.style.strokeDasharray = String(CRONO_RING_CIRC);
+  ring.style.strokeDashoffset = String(CRONO_RING_CIRC * (1 - p));
+  if (box) box.classList.toggle("crono-overtime", cronoSegundos <= 0);
 }
 
 function atualizarCronoNaTela() {
@@ -1204,7 +1225,8 @@ function atualizarCronoNaTela() {
   if (!el) return;
 
   el.textContent = formatarCrono(cronoSegundos);
-  el.classList.toggle("crono-zerado", cronoSegundos === 0);
+  el.classList.toggle("crono-zerado", cronoSegundos <= 0);
+  atualizarAnelCrono();
 
   if (btn) {
     const play = btn.querySelector(".crono-ico-play");
@@ -1226,23 +1248,11 @@ function pararCronoIntervalo() {
 }
 
 function tickCrono() {
-  if (cronoSegundos <= 0) {
-    pararCronoIntervalo();
-    cronoSegundos = 0;
-    atualizarCronoNaTela();
-    return;
-  }
   cronoSegundos -= 1;
-  if (cronoSegundos <= 0) {
-    cronoSegundos = 0;
-    pararCronoIntervalo();
-  }
   atualizarCronoNaTela();
 }
 
 function iniciarOuPausarCrono() {
-  if (cronoSegundos <= 0) return;
-
   if (cronoRodando) {
     pararCronoIntervalo();
     atualizarCronoNaTela();
