@@ -1640,49 +1640,71 @@ html[data-theme="dark"] .partida-lances {
   }
 }
 
-/* Cronômetro da partida — tempo + botões redondos ao lado */
+/* Cronômetro da partida — tempo + ícones à direita */
 .cronometro-partida {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 8px 0 14px;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 4px 4px 12px;
+  padding-right: 2px;
 }
 
 .cronometro-tempo {
-  min-width: 4.5ch;
+  min-width: 4.8ch;
   font-family: var(--fonte-titulo);
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #fff;
-  text-align: center;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .cronometro-acoes {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 
-/* Botões pequenos e redondos */
-.cronometro-acoes .btn {
-  width: 36px;
-  height: 36px;
+.btn-crono-icon {
+  width: 34px;
+  height: 34px;
   padding: 0;
-  border-radius: 50%;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.92);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Quando chegar em 00:00 (você liga essa classe no JS depois) */
+.btn-crono-icon:hover,
+.btn-crono-icon:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.btn-crono-icon:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.94);
+}
+
+.btn-crono-icon .crono-ico {
+  width: 20px;
+  height: 20px;
+  display: block;
+  pointer-events: none;
+}
+
 .cronometro-tempo.crono-zerado {
-  font-size: 2rem;
-  color: #ff4d4d;
+  color: #ff6b6b;
   animation: crono-pisca 0.7s ease-in-out infinite;
 }
 

@@ -1207,7 +1207,12 @@ function atualizarCronoNaTela() {
   el.classList.toggle("crono-zerado", cronoSegundos === 0);
 
   if (btn) {
-    btn.textContent = cronoRodando ? "❚❚" : "▶";
+    const play = btn.querySelector(".crono-ico-play");
+    const pause = btn.querySelector(".crono-ico-pause");
+    if (play && pause) {
+      play.classList.toggle("oculto", cronoRodando);
+      pause.classList.toggle("oculto", !cronoRodando);
+    }
     btn.setAttribute("aria-label", cronoRodando ? "Pausar" : "Iniciar ou retomar");
   }
 }
