@@ -18,7 +18,7 @@
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260804c" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260804d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -294,8 +294,20 @@
               </svg>
             </button>
             <button type="button" class="btn-crono-icon" id="btn-crono-reset" aria-label="Reiniciar cronômetro">
-              <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6a6 6 0 1 1-6-6v2a4 4 0 1 0 4 4c0-2.21-1.79-4-4-4z" fill="currentColor" />
+              <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                <path
+                  d="M21 12a9 9 0 1 1-2.6-6.3"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M21 3v6h-6"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
           </div>
