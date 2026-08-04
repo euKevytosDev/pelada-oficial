@@ -1185,6 +1185,77 @@ function ativarArrasteJogadores() {
   });
 }
 
+/* ========== Cronômetro da partida (7:00) ========== */
+const CRONO_SEGUNDOS_INICIAL = 7 * 60;
+
+let cronoSegundos = CRONO_SEGUNDOS_INICIAL;
+let cronoIntervalo = null;
+let cronoRodando = false;
+
+function formatarCrono(segundos) {
+  const m = Math.floor(Math.max(0, segundos) / 60);
+  const s = Math.max(0, segundos) % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function atualizarCronoNaTela() {
+  const el = document.getElementById("cronometro-tempo");
+  const btn = document.getElementById("btn-crono-toggle");
+  if (!el) return;
+
+  el.textContent = formatarCrono(cronoSegundos);
+  el.classList.toggle("crono-zerado", cronoSegundos === 0);
+
+  if (btn) {
+    btn.textContent = cronoRodando ? "❚❚" : "▶";
+    btn.setAttribute("aria-label", cronoRodando ? "Pausar" : "Iniciar ou retomar");
+  }
+}
+
+function pararCronoIntervalo() {
+  if (cronoIntervalo != null) {
+    clearInterval(cronoIntervalo);
+    cronoIntervalo = null;
+  }
+  cronoRodando = false;
+}
+
+function tickCrono() {
+  if (cronoSegundos <= 0) {
+    pararCronoIntervalo();
+    cronoSegundos = 0;
+    atualizarCronoNaTela();
+    return;
+  }
+  cronoSegundos -= 1;
+  if (cronoSegundos <= 0) {
+    cronoSegundos = 0;
+    pararCronoIntervalo();
+  }
+  atualizarCronoNaTela();
+}
+
+function iniciarOuPausarCrono() {
+  if (cronoSegundos <= 0) return;
+
+  if (cronoRodando) {
+    pararCronoIntervalo();
+    atualizarCronoNaTela();
+    return;
+  }
+
+  pararCronoIntervalo();
+  cronoRodando = true;
+  atualizarCronoNaTela();
+  cronoIntervalo = setInterval(tickCrono, 1000);
+}
+
+function reiniciarCronometro() {
+  pararCronoIntervalo();
+  cronoSegundos = CRONO_SEGUNDOS_INICIAL;
+  atualizarCronoNaTela();
+}
+
 function renderPartida(partida) {
   estado.partidaAtual = partida;
   LocalJogo.atualizarPartida(partida);
@@ -1371,6 +1442,7 @@ async function iniciarPartidaComEscolha() {
   const partida = LocalJogo.iniciarPartidaLocal(timeAId, timeBId);
   renderPartida(partida);
   mostrarTela("tela-partida");
+  reiniciarCronometro();
 }
 
 function ordenarPorEstrelasAsc(jogadores) {
@@ -1609,6 +1681,8 @@ async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
   const partida = estado.partidaAtual;
 
+  reiniciarCronometro();
+
   // Classificação local na hora
   const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
   estado.partidaAtual = null;
@@ -1761,6 +1835,7 @@ async function desfazerUltimoEvento() {
 
 async function cancelarPartidaAtual() {
   if (!estado.partidaAtual) return;
+  reiniciarCronometro();
   await cancelarPartidaPorId(estado.partidaAtual.id);
 }
 
@@ -2689,6 +2764,8 @@ async function voltarDaPartidaComSeguranca() {
     if (!ok) return;
   }
 
+  pararCronoIntervalo();
+
   await comLoading(async () => {
     if (partida?.id) {
       if (String(partida.id).startsWith("lp-") || partida._local) {
@@ -2720,6 +2797,14 @@ document.getElementById("btn-voltar-partida")?.addEventListener("click", async (
   } catch (err) {
     toast(err.message || "Não deu para sair da partida");
   }
+});
+
+document.getElementById("btn-crono-toggle")?.addEventListener("click", () => {
+  iniciarOuPausarCrono();
+});
+
+document.getElementById("btn-crono-reset")?.addEventListener("click", () => {
+  reiniciarCronometro();
 });
 
 document.getElementById("btn-voltar-times-class")?.addEventListener("click", async () => {

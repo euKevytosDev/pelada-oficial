@@ -1639,3 +1639,54 @@ html[data-theme="dark"] .partida-lances {
     border: none;
   }
 }
+
+/* Cronômetro da partida — tempo + botões redondos ao lado */
+.cronometro-partida {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+
+.cronometro-tempo {
+  min-width: 4.5ch;
+  font-family: var(--fonte-titulo);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-align: center;
+}
+
+.cronometro-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botões pequenos e redondos */
+.cronometro-acoes .btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quando chegar em 00:00 (você liga essa classe no JS depois) */
+.cronometro-tempo.crono-zerado {
+  font-size: 2rem;
+  color: #ff4d4d;
+  animation: crono-pisca 0.7s ease-in-out infinite;
+}
+
+@keyframes crono-pisca {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
