@@ -37,6 +37,9 @@ function limparSessao() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(PELADA_KEY);
+  localStorage.removeItem("pelada_usuario_id_ativo");
+  // Backup legado compartilhado — nunca deve sobreviver a logout
+  localStorage.removeItem("pelada_elenco_conta_local");
 }
 
 function sleep(ms) {

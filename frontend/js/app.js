@@ -194,13 +194,25 @@ function peladasParaHistoricoHome(idAtiva) {
 
 const APAGAR_PENDENTE_KEY = "pelada_apagar_pendente";
 const SYNC_ENCERRAR_KEY = "pelada_sync_encerrar_pendente";
-const ELENCO_LOCAL_KEY = "pelada_elenco_conta_local";
+/** Legado (vazava elenco entre contas no mesmo celular). */
+const ELENCO_LOCAL_LEGACY = "pelada_elenco_conta_local";
+const ELENCO_LOCAL_PREFIX = "pelada_elenco_conta_u_";
+
+function chaveElencoLocal() {
+  const u = getUsuario();
+  if (!u?.id) return null;
+  return ELENCO_LOCAL_PREFIX + String(u.id);
+}
 
 function salvarElencoLocalBackup(jogadores) {
   try {
+    const key = chaveElencoLocal();
+    if (!key) return;
     const lista = deduplicarElencoLocal(jogadores);
     if (!lista.length) return;
-    localStorage.setItem(ELENCO_LOCAL_KEY, JSON.stringify(lista));
+    localStorage.setItem(key, JSON.stringify(lista));
+    // Remove chave antiga compartilhada (vazamento entre contas)
+    localStorage.removeItem(ELENCO_LOCAL_LEGACY);
   } catch (_) {
     /* ignore */
   }
@@ -208,12 +220,36 @@ function salvarElencoLocalBackup(jogadores) {
 
 function lerElencoLocalBackup() {
   try {
-    const raw = localStorage.getItem(ELENCO_LOCAL_KEY);
+    const key = chaveElencoLocal();
+    if (!key) return [];
+    const raw = localStorage.getItem(key);
     const lista = raw ? JSON.parse(raw) : [];
     return Array.isArray(lista) ? deduplicarElencoLocal(lista) : [];
   } catch (_) {
     return [];
   }
+}
+
+/** Ao trocar de conta no mesmo celular: não herda jogo/elenco do usuário anterior. */
+function prepararContaNoCelular(usuarioNovo) {
+  const anteriorId = localStorage.getItem("pelada_usuario_id_ativo");
+  const novoId = usuarioNovo?.id != null ? String(usuarioNovo.id) : "";
+  if (anteriorId && novoId && anteriorId !== novoId) {
+    LocalJogo.limpar();
+    limparSyncEncerrarPendente();
+    limparOcultarContinuar();
+    localStorage.removeItem(PELADA_KEY);
+    localStorage.removeItem("pelada_ultima_id");
+    estado.peladaId = null;
+    estado.peladaAtiva = null;
+    estado.times = [];
+    estado.partidaAtual = null;
+    estado.resumoAtual = null;
+    estado.historicoPeladas = [];
+  }
+  if (novoId) localStorage.setItem("pelada_usuario_id_ativo", novoId);
+  // Sempre remove o backup legado global (era a fonte do vazamento)
+  localStorage.removeItem(ELENCO_LOCAL_LEGACY);
 }
 
 /** Um nome + goleiro por conta (evita lista duplicada na tela / no backup). */
@@ -236,9 +272,9 @@ function deduplicarElencoLocal(jogadores) {
 }
 
 async function carregarElencoParaNovaPelada() {
+  // Só o backup DESTA conta (nunca o legado global de outro usuário)
   const backup = lerElencoLocalBackup();
   try {
-    // Tenta recuperar no servidor (peladas antigas) se o elenco permanente estiver vazio
     try {
       await PeladaAPI.recuperarElenco();
     } catch (_) {
@@ -253,13 +289,12 @@ async function carregarElencoParaNovaPelada() {
         apto: !(j.apto === false || j.apto === "false"),
       }))
     );
-    // Reforça inaptos do último sorteio/encerrar salvo no celular
     lista = mesclarAptoDoBackup(lista, backup);
     if (lista.length) {
       salvarElencoLocalBackup(lista);
       return lista;
     }
-    // Servidor vazio, celular ainda tem backup → devolve à conta
+    // Servidor vazio: só restaura backup se for desta conta (já filtrado pela chave)
     if (backup.length) {
       try {
         await enviarElencoConta(backup);
@@ -269,7 +304,7 @@ async function carregarElencoParaNovaPelada() {
       return backup;
     }
   } catch (_) {
-    /* cai no backup local */
+    /* cai no backup local desta conta */
   }
   return backup;
 }
@@ -2165,12 +2200,19 @@ function tentarRetomarDoCelular(peladaId) {
 }
 
 async function bootAuth() {
+  // Remove backup legado que vazava elenco entre contas
+  try {
+    localStorage.removeItem(ELENCO_LOCAL_LEGACY);
+  } catch (_) {
+    /* ignore */
+  }
   if (!getToken() || !getUsuario()) {
     limparSessao();
     mostrarTela("tela-auth");
     atualizarUserBar();
     return;
   }
+  prepararContaNoCelular(getUsuario());
 
   // Já tem login salvo — mantém sessão mesmo se a API estiver acordando
   atualizarUserBar();
@@ -2222,6 +2264,7 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
         senha: document.getElementById("login-senha").value,
       });
       salvarSessao(data.token, data.usuario);
+      prepararContaNoCelular(data.usuario);
       toast(`Olá, ${data.usuario.nome}!`);
       await entrarNaHome();
     }, "Entrando...");
@@ -2240,6 +2283,7 @@ document.getElementById("form-cadastro").addEventListener("submit", async (e) =>
         senha: document.getElementById("cadastro-senha").value,
       });
       salvarSessao(data.token, data.usuario);
+      prepararContaNoCelular(data.usuario);
       toast("Conta criada!");
       await entrarNaHome();
     }, "Criando conta...");
@@ -2255,6 +2299,7 @@ async function entrarComGoogle(credential) {
   await comLoading(async () => {
     const data = await AuthAPI.google({ idToken: credential });
     salvarSessao(data.token, data.usuario);
+    prepararContaNoCelular(data.usuario);
     toast(`Olá, ${data.usuario.nome}!`);
     await entrarNaHome();
   }, "Entrando com Google...");
@@ -2307,12 +2352,16 @@ function iniciarGoogleLogin() {
 }
 
 function sairConta() {
+  LocalJogo.limpar();
+  limparSyncEncerrarPendente();
+  limparOcultarContinuar();
   limparSessao();
   estado.peladaId = null;
   estado.times = [];
   estado.partidaAtual = null;
   estado.resumoAtual = null;
   estado.peladaAtiva = null;
+  estado.historicoPeladas = [];
   atualizarUserBar();
   mostrarTela("tela-auth");
   toast("Você saiu");
