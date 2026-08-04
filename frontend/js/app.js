@@ -1185,38 +1185,46 @@ function ativarArrasteJogadores() {
   });
 }
 
-/* ========== Cronômetro da partida (7:00) ========== */
+/* ========== Cronômetro da partida (7:00) — tempo contínuo ========== */
 const CRONO_SEGUNDOS_INICIAL = 7 * 60;
-const CRONO_RING_R = 52;
-const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~326.73
+const CRONO_RING_R = 42;
+const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~263.89
 
-let cronoSegundos = CRONO_SEGUNDOS_INICIAL;
-let cronoIntervalo = null;
+/** Segundos restantes no último play/pause (pode ser fracionário). */
+let cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
+/** timestamp (ms) em que o cronômetro foi (re)iniciado. */
+let cronoInicioMs = null;
+let cronoRaf = null;
 let cronoRodando = false;
 
-function formatarCrono(segundos) {
-  const negativo = segundos < 0;
-  const abs = Math.abs(segundos);
-  const m = Math.floor(abs / 60);
-  const s = abs % 60;
+function cronoSegundosAgora() {
+  if (!cronoRodando || cronoInicioMs == null) return cronoSegundosBase;
+  return cronoSegundosBase - (Date.now() - cronoInicioMs) / 1000;
+}
+
+function formatarCrono(segundosFrac) {
+  const negativo = segundosFrac < 0;
+  const abs = Math.abs(segundosFrac);
+  const total = Math.floor(abs);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
   const base = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   return negativo ? `-${base}` : base;
 }
 
-function progressoCrono() {
-  // 0 no início (07:00) → 1 no zero; permanece 1 no negativo
-  const decorrido = CRONO_SEGUNDOS_INICIAL - cronoSegundos;
+function progressoCrono(segundosFrac) {
+  const decorrido = CRONO_SEGUNDOS_INICIAL - segundosFrac;
   return Math.min(1, Math.max(0, decorrido / CRONO_SEGUNDOS_INICIAL));
 }
 
-function atualizarAnelCrono() {
+function atualizarAnelCrono(segundosFrac) {
   const ring = document.getElementById("crono-ring-fg");
   const box = document.getElementById("cronometro-partida");
   if (!ring) return;
-  const p = progressoCrono();
+  const p = progressoCrono(segundosFrac);
   ring.style.strokeDasharray = String(CRONO_RING_CIRC);
   ring.style.strokeDashoffset = String(CRONO_RING_CIRC * (1 - p));
-  if (box) box.classList.toggle("crono-overtime", cronoSegundos <= 0);
+  if (box) box.classList.toggle("crono-overtime", segundosFrac <= 0);
 }
 
 function atualizarCronoNaTela() {
@@ -1224,9 +1232,10 @@ function atualizarCronoNaTela() {
   const btn = document.getElementById("btn-crono-toggle");
   if (!el) return;
 
-  el.textContent = formatarCrono(cronoSegundos);
-  el.classList.toggle("crono-zerado", cronoSegundos <= 0);
-  atualizarAnelCrono();
+  const agora = cronoSegundosAgora();
+  el.textContent = formatarCrono(agora);
+  el.classList.toggle("crono-zerado", agora <= 0);
+  atualizarAnelCrono(agora);
 
   if (btn) {
     const play = btn.querySelector(".crono-ico-play");
@@ -1240,16 +1249,22 @@ function atualizarCronoNaTela() {
 }
 
 function pararCronoIntervalo() {
-  if (cronoIntervalo != null) {
-    clearInterval(cronoIntervalo);
-    cronoIntervalo = null;
+  if (cronoRodando) {
+    cronoSegundosBase = cronoSegundosAgora();
   }
   cronoRodando = false;
+  cronoInicioMs = null;
+  if (cronoRaf != null) {
+    cancelAnimationFrame(cronoRaf);
+    cronoRaf = null;
+  }
 }
 
-function tickCrono() {
-  cronoSegundos -= 1;
+function loopCrono() {
   atualizarCronoNaTela();
+  if (cronoRodando) {
+    cronoRaf = requestAnimationFrame(loopCrono);
+  }
 }
 
 function iniciarOuPausarCrono() {
@@ -1259,15 +1274,16 @@ function iniciarOuPausarCrono() {
     return;
   }
 
-  pararCronoIntervalo();
+  cronoInicioMs = Date.now();
   cronoRodando = true;
   atualizarCronoNaTela();
-  cronoIntervalo = setInterval(tickCrono, 1000);
+  if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
+  cronoRaf = requestAnimationFrame(loopCrono);
 }
 
 function reiniciarCronometro() {
   pararCronoIntervalo();
-  cronoSegundos = CRONO_SEGUNDOS_INICIAL;
+  cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
   atualizarCronoNaTela();
 }
 
