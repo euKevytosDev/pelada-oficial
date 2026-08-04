@@ -1185,7 +1185,7 @@ function ativarArrasteJogadores() {
   });
 }
 
-/* ========== Cronômetro da partida (7:00) — tempo contínuo ========== */
+/* ========== Cronômetro da partida (7:00) — contínuo + persistente ========== */
 const CRONO_SEGUNDOS_INICIAL = 7 * 60;
 const CRONO_RING_R = 42;
 const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~263.89
@@ -1196,6 +1196,9 @@ let cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
 let cronoInicioMs = null;
 let cronoRaf = null;
 let cronoRodando = false;
+/** Partida à qual o estado em memória está ligado (evita reset a cada gol). */
+let cronoPartidaIdLigada = null;
+let cronoUltimaPersistencia = 0;
 
 function cronoSegundosAgora() {
   if (!cronoRodando || cronoInicioMs == null) return cronoSegundosBase;
@@ -1227,6 +1230,25 @@ function atualizarAnelCrono(segundosFrac) {
   if (box) box.classList.toggle("crono-overtime", segundosFrac <= 0);
 }
 
+function persistirCronometro(forcar) {
+  const partidaId = estado.partidaAtual?.id || cronoPartidaIdLigada;
+  if (!partidaId || !LocalJogo.temJogoLocal?.()) return;
+  const agora = Date.now();
+  if (!forcar && agora - cronoUltimaPersistencia < 800) return;
+  cronoUltimaPersistencia = agora;
+  try {
+    LocalJogo.salvarCronometro({
+      partidaId: String(partidaId),
+      segundosBase: cronoSegundosBase,
+      inicioMs: cronoRodando ? cronoInicioMs : null,
+      rodando: !!cronoRodando,
+      salvoEm: agora,
+    });
+  } catch (_) {
+    /* ignore */
+  }
+}
+
 function atualizarCronoNaTela() {
   const el = document.getElementById("cronometro-tempo");
   const btn = document.getElementById("btn-crono-toggle");
@@ -1246,6 +1268,8 @@ function atualizarCronoNaTela() {
     }
     btn.setAttribute("aria-label", cronoRodando ? "Pausar" : "Iniciar ou retomar");
   }
+
+  if (cronoRodando) persistirCronometro(false);
 }
 
 function pararCronoIntervalo() {
@@ -1271,6 +1295,7 @@ function iniciarOuPausarCrono() {
   if (cronoRodando) {
     pararCronoIntervalo();
     atualizarCronoNaTela();
+    persistirCronometro(true);
     return;
   }
 
@@ -1279,13 +1304,63 @@ function iniciarOuPausarCrono() {
   atualizarCronoNaTela();
   if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
   cronoRaf = requestAnimationFrame(loopCrono);
+  persistirCronometro(true);
 }
 
 function reiniciarCronometro() {
   pararCronoIntervalo();
   cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
   atualizarCronoNaTela();
+  persistirCronometro(true);
 }
+
+/** Liga o cronômetro à partida atual (restaura do celular se existir). */
+function sincronizarCronoComPartida(partida) {
+  if (!partida?.id) return;
+  const id = String(partida.id);
+  if (cronoPartidaIdLigada === id) return;
+
+  cronoPartidaIdLigada = id;
+  const salvo = LocalJogo.lerCronometro?.();
+  if (salvo && String(salvo.partidaId) === id) {
+    cronoSegundosBase = Number(salvo.segundosBase);
+    if (!Number.isFinite(cronoSegundosBase)) cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
+    const estavaRodando = !!salvo.rodando && salvo.inicioMs != null;
+    if (estavaRodando) {
+      // Continua contando o tempo que o usuário ficou fora do app
+      cronoInicioMs = Number(salvo.inicioMs);
+      cronoRodando = true;
+      atualizarCronoNaTela();
+      if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
+      cronoRaf = requestAnimationFrame(loopCrono);
+    } else {
+      cronoInicioMs = null;
+      cronoRodando = false;
+      atualizarCronoNaTela();
+    }
+    return;
+  }
+
+  reiniciarCronometro();
+}
+
+function limparCronoDaPartida() {
+  pararCronoIntervalo();
+  cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
+  cronoPartidaIdLigada = null;
+  try {
+    LocalJogo.limparCronometro?.();
+  } catch (_) {
+    /* ignore */
+  }
+  atualizarCronoNaTela();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") persistirCronometro(true);
+});
+window.addEventListener("pagehide", () => persistirCronometro(true));
+window.addEventListener("beforeunload", () => persistirCronometro(true));
 
 function renderPartida(partida) {
   estado.partidaAtual = partida;
@@ -1297,6 +1372,7 @@ function renderPartida(partida) {
   document.getElementById("lado-a").style.color = partida.timeA.cor;
   document.getElementById("lado-b").style.color = partida.timeB.cor;
   document.getElementById("texto-rodada").textContent = `Rodada ${partida.numeroRodada}`;
+  sincronizarCronoComPartida(partida);
 
   const lista = document.getElementById("lista-eventos");
   if (!partida.eventos || !partida.eventos.length) {
@@ -1471,9 +1547,18 @@ async function iniciarPartidaComEscolha() {
   if (!timeBId) return;
 
   const partida = LocalJogo.iniciarPartidaLocal(timeAId, timeBId);
+  // Nova rodada: força 07:00 (não restaura cronômetro antigo)
+  cronoPartidaIdLigada = null;
+  try {
+    LocalJogo.limparCronometro?.();
+  } catch (_) {
+    /* ignore */
+  }
   renderPartida(partida);
   mostrarTela("tela-partida");
   reiniciarCronometro();
+  cronoPartidaIdLigada = String(partida.id);
+  persistirCronometro(true);
 }
 
 function ordenarPorEstrelasAsc(jogadores) {
@@ -1712,7 +1797,7 @@ async function finalizarPartidaAtual() {
   if (!estado.partidaAtual) return;
   const partida = estado.partidaAtual;
 
-  reiniciarCronometro();
+  limparCronoDaPartida();
 
   // Classificação local na hora
   const timesLocais = aplicarResultadoLocalNosTimes(estado.times, partida);
@@ -1866,7 +1951,7 @@ async function desfazerUltimoEvento() {
 
 async function cancelarPartidaAtual() {
   if (!estado.partidaAtual) return;
-  reiniciarCronometro();
+  limparCronoDaPartida();
   await cancelarPartidaPorId(estado.partidaAtual.id);
 }
 
@@ -2796,6 +2881,7 @@ async function voltarDaPartidaComSeguranca() {
   }
 
   pararCronoIntervalo();
+  persistirCronometro(true);
 
   await comLoading(async () => {
     if (partida?.id) {

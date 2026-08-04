@@ -27,6 +27,7 @@ const LocalJogo = (() => {
       partida: null,
       rodadasFinalizadas: [],
       observacoes: [],
+      cronometro: null,
       seqJogador: 0,
       seqTime: 0,
       seqPartida: 0,
@@ -417,8 +418,27 @@ const LocalJogo = (() => {
   function limparPartidaAberta() {
     mutar((s) => {
       s.partida = null;
+      s.cronometro = null;
       s.lancesPendentes = [];
       s.finalizarPendente = false;
+      return s;
+    });
+  }
+
+  function salvarCronometro(dados) {
+    mutar((s) => {
+      s.cronometro = dados || null;
+      return s;
+    });
+  }
+
+  function lerCronometro() {
+    return ler()?.cronometro || null;
+  }
+
+  function limparCronometro() {
+    mutar((s) => {
+      s.cronometro = null;
       return s;
     });
   }
@@ -434,6 +454,7 @@ const LocalJogo = (() => {
         });
       }
       s.partida = null;
+      s.cronometro = null;
       s.lancesPendentes = [];
       s.finalizarPendente = false;
       // aplica stats de jogadores a partir dos eventos
@@ -464,6 +485,7 @@ const LocalJogo = (() => {
     return mutar((s) => {
       if (s.partida && String(s.partida.id) === String(partidaId)) {
         s.partida = null;
+        s.cronometro = null;
         s.lancesPendentes = [];
         s.finalizarPendente = false;
         return s;
@@ -936,6 +958,9 @@ const LocalJogo = (() => {
     limparPartidaAberta,
     finalizarPartidaLocal,
     cancelarPartidaLocal,
+    salvarCronometro,
+    lerCronometro,
+    limparCronometro,
     adicionarObservacaoLocal,
     listarObservacoes,
     removerObservacaoLocal,
