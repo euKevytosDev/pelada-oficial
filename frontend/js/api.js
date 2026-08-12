@@ -4,7 +4,7 @@
  * A sessão fica no celular. Só desloga se o token estiver de fato inválido
  * (não por Render acordando / rede instável).
  */
-const API_BASE_PROD = "https://pelada-oficial.onrender.com/api";
+const API_BASE_PROD = "https://147.15.38.121.sslip.io/api";
 const API_BASE =
   localStorage.getItem("pelada_api") ||
   (["localhost", "127.0.0.1"].includes(location.hostname)
