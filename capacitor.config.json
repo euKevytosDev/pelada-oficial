@@ -1,0 +1,11 @@
+{
+  "appId": "br.com.peladaoficial.app",
+  "appName": "Pelada Oficial",
+  "webDir": "frontend",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

@@ -5,11 +5,24 @@
  * (não por Render acordando / rede instável).
  */
 const API_BASE_PROD = "https://147.15.38.121.sslip.io/api";
+
+function isAppNativo() {
+  try {
+    return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function"
+      ? window.Capacitor.isNativePlatform()
+      : false);
+  } catch (_) {
+    return false;
+  }
+}
+
 const API_BASE =
   localStorage.getItem("pelada_api") ||
-  (["localhost", "127.0.0.1"].includes(location.hostname)
-    ? "http://localhost:8080/api"
-    : API_BASE_PROD);
+  (isAppNativo()
+    ? API_BASE_PROD
+    : ["localhost", "127.0.0.1"].includes(location.hostname)
+      ? "http://localhost:8080/api"
+      : API_BASE_PROD);
 const TOKEN_KEY = "pelada_token";
 const USER_KEY = "pelada_usuario";
 const PELADA_KEY = "peladaId";
