@@ -1319,7 +1319,58 @@ function atualizarUmCronoNaTela(idx) {
 function atualizarCronoNaTela() {
   atualizarUmCronoNaTela(0);
   atualizarUmCronoNaTela(1);
+  sincronizarVibracaoCrono();
   if (algumCronoRodando()) persistirCronometro(false);
+}
+
+let cronoVibrando = false;
+let cronoVibraTimer = null;
+
+function algumCronoEmAcrescimoRodando() {
+  const dois = cronoDoisAtivos();
+  return cronos.some((c, i) => {
+    if (!c.rodando) return false;
+    if (i === 1 && !dois) return false;
+    return cronoSegundosAgora(i) <= 0;
+  });
+}
+
+function pulsarVibracaoCrono() {
+  try {
+    if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+    navigator.vibrate([800, 180, 800, 180, 800]);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function iniciarVibracaoCrono() {
+  if (cronoVibrando) return;
+  cronoVibrando = true;
+  pulsarVibracaoCrono();
+  cronoVibraTimer = setInterval(pulsarVibracaoCrono, 2800);
+}
+
+function pararVibracaoCrono() {
+  if (cronoVibraTimer != null) {
+    clearInterval(cronoVibraTimer);
+    cronoVibraTimer = null;
+  }
+  cronoVibrando = false;
+  try {
+    navigator.vibrate?.(0);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function sincronizarVibracaoCrono() {
+  if (document.visibilityState === "hidden") {
+    pararVibracaoCrono();
+    return;
+  }
+  if (algumCronoEmAcrescimoRodando()) iniciarVibracaoCrono();
+  else pararVibracaoCrono();
 }
 
 function pararLoopSeNinguemRodando() {
@@ -1471,10 +1522,21 @@ function limparCronoDaPartida() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") persistirCronometro(true);
+  if (document.visibilityState === "hidden") {
+    persistirCronometro(true);
+    pararVibracaoCrono();
+  } else {
+    sincronizarVibracaoCrono();
+  }
 });
-window.addEventListener("pagehide", () => persistirCronometro(true));
-window.addEventListener("beforeunload", () => persistirCronometro(true));
+window.addEventListener("pagehide", () => {
+  persistirCronometro(true);
+  pararVibracaoCrono();
+});
+window.addEventListener("beforeunload", () => {
+  persistirCronometro(true);
+  pararVibracaoCrono();
+});
 
 function renderPartida(partida) {
   estado.partidaAtual = partida;
