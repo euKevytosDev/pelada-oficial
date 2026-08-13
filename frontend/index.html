@@ -18,7 +18,7 @@
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260813d" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260813f" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -308,75 +308,51 @@
           <button type="button" class="btn-voltar-suave" id="btn-voltar-partida">← Sair da partida</button>
           <div class="cronometros-partida" id="cronometros-partida">
             <div class="cronometro-partida oculto" id="cronometro-partida-2" data-crono="1">
-              <div class="cronometro-anel-wrap">
-                <svg class="crono-ring" viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="crono-ring-bg" cx="50" cy="50" r="42" />
-                  <circle class="crono-ring-fg" id="crono-ring-fg-2" cx="50" cy="50" r="42" />
-                </svg>
+              <div class="cronometro-linha">
                 <div class="cronometro-tempo" id="cronometro-tempo-2">07:00</div>
+                <div class="cronometro-acoes">
+                  <button type="button" class="btn-crono-icon" id="btn-crono-toggle-2" aria-label="Iniciar ou pausar o 2º cronômetro">
+                    <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 5v14l11-7z" fill="currentColor" />
+                    </svg>
+                    <svg class="crono-ico crono-ico-pause oculto" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-crono-icon" id="btn-crono-reset-2" aria-label="Reiniciar o 2º cronômetro">
+                    <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                      <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div class="cronometro-acoes">
-                <button type="button" class="btn-crono-icon" id="btn-crono-toggle-2" aria-label="Iniciar ou pausar o 2º cronômetro">
-                  <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" fill="currentColor" />
-                  </svg>
-                  <svg class="crono-ico crono-ico-pause oculto" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
-                  </svg>
-                </button>
-                <button type="button" class="btn-crono-icon" id="btn-crono-reset-2" aria-label="Reiniciar o 2º cronômetro">
-                  <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-                    <path
-                      d="M21 12a9 9 0 1 1-2.6-6.3"
-                      stroke="currentColor"
-                      stroke-width="2.2"
-                      stroke-linecap="round"
-                    />
-                    <path
-                      d="M21 3v6h-6"
-                      stroke="currentColor"
-                      stroke-width="2.2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </button>
+              <div class="crono-barra" aria-hidden="true">
+                <span class="crono-barra-fill" id="crono-ring-fg-2"></span>
               </div>
             </div>
             <div class="cronometro-partida" id="cronometro-partida" data-crono="0">
-              <div class="cronometro-anel-wrap">
-                <svg class="crono-ring" viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="crono-ring-bg" cx="50" cy="50" r="42" />
-                  <circle class="crono-ring-fg" id="crono-ring-fg" cx="50" cy="50" r="42" />
-                </svg>
+              <div class="cronometro-linha">
                 <div class="cronometro-tempo" id="cronometro-tempo">07:00</div>
+                <div class="cronometro-acoes">
+                  <button type="button" class="btn-crono-icon" id="btn-crono-toggle" aria-label="Iniciar ou pausar">
+                    <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 5v14l11-7z" fill="currentColor" />
+                    </svg>
+                    <svg class="crono-ico crono-ico-pause oculto" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-crono-icon" id="btn-crono-reset" aria-label="Reiniciar cronômetro">
+                    <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                      <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div class="cronometro-acoes">
-                <button type="button" class="btn-crono-icon" id="btn-crono-toggle" aria-label="Iniciar ou pausar">
-                  <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M8 5v14l11-7z" fill="currentColor" />
-                  </svg>
-                  <svg class="crono-ico crono-ico-pause oculto" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
-                  </svg>
-                </button>
-                <button type="button" class="btn-crono-icon" id="btn-crono-reset" aria-label="Reiniciar cronômetro">
-                  <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-                    <path
-                      d="M21 12a9 9 0 1 1-2.6-6.3"
-                      stroke="currentColor"
-                      stroke-width="2.2"
-                      stroke-linecap="round"
-                    />
-                    <path
-                      d="M21 3v6h-6"
-                      stroke="currentColor"
-                      stroke-width="2.2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </button>
+              <div class="crono-barra" aria-hidden="true">
+                <span class="crono-barra-fill" id="crono-ring-fg"></span>
               </div>
             </div>
           </div>
@@ -504,6 +480,6 @@
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260727h"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260813e"></script>
+  <script src="js/app.js?v=20260813f"></script>
 </body>
 </html>

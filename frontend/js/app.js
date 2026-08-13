@@ -1187,8 +1187,6 @@ function ativarArrasteJogadores() {
 
 /* ========== Cronômetros da partida — contínuos + persistentes ========== */
 const CRONO_SEGUNDOS_PADRAO = 7 * 60;
-const CRONO_RING_R = 42;
-const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~263.89
 
 function cronoEstadoVazio(duracao) {
   const d = duracao > 0 ? duracao : CRONO_SEGUNDOS_PADRAO;
@@ -1265,8 +1263,7 @@ function atualizarAnelCrono(idx, segundosFrac) {
   const { ring, box } = cronoEls(idx);
   if (!ring) return;
   const p = progressoCrono(segundosFrac, cronos[idx].duracao);
-  ring.style.strokeDasharray = String(CRONO_RING_CIRC);
-  ring.style.strokeDashoffset = String(CRONO_RING_CIRC * (1 - p));
+  ring.style.width = `${Math.round(p * 1000) / 10}%`;
   if (box) box.classList.toggle("crono-overtime", segundosFrac <= 0);
 }
 
