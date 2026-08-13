@@ -1714,13 +1714,13 @@ html[data-theme="dark"] .partida-lances {
   }
 }
 
-/* Linha do topo da partida: voltar à esquerda, cronômetros digitais à direita */
+/* Topo da partida: sair à esquerda, 2º cronômetro compacto à direita */
 .partida-topo-linha {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: -8px 0 6px;
+  margin: 4px 0 10px;
   min-height: 0;
 }
 
@@ -1735,7 +1735,11 @@ html[data-theme="dark"] .partida-lances {
   align-items: stretch;
   gap: 8px;
   flex-shrink: 0;
-  min-width: 152px;
+  min-width: 0;
+}
+
+.cronometros-partida:not(:has(.cronometro-partida:not(.oculto))) {
+  display: none;
 }
 
 .cronometro-partida {
@@ -1830,6 +1834,68 @@ html[data-theme="dark"] .partida-lances {
   animation: crono-pisca 0.7s ease-in-out infinite;
 }
 
+/* Placar + cronômetro principal grudado embaixo (estilo transmissão) */
+.placar-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.placar-bloco .placar {
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.cronometro-principal {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 0 4px;
+  width: min(58%, 220px);
+  margin-top: -8px;
+  padding: 10px 8px 8px;
+  z-index: 1;
+  background: var(--verde-vivo);
+  color: #fff;
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 8px 18px rgba(7, 26, 20, 0.18);
+}
+
+.cronometro-principal .cronometro-tempo {
+  min-width: 0;
+  font-size: 1.55rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #fff;
+}
+
+.cronometro-principal .btn-crono-icon {
+  color: #fff;
+}
+
+.cronometro-principal .crono-barra {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.cronometro-principal .crono-barra-fill {
+  background: #e8ffe8;
+}
+
+.cronometro-principal.crono-overtime {
+  background: #c44545;
+}
+
+.cronometro-principal.crono-overtime .crono-barra-fill {
+  background: #ffd0d0;
+}
+
+.cronometro-principal .cronometro-tempo.crono-zerado {
+  color: #fff;
+}
+
 @keyframes crono-pisca {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
@@ -1845,7 +1911,7 @@ html[data-theme="dark"] .partida-lances {
 }
 
 #tela-partida .rodada {
-  margin: 6px 0 10px;
+  margin: 10px 0 10px;
 }
 
 #tela-partida #lista-eventos {
