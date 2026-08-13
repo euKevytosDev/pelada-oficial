@@ -513,6 +513,76 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   margin-top: 0;
 }
 
+.config-linha-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 2px;
+}
+
+.config-toggle-titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.config-linha-toggle .config-dica {
+  margin: 2px 0 0;
+}
+
+.config-switch {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--texto);
+}
+
+.config-switch-track {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: #8a958f;
+  transition: background 0.18s ease;
+}
+
+.config-switch.ligada .config-switch-track {
+  background: var(--verde-vivo, #3dff8a);
+}
+
+.config-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.config-switch.ligada .config-switch-knob {
+  transform: translateX(20px);
+}
+
+.config-switch-txt {
+  min-width: 2.2ch;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
 .tela {
   display: none;
   animation: sobe 0.28s ease;
@@ -1640,7 +1710,7 @@ html[data-theme="dark"] .partida-lances {
   }
 }
 
-/* Linha do topo da partida: voltar à esquerda, cronômetro compacto à direita */
+/* Linha do topo da partida: voltar à esquerda, cronômetros compactos à direita */
 .partida-topo-linha {
   display: flex;
   align-items: center;
@@ -1652,6 +1722,14 @@ html[data-theme="dark"] .partida-lances {
 
 .partida-topo-linha .btn-voltar-suave {
   margin: 0;
+  flex-shrink: 0;
+}
+
+.cronometros-partida {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
 }
 

@@ -1185,24 +1185,64 @@ function ativarArrasteJogadores() {
   });
 }
 
-/* ========== Cronômetro da partida (7:00) — contínuo + persistente ========== */
-const CRONO_SEGUNDOS_INICIAL = 7 * 60;
+/* ========== Cronômetros da partida — contínuos + persistentes ========== */
+const CRONO_SEGUNDOS_PADRAO = 7 * 60;
 const CRONO_RING_R = 42;
 const CRONO_RING_CIRC = 2 * Math.PI * CRONO_RING_R; // ~263.89
 
-/** Segundos restantes no último play/pause (pode ser fracionário). */
-let cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
-/** timestamp (ms) em que o cronômetro foi (re)iniciado. */
-let cronoInicioMs = null;
+function cronoEstadoVazio(duracao) {
+  const d = duracao > 0 ? duracao : CRONO_SEGUNDOS_PADRAO;
+  return { segundosBase: d, inicioMs: null, rodando: false, duracao: d };
+}
+
+/** Dois relógios independentes: [0] de baixo, [1] de cima. */
+const cronos = [cronoEstadoVazio(CRONO_SEGUNDOS_PADRAO), cronoEstadoVazio(CRONO_SEGUNDOS_PADRAO)];
 let cronoRaf = null;
-let cronoRodando = false;
 /** Partida à qual o estado em memória está ligado (evita reset a cada gol). */
 let cronoPartidaIdLigada = null;
 let cronoUltimaPersistencia = 0;
 
-function cronoSegundosAgora() {
-  if (!cronoRodando || cronoInicioMs == null) return cronoSegundosBase;
-  return cronoSegundosBase - (Date.now() - cronoInicioMs) / 1000;
+function cronoNormalizarMinutos(v) {
+  const n = parseInt(v, 10);
+  if (!Number.isFinite(n)) return 7;
+  return Math.min(99, Math.max(1, n));
+}
+
+function cronoDuracaoSegundos(idx) {
+  const p = typeof ConfigApp !== "undefined" ? ConfigApp.lerPrefs() : null;
+  const min = idx === 1 ? p?.crono2Minutos : p?.crono1Minutos;
+  return cronoNormalizarMinutos(min) * 60;
+}
+
+function cronoDoisAtivos() {
+  return typeof ConfigApp !== "undefined" && !!ConfigApp.lerPrefs().crono2Ativo;
+}
+
+function cronoEls(idx) {
+  if (idx === 1) {
+    return {
+      box: document.getElementById("cronometro-partida-2"),
+      ring: document.getElementById("crono-ring-fg-2"),
+      tempo: document.getElementById("cronometro-tempo-2"),
+      btn: document.getElementById("btn-crono-toggle-2"),
+    };
+  }
+  return {
+    box: document.getElementById("cronometro-partida"),
+    ring: document.getElementById("crono-ring-fg"),
+    tempo: document.getElementById("cronometro-tempo"),
+    btn: document.getElementById("btn-crono-toggle"),
+  };
+}
+
+function cronoSegundosAgora(idx) {
+  const c = cronos[idx];
+  if (!c.rodando || c.inicioMs == null) return c.segundosBase;
+  return c.segundosBase - (Date.now() - c.inicioMs) / 1000;
+}
+
+function algumCronoRodando() {
+  return cronos.some((c) => c.rodando);
 }
 
 function formatarCrono(segundosFrac) {
@@ -1215,16 +1255,16 @@ function formatarCrono(segundosFrac) {
   return negativo ? `-${base}` : base;
 }
 
-function progressoCrono(segundosFrac) {
-  const decorrido = CRONO_SEGUNDOS_INICIAL - segundosFrac;
-  return Math.min(1, Math.max(0, decorrido / CRONO_SEGUNDOS_INICIAL));
+function progressoCrono(segundosFrac, duracao) {
+  const d = duracao > 0 ? duracao : CRONO_SEGUNDOS_PADRAO;
+  const decorrido = d - segundosFrac;
+  return Math.min(1, Math.max(0, decorrido / d));
 }
 
-function atualizarAnelCrono(segundosFrac) {
-  const ring = document.getElementById("crono-ring-fg");
-  const box = document.getElementById("cronometro-partida");
+function atualizarAnelCrono(idx, segundosFrac) {
+  const { ring, box } = cronoEls(idx);
   if (!ring) return;
-  const p = progressoCrono(segundosFrac);
+  const p = progressoCrono(segundosFrac, cronos[idx].duracao);
   ring.style.strokeDasharray = String(CRONO_RING_CIRC);
   ring.style.strokeDashoffset = String(CRONO_RING_CIRC * (1 - p));
   if (box) box.classList.toggle("crono-overtime", segundosFrac <= 0);
@@ -1239,9 +1279,15 @@ function persistirCronometro(forcar) {
   try {
     LocalJogo.salvarCronometro({
       partidaId: String(partidaId),
-      segundosBase: cronoSegundosBase,
-      inicioMs: cronoRodando ? cronoInicioMs : null,
-      rodando: !!cronoRodando,
+      timers: cronos.map((c) => ({
+        segundosBase: c.segundosBase,
+        inicioMs: c.rodando ? c.inicioMs : null,
+        rodando: !!c.rodando,
+        duracao: c.duracao,
+      })),
+      segundosBase: cronos[0].segundosBase,
+      inicioMs: cronos[0].rodando ? cronos[0].inicioMs : null,
+      rodando: !!cronos[0].rodando,
       salvoEm: agora,
     });
   } catch (_) {
@@ -1249,73 +1295,144 @@ function persistirCronometro(forcar) {
   }
 }
 
-function atualizarCronoNaTela() {
-  const el = document.getElementById("cronometro-tempo");
-  const btn = document.getElementById("btn-crono-toggle");
-  if (!el) return;
+function atualizarUmCronoNaTela(idx) {
+  const { tempo, btn } = cronoEls(idx);
+  if (!tempo) return;
 
-  const agora = cronoSegundosAgora();
-  el.textContent = formatarCrono(agora);
-  el.classList.toggle("crono-zerado", agora <= 0);
-  atualizarAnelCrono(agora);
+  const agora = cronoSegundosAgora(idx);
+  const rodando = cronos[idx].rodando;
+  tempo.textContent = formatarCrono(agora);
+  tempo.classList.toggle("crono-zerado", agora <= 0);
+  atualizarAnelCrono(idx, agora);
 
   if (btn) {
     const play = btn.querySelector(".crono-ico-play");
     const pause = btn.querySelector(".crono-ico-pause");
     if (play && pause) {
-      play.classList.toggle("oculto", cronoRodando);
-      pause.classList.toggle("oculto", !cronoRodando);
+      play.classList.toggle("oculto", rodando);
+      pause.classList.toggle("oculto", !rodando);
     }
-    btn.setAttribute("aria-label", cronoRodando ? "Pausar" : "Iniciar ou retomar");
+    btn.setAttribute("aria-label", rodando ? "Pausar" : "Iniciar ou retomar");
   }
-
-  if (cronoRodando) persistirCronometro(false);
 }
 
-function pararCronoIntervalo() {
-  if (cronoRodando) {
-    cronoSegundosBase = cronoSegundosAgora();
-  }
-  cronoRodando = false;
-  cronoInicioMs = null;
-  if (cronoRaf != null) {
+function atualizarCronoNaTela() {
+  atualizarUmCronoNaTela(0);
+  atualizarUmCronoNaTela(1);
+  if (algumCronoRodando()) persistirCronometro(false);
+}
+
+function pararLoopSeNinguemRodando() {
+  if (!algumCronoRodando() && cronoRaf != null) {
     cancelAnimationFrame(cronoRaf);
     cronoRaf = null;
   }
 }
 
+function garantirLoopCrono() {
+  if (!algumCronoRodando()) return;
+  if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
+  cronoRaf = requestAnimationFrame(loopCrono);
+}
+
+function pausarCrono(idx) {
+  const c = cronos[idx];
+  if (c.rodando) c.segundosBase = cronoSegundosAgora(idx);
+  c.rodando = false;
+  c.inicioMs = null;
+  pararLoopSeNinguemRodando();
+}
+
 function loopCrono() {
   atualizarCronoNaTela();
-  if (cronoRodando) {
+  if (algumCronoRodando()) {
     cronoRaf = requestAnimationFrame(loopCrono);
+  } else {
+    cronoRaf = null;
   }
 }
 
-function iniciarOuPausarCrono() {
-  if (cronoRodando) {
-    pararCronoIntervalo();
+function iniciarOuPausarCrono(idx) {
+  const i = idx === 1 ? 1 : 0;
+  if (cronos[i].rodando) {
+    pausarCrono(i);
     atualizarCronoNaTela();
     persistirCronometro(true);
     return;
   }
 
-  cronoInicioMs = Date.now();
-  cronoRodando = true;
+  cronos[i].inicioMs = Date.now();
+  cronos[i].rodando = true;
   atualizarCronoNaTela();
-  if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
-  cronoRaf = requestAnimationFrame(loopCrono);
+  garantirLoopCrono();
   persistirCronometro(true);
 }
 
-function reiniciarCronometro() {
-  pararCronoIntervalo();
-  cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
+function reiniciarCronometro(idx) {
+  const i = idx === 1 ? 1 : 0;
+  pausarCrono(i);
+  const d = cronoDuracaoSegundos(i);
+  cronos[i].duracao = d;
+  cronos[i].segundosBase = d;
   atualizarCronoNaTela();
   persistirCronometro(true);
+}
+
+function reiniciarTodosCronometros() {
+  for (let i = 0; i < 2; i++) {
+    pausarCrono(i);
+    const d = cronoDuracaoSegundos(i);
+    cronos[i].duracao = d;
+    cronos[i].segundosBase = d;
+  }
+  atualizarCronoNaTela();
+  persistirCronometro(true);
+}
+
+function aplicarVisibilidadeCronos() {
+  const dois = cronoDoisAtivos();
+  document.getElementById("cronometro-partida-2")?.classList.toggle("oculto", !dois);
+  if (!dois && cronos[1].rodando) {
+    pausarCrono(1);
+    persistirCronometro(true);
+  }
+  atualizarCronoNaTela();
+}
+
+function aplicarDuracoesDasPrefs() {
+  for (let i = 0; i < 2; i++) {
+    const nova = cronoDuracaoSegundos(i);
+    const c = cronos[i];
+    const paradoNoInicio = !c.rodando && Math.abs(c.segundosBase - c.duracao) < 0.05;
+    c.duracao = nova;
+    if (paradoNoInicio) c.segundosBase = nova;
+  }
+  atualizarCronoNaTela();
+  persistirCronometro(true);
+}
+
+function restaurarUmCrono(idx, salvo) {
+  if (!salvo) {
+    const d = cronoDuracaoSegundos(idx);
+    cronos[idx] = cronoEstadoVazio(d);
+    return;
+  }
+  let duracao = Number(salvo.duracao);
+  if (!Number.isFinite(duracao) || duracao <= 0) duracao = cronoDuracaoSegundos(idx);
+  let segundosBase = Number(salvo.segundosBase);
+  if (!Number.isFinite(segundosBase)) segundosBase = duracao;
+  const estavaRodando = !!salvo.rodando && salvo.inicioMs != null;
+  cronos[idx] = {
+    segundosBase,
+    duracao,
+    inicioMs: estavaRodando ? Number(salvo.inicioMs) : null,
+    rodando: estavaRodando,
+  };
 }
 
 /** Liga o cronômetro à partida atual (restaura do celular se existir). */
 function sincronizarCronoComPartida(partida) {
+  aplicarVisibilidadeCronos();
   if (!partida?.id) return;
   const id = String(partida.id);
   if (cronoPartidaIdLigada === id) return;
@@ -1323,30 +1440,27 @@ function sincronizarCronoComPartida(partida) {
   cronoPartidaIdLigada = id;
   const salvo = LocalJogo.lerCronometro?.();
   if (salvo && String(salvo.partidaId) === id) {
-    cronoSegundosBase = Number(salvo.segundosBase);
-    if (!Number.isFinite(cronoSegundosBase)) cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
-    const estavaRodando = !!salvo.rodando && salvo.inicioMs != null;
-    if (estavaRodando) {
-      // Continua contando o tempo que o usuário ficou fora do app
-      cronoInicioMs = Number(salvo.inicioMs);
-      cronoRodando = true;
-      atualizarCronoNaTela();
-      if (cronoRaf != null) cancelAnimationFrame(cronoRaf);
-      cronoRaf = requestAnimationFrame(loopCrono);
+    if (Array.isArray(salvo.timers) && salvo.timers.length) {
+      restaurarUmCrono(0, salvo.timers[0]);
+      restaurarUmCrono(1, salvo.timers[1] || null);
     } else {
-      cronoInicioMs = null;
-      cronoRodando = false;
-      atualizarCronoNaTela();
+      restaurarUmCrono(0, salvo);
+      restaurarUmCrono(1, null);
     }
+    atualizarCronoNaTela();
+    garantirLoopCrono();
     return;
   }
 
-  reiniciarCronometro();
+  reiniciarTodosCronometros();
 }
 
 function limparCronoDaPartida() {
-  pararCronoIntervalo();
-  cronoSegundosBase = CRONO_SEGUNDOS_INICIAL;
+  for (let i = 0; i < 2; i++) pausarCrono(i);
+  const d0 = cronoDuracaoSegundos(0);
+  const d1 = cronoDuracaoSegundos(1);
+  cronos[0] = cronoEstadoVazio(d0);
+  cronos[1] = cronoEstadoVazio(d1);
   cronoPartidaIdLigada = null;
   try {
     LocalJogo.limparCronometro?.();
@@ -1556,7 +1670,7 @@ async function iniciarPartidaComEscolha() {
   }
   renderPartida(partida);
   mostrarTela("tela-partida");
-  reiniciarCronometro();
+  reiniciarTodosCronometros();
   cronoPartidaIdLigada = String(partida.id);
   persistirCronometro(true);
 }
@@ -2637,6 +2751,21 @@ document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
   toast("Padrões salvos");
 });
 
+document.getElementById("cfg-crono2-ativo")?.addEventListener("click", () => {
+  const next = !ConfigApp.lerPrefs().crono2Ativo;
+  ConfigApp.salvarPrefs({ crono2Ativo: next });
+  aplicarVisibilidadeCronos();
+  toast(next ? "2 cronômetros ligados" : "1 cronômetro");
+});
+
+document.getElementById("btn-salvar-crono")?.addEventListener("click", () => {
+  const m1 = cronoNormalizarMinutos(document.getElementById("cfg-crono1-min")?.value);
+  const m2 = cronoNormalizarMinutos(document.getElementById("cfg-crono2-min")?.value);
+  ConfigApp.salvarPrefs({ crono1Minutos: m1, crono2Minutos: m2 });
+  aplicarDuracoesDasPrefs();
+  toast("Tempos dos cronômetros salvos");
+});
+
 async function abrirHistoricoCompleto(origem) {
   estado.telaAntesHistorico = origem || "tela-inicio";
   try {
@@ -2669,6 +2798,7 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 
 montarSeletorEstrelas();
 ConfigApp.init();
+aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();
 setTimeout(() => {
@@ -2880,7 +3010,8 @@ async function voltarDaPartidaComSeguranca() {
     if (!ok) return;
   }
 
-  pararCronoIntervalo();
+  pausarCrono(0);
+  pausarCrono(1);
   persistirCronometro(true);
 
   await comLoading(async () => {
@@ -2917,11 +3048,19 @@ document.getElementById("btn-voltar-partida")?.addEventListener("click", async (
 });
 
 document.getElementById("btn-crono-toggle")?.addEventListener("click", () => {
-  iniciarOuPausarCrono();
+  iniciarOuPausarCrono(0);
 });
 
 document.getElementById("btn-crono-reset")?.addEventListener("click", () => {
-  reiniciarCronometro();
+  reiniciarCronometro(0);
+});
+
+document.getElementById("btn-crono-toggle-2")?.addEventListener("click", () => {
+  iniciarOuPausarCrono(1);
+});
+
+document.getElementById("btn-crono-reset-2")?.addEventListener("click", () => {
+  reiniciarCronometro(1);
 });
 
 document.getElementById("btn-voltar-times-class")?.addEventListener("click", async () => {
