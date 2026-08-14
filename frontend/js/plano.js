@@ -38,10 +38,10 @@ const PlanoApp = (() => {
     mostrarTela("tela-planos");
   }
 
-  function exigirPro() {
+  function exigirPro(mensagem) {
     if (temPro()) return true;
     abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
-    toast("Isso faz parte do Pelada Pro");
+    toast(mensagem || "Isso faz parte do Pelada Pro");
     return false;
   }
 

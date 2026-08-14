@@ -321,4 +321,5 @@ const PeladaAPI = {
   planos: () => api("/planos"),
   checkoutAssinatura: (planoId) =>
     api("/assinatura/checkout", { method: "POST", body: JSON.stringify({ planoId }), retry: false }),
+  relatorioMensal: (ano, mes) => api(`/relatorio-mensal?ano=${ano}&mes=${mes}`),
 };

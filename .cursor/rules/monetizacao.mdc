@@ -8,7 +8,8 @@ alwaysApply: true
 - **Agora:** Pelada Pro na **web** (Mercado Pago). Teste 7 dias. Mensal R$ 14,90 · anual R$ 99.
 - **Android (Play):** não abrir checkout/link de pagamento no app nativo. Quem já pagou no site (mesmo login) usa o Pro no app. Play Billing só depois da identidade + merchant.
 - **iOS:** só pela web (mesmo login).
-- **Grátis sempre:** elenco, sorteio, placar, 1 cronômetro, gol/cartão, súmula da pelada do dia.
-- **Pro:** 2º cronômetro, histórico completo, súmula colando texto.
+- **Grátis:** elenco, sorteio, placar, 1 cronômetro, gol/cartão, **ver** a súmula no fim (e WhatsApp em texto). Histórico para ver súmula.
+- **Pro:** 2º cronômetro, **PDF**, relatório do mês, súmula colando texto.
+- Não abrir paywall ao entrar no app. Só quando o usuário toca em recurso Pro (PDF, 2º cronômetro, relatório do mês).
 - **Depois da verificação da Play:** caixa da pelada (pagou / deve / Pix / dinheiro). Não fazer isso agora.
 - Não vender o mesmo digital por link dentro do app da Play. Não anunciar “assine no site” na listagem Android.

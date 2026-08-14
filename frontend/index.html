@@ -18,7 +18,7 @@
       if (dark) document.documentElement.setAttribute("data-theme", "dark");
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260814a" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260814b" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -138,6 +138,7 @@
           <p class="dica">Encerradas há menos de 24h podem continuar com mais partidas.</p>
           <ul class="lista lista-historico" id="lista-historico-home"></ul>
           <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico completo</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal">Relatório do mês</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
@@ -155,6 +156,7 @@
           <button type="submit" class="btn btn-principal">Começar pelada</button>
         </form>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
+        <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-inicio">Relatório do mês</button>
       </section>
 
       <section class="tela" id="tela-configuracoes">
@@ -221,6 +223,7 @@
         <div class="card-form config-bloco">
           <h3 class="config-titulo">Ferramentas</h3>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
+          <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal">Relatório do mês</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-sumula">Gerar súmula (colar texto)</button>
         </div>
 
@@ -247,7 +250,8 @@
           <h3 class="config-titulo">O que entra no Pro</h3>
           <ul class="plano-lista">
             <li>2º cronômetro</li>
-            <li>Histórico completo</li>
+            <li>PDF da súmula</li>
+            <li>Relatório do mês (gols, assistências, cartões, luva)</li>
             <li>Súmula colando texto</li>
           </ul>
           <p class="dica config-dica">7 dias de teste na primeira vez que entrar na conta.</p>
@@ -266,6 +270,21 @@
           <p class="dica config-dica">Equivalente a ~R$ 8,25/mês.</p>
           <button type="button" class="btn btn-principal" id="btn-plano-anual">Assinar anual</button>
         </div>
+      </section>
+
+      <section class="tela" id="tela-relatorio-mensal">
+        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-relatorio">← Voltar</button>
+        <h2 class="lista-titulo">Relatório do mês</h2>
+        <p class="dica">Quem mais fez gol, deu assistência, levou cartão e menos vazou. Times mudam a cada pelada — o ranking é por jogador.</p>
+        <label>
+          Mês
+          <select id="relatorio-mes" aria-label="Escolher o mês do relatório"></select>
+        </label>
+        <div class="acoes-share no-print">
+          <button type="button" class="btn btn-principal" id="btn-pdf-mensal">Baixar PDF</button>
+          <button type="button" class="btn btn-whats" id="btn-whats-mensal">WhatsApp</button>
+        </div>
+        <div id="resumo-mensal-oficial" class="resumo-oficial"></div>
       </section>
 
       <section class="tela" id="tela-historico">
@@ -461,6 +480,7 @@
         <p id="status-sync-fim" class="status-sync-fim no-print oculto" role="status"></p>
         <div class="acoes-share no-print">
           <button type="button" class="btn btn-principal" id="btn-pdf">Baixar PDF</button>
+          <button type="button" class="btn btn-whats" id="btn-whats-resumo">WhatsApp</button>
         </div>
 
         <div class="card-form no-print" id="box-atraso-fim">
@@ -510,12 +530,13 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/api.js?v=20260814a"></script>
+  <script src="js/api.js?v=20260814b"></script>
   <script src="js/config.js?v=20260813b"></script>
-  <script src="js/plano.js?v=20260814a"></script>
+  <script src="js/plano.js?v=20260814b"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
-  <script src="js/resumo.js?v=20260727h"></script>
+  <script src="js/resumo.js?v=20260814b"></script>
+  <script src="js/relatorio-mensal.js?v=20260814b"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260814a"></script>
+  <script src="js/app.js?v=20260814b"></script>
 </body>
 </html>

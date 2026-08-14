@@ -22,6 +22,8 @@ const estado = {
   telaAntesConfig: "tela-inicio",
   telaAntesHistorico: "tela-inicio",
   telaAntesPlanos: "tela-configuracoes",
+  telaAntesRelatorio: "tela-inicio",
+  relatorioMensalAtual: null,
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -36,6 +38,7 @@ function mostrarTela(id) {
     "tela-inicio": "Controle da pelada no celular",
     "tela-configuracoes": "Configurações",
     "tela-planos": "Pelada Pro",
+    "tela-relatorio-mensal": "Relatório do mês",
     "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
@@ -2865,7 +2868,6 @@ document.getElementById("btn-salvar-crono")?.addEventListener("click", () => {
 });
 
 async function abrirHistoricoCompleto(origem) {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro()) return;
   estado.telaAntesHistorico = origem || "tela-inicio";
   try {
     await comLoading(async () => {
@@ -2883,7 +2885,6 @@ document.getElementById("cfg-historico")?.addEventListener("click", () => {
 });
 
 document.getElementById("cfg-sumula")?.addEventListener("click", () => {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro()) return;
   estado.telaAntesSumula = "tela-configuracoes";
   abrirTelaSumulaManual();
 });
@@ -2899,6 +2900,7 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 montarSeletorEstrelas();
 ConfigApp.init();
 if (typeof PlanoApp !== "undefined") PlanoApp.init();
+if (typeof initRelatorioMensal === "function") initRelatorioMensal();
 aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();
@@ -3344,6 +3346,14 @@ document.getElementById("btn-pdf")?.addEventListener("click", async () => {
   } catch (err) {
     toast(err.message || "Não foi possível gerar o PDF");
   }
+});
+
+document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
+  if (!estado.resumoAtual) {
+    toast("Abra a súmula primeiro");
+    return;
+  }
+  compartilharWhatsApp(estado.resumoAtual);
 });
 
 function abrirTelaSumulaManual() {

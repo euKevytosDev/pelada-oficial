@@ -389,6 +389,7 @@ async function compartilharNativo(resumo) {
 }
 
 async function baixarPdfResumo() {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, use o Pelada Pro")) return;
   const el = document.getElementById("resumo-oficial");
   if (!el) return;
   if (typeof html2pdf === "undefined") {
@@ -399,6 +400,28 @@ async function baixarPdfResumo() {
   const opt = {
     margin: 8,
     filename: `resumo-${nome}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+  };
+  if (typeof comLoading === "function") {
+    await comLoading(() => html2pdf().set(opt).from(el).save(), "Gerando PDF...");
+  } else {
+    await html2pdf().set(opt).from(el).save();
+  }
+}
+
+async function baixarPdfElemento(elId, filename) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, use o Pelada Pro")) return;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (typeof html2pdf === "undefined") {
+    window.print();
+    return;
+  }
+  const opt = {
+    margin: 8,
+    filename: filename || "relatorio.pdf",
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
