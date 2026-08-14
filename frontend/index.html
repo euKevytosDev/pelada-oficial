@@ -17,7 +17,7 @@
       } catch (_) {}
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260814e" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260814g" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -144,6 +144,7 @@
           <ul class="lista lista-historico" id="lista-historico-home"></ul>
           <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico completo</button>
           <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal">Relatório do mês</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-home">Caixa da pelada</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
@@ -162,6 +163,7 @@
         </form>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
         <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-inicio">Relatório do mês</button>
+        <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-inicio">Caixa da pelada</button>
       </section>
 
       <section class="tela" id="tela-configuracoes">
@@ -219,6 +221,7 @@
           <h3 class="config-titulo">Ferramentas</h3>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal">Relatório do mês</button>
+          <button type="button" class="btn btn-secundario btn-block" id="cfg-caixa">Caixa da pelada</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-sumula">Gerar súmula (colar texto)</button>
         </div>
 
@@ -241,12 +244,19 @@
           <header class="plano-hero">
             <p class="plano-badge">7 dias grátis no 1º login</p>
             <h2>Pelada Pro</h2>
-            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: PDF, relatório do mês e o 2º cronômetro.</p>
+            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa de quem pagou, PDF, relatório do mês e o 2º cronômetro.</p>
           </header>
 
           <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja, depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
 
           <ul class="plano-beneficios" aria-label="Benefícios do Pelada Pro">
+            <li>
+              <span class="plano-ben-marca" aria-hidden="true">Cx</span>
+              <div>
+                <strong>Caixa da pelada</strong>
+                <p>Quem pagou, quem deve. Mensal ou avulso — se pagar só uma parte, o resto fica pendente.</p>
+              </div>
+            </li>
             <li>
               <span class="plano-ben-marca" aria-hidden="true">PDF</span>
               <div>
@@ -295,7 +305,7 @@
           </div>
 
           <p class="plano-rodape-dica oculto" id="plano-aviso-cortesia">Sua conta já tem o Pelada Pro liberado, sem cobrança no app.</p>
-          <p class="plano-rodape-dica">Na partida: ver a súmula e mandar no WhatsApp em texto continua grátis. O Pro libera o PDF e o relatório do mês.</p>
+          <p class="plano-rodape-dica">Na partida: ver a súmula e mandar no WhatsApp em texto continua grátis. O Pro libera a caixa, o PDF e o relatório do mês.</p>
         </div>
       </section>
 
@@ -312,6 +322,55 @@
           <button type="button" class="btn btn-whats" id="btn-whats-mensal">WhatsApp</button>
         </div>
         <div id="resumo-mensal-oficial" class="resumo-oficial"></div>
+      </section>
+
+      <section class="tela" id="tela-caixa">
+        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-caixa">← Voltar</button>
+        <h2 class="lista-titulo">Caixa da pelada</h2>
+        <p class="dica">Só você vê. Marca mensalista ou avulso, anota o que pagou e o que ainda falta.</p>
+
+        <label>
+          Mês
+          <select id="caixa-mes" aria-label="Mês da caixa"></select>
+        </label>
+
+        <form class="card-form caixa-valores" id="form-caixa-valores">
+          <h3 class="config-titulo">Valores</h3>
+          <div class="caixa-valores-grid">
+            <label>
+              Mensal fixo
+              <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
+            </label>
+            <label>
+              Avulso fixo
+              <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
+            </label>
+          </div>
+          <button type="button" class="btn btn-principal" id="btn-caixa-salvar-valores">Salvar valores</button>
+        </form>
+
+        <div class="caixa-resumo" id="caixa-resumo"></div>
+
+        <div class="caixa-filtros">
+          <label>
+            Ver
+            <select id="caixa-filtro" aria-label="Filtrar jogadores da caixa">
+              <option value="todos">Todos</option>
+              <option value="pendente">Devendo</option>
+              <option value="quitado">Quitados</option>
+            </select>
+          </label>
+          <label>
+            Buscar
+            <input type="search" id="caixa-busca" placeholder="Nome do jogador" maxlength="80" />
+          </label>
+        </div>
+
+        <ul class="lista caixa-lista" id="caixa-lista"></ul>
+
+        <div class="acoes-share no-print">
+          <button type="button" class="btn btn-whats" id="btn-caixa-whats">WhatsApp das pendências</button>
+        </div>
       </section>
 
       <section class="tela" id="tela-historico">
@@ -557,13 +616,14 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/api.js?v=20260814b"></script>
+  <script src="js/api.js?v=20260814g"></script>
   <script src="js/config.js?v=20260814c"></script>
   <script src="js/plano.js?v=20260814e"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260814b"></script>
   <script src="js/relatorio-mensal.js?v=20260814b"></script>
+  <script src="js/caixa.js?v=20260814g"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260814f"></script>
+  <script src="js/app.js?v=20260814g"></script>
 </body>
 </html>

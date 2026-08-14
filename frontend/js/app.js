@@ -23,7 +23,9 @@ const estado = {
   telaAntesHistorico: "tela-inicio",
   telaAntesPlanos: "tela-configuracoes",
   telaAntesRelatorio: "tela-inicio",
+  telaAntesCaixa: "tela-inicio",
   relatorioMensalAtual: null,
+  caixaAtual: null,
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -39,6 +41,7 @@ function mostrarTela(id) {
     "tela-configuracoes": "Configurações",
     "tela-planos": "Pelada Pro",
     "tela-relatorio-mensal": "Relatório do mês",
+    "tela-caixa": "Caixa da pelada",
     "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
@@ -846,6 +849,53 @@ function pedirTexto(titulo, valorInicial = "") {
       });
     }, 280);
   });
+}
+
+function pedirNumero(titulo, valorInicial = "", dica = "Use vírgula para centavos.") {
+  return new Promise((resolve) => {
+    modalEsperaResolve = resolve;
+    const v = String(valorInicial ?? "").replace(/"/g, "&quot;");
+    abrirModal(
+      titulo,
+      `<input type="text" id="modal-input" inputmode="decimal" value="${v}" />
+       <button type="button" class="btn btn-principal" id="modal-ok">Confirmar</button>
+       <p class="dica-modal">${dica}</p>`
+    );
+    const input = document.getElementById("modal-input");
+    input.focus();
+    input.select();
+    const ok = () => {
+      if (modalEsperaResolve !== resolve) return;
+      modalEsperaResolve = null;
+      const n = parseReais(input.value);
+      fecharModal();
+      resolve(n);
+    };
+    setTimeout(() => {
+      if (modalEsperaResolve !== resolve) return;
+      document.getElementById("modal-ok")?.addEventListener("click", ok, { once: true });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") ok();
+      });
+    }, 280);
+  });
+}
+
+function parseReais(texto) {
+  const bruto = String(texto || "").trim().replace(/[R$\s]/gi, "");
+  if (!bruto) return null;
+  const normalizado = bruto.includes(",")
+    ? bruto.replace(/\./g, "").replace(",", ".")
+    : bruto;
+  const n = Number(normalizado);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
+function formatarReais(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 /* ---------- render ---------- */
@@ -2893,6 +2943,7 @@ montarSeletorEstrelas();
 ConfigApp.init();
 if (typeof PlanoApp !== "undefined") PlanoApp.init();
 if (typeof initRelatorioMensal === "function") initRelatorioMensal();
+if (typeof initCaixaPelada === "function") initCaixaPelada();
 aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();

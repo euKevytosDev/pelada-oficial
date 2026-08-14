@@ -322,4 +322,23 @@ const PeladaAPI = {
   checkoutAssinatura: (planoId) =>
     api("/assinatura/checkout", { method: "POST", body: JSON.stringify({ planoId }), retry: false }),
   relatorioMensal: (ano, mes) => api(`/relatorio-mensal?ano=${ano}&mes=${mes}`),
+  caixa: (ano, mes) => api(`/caixa?ano=${ano}&mes=${mes}`),
+  caixaValores: (ano, mes, dados) =>
+    api(`/caixa/valores?ano=${ano}&mes=${mes}`, { method: "PUT", body: JSON.stringify(dados) }),
+  caixaModalidade: (id, ano, mes, modalidade) =>
+    api(`/caixa/jogadores/${id}/modalidade?ano=${ano}&mes=${mes}`, {
+      method: "PUT",
+      body: JSON.stringify({ modalidade }),
+    }),
+  caixaCobrar: (id, ano, mes) =>
+    api(`/caixa/jogadores/${id}/cobrar?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
+  caixaPagar: (id, ano, mes, valor) =>
+    api(`/caixa/jogadores/${id}/pagar?ano=${ano}&mes=${mes}`, {
+      method: "POST",
+      body: JSON.stringify({ valor }),
+    }),
+  caixaQuitar: (id, ano, mes) =>
+    api(`/caixa/jogadores/${id}/quitar?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
+  caixaDesfazer: (id, ano, mes) =>
+    api(`/caixa/jogadores/${id}/desfazer?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
 };

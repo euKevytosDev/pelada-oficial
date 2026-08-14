@@ -2213,3 +2213,117 @@ html[data-theme="dark"] .partida-lances {
   overflow-y: auto;
   margin-top: 8px;
 }
+
+/* Caixa da pelada */
+.caixa-valores-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.caixa-resumo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+
+.caixa-resumo p {
+  margin: 0;
+  padding: 12px 12px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--linha);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.caixa-resumo-pago {
+  color: var(--verde-campo);
+}
+
+.caixa-resumo-pendente {
+  color: #9a6b12;
+}
+
+.caixa-filtros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.caixa-lista {
+  margin-top: 12px;
+}
+
+.caixa-lista li {
+  padding: 0;
+  display: block;
+}
+
+.caixa-jogador {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 12px 14px;
+  font: inherit;
+  color: inherit;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.caixa-jogador-topo,
+.caixa-jogador-base {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.caixa-jogador-topo strong {
+  font-size: 1rem;
+}
+
+.caixa-tag {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  background: var(--bg-card-alt);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.caixa-detalhe {
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+  line-height: 1.35;
+}
+
+.caixa-status {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.caixa-status.pendente {
+  color: #9a6b12;
+}
+
+.caixa-status.quitado {
+  color: var(--verde-campo);
+}
+
+.caixa-status.sem-cobranca {
+  color: var(--texto-suave);
+}
+
+.caixa-vazio {
+  padding: 14px !important;
+  color: var(--texto-suave);
+}
