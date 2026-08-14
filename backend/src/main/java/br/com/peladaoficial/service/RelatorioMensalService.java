@@ -23,7 +23,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -98,6 +97,10 @@ public class RelatorioMensalService {
                     Acc acc = porJogador.computeIfAbsent(chave(j.getNome()), k -> new Acc(j.getNome().trim()));
                     acc.nome = j.getNome().trim();
                     acc.vitorias += 1;
+                    // Goleiro do time campeão também leva a vitória (título da pelada).
+                    if (Boolean.TRUE.equals(j.getGoleiro())) {
+                        acc.vitoriasGk += 1;
+                    }
                     campeoesNomes.add(j.getNome().trim());
                 }
                 campeoesNomes.sort(String.CASE_INSENSITIVE_ORDER);
@@ -269,7 +272,7 @@ public class RelatorioMensalService {
         p.put("fairPlay", liderFairPlay(lista));
         p.put("cartolaAmarela", lider(lista, a -> a.amarelos, false, "amarelo"));
         p.put("expulsoes", lider(lista, a -> a.vermelhos, false, "vermelho"));
-        p.put("luvaDeOuro", liderLuva(lista));
+        p.put("luvaDeOuro", lider(lista, a -> a.vitoriasGk, false, "vitória"));
         return p;
     }
 
@@ -284,17 +287,18 @@ public class RelatorioMensalService {
                 .toList();
     }
 
+    /** Goleiros pelo número de vezes campeão (time em 1º), não por gols sofridos. */
     private List<Map<String, Object>> rankingGk(List<Acc> lista) {
         return lista.stream()
-                .filter(a -> a.peladasGk > 0)
-                .sorted(Comparator
-                        .comparingDouble((Acc a) -> a.golsSofridos / (double) a.peladasGk)
-                        .thenComparingInt(a -> a.golsSofridos)
-                        .thenComparing(a -> a.nome, String.CASE_INSENSITIVE_ORDER))
+                .filter(a -> a.vitoriasGk > 0)
+                .sorted((a, b) -> {
+                    int c = Integer.compare(b.vitoriasGk, a.vitoriasGk);
+                    if (c != 0) return c;
+                    return a.nome.compareToIgnoreCase(b.nome);
+                })
                 .map(a -> {
-                    Map<String, Object> m = linha(a.nome, a.golsSofridos, "quantidade");
+                    Map<String, Object> m = linha(a.nome, a.vitoriasGk, "vitorias");
                     m.put("peladas", a.peladasGk);
-                    m.put("media", Math.round((a.golsSofridos * 10.0 / a.peladasGk)) / 10.0);
                     return m;
                 })
                 .toList();
@@ -308,17 +312,6 @@ public class RelatorioMensalService {
         int max = cand.stream().mapToInt(get).max().orElse(0);
         List<Acc> tops = cand.stream().filter(a -> get.applyAsInt(a) == max).toList();
         return premioNomes(tops, max + " " + plural(unidade, max));
-    }
-
-    private Map<String, Object> liderLuva(List<Acc> lista) {
-        List<Acc> gks = lista.stream().filter(a -> a.peladasGk > 0).toList();
-        if (gks.isEmpty()) return null;
-        double min = gks.stream().mapToDouble(a -> a.golsSofridos / (double) a.peladasGk).min().orElse(0);
-        List<Acc> tops = gks.stream()
-                .filter(a -> Math.abs(a.golsSofridos / (double) a.peladasGk - min) < 0.0001)
-                .toList();
-        String det = (Math.round(min * 10) / 10.0) + " sofridos/pelada";
-        return premioNomes(tops, det);
     }
 
     private Map<String, Object> liderFairPlay(List<Acc> lista) {
@@ -389,6 +382,7 @@ public class RelatorioMensalService {
         int vermelhos;
         int golsSofridos;
         int vitorias;
+        int vitoriasGk;
 
         Acc(String nome) {
             this.nome = nome;

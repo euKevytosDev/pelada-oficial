@@ -113,7 +113,7 @@ function textoRelatorioMensalWhatsApp(rel) {
   if (p.artilheiro) linhas.push(`⚽ Artilheiro: ${p.artilheiro.nome} (${p.artilheiro.detalhe})`);
   if (p.garcom) linhas.push(`🎯 Garçom: ${p.garcom.nome} (${p.garcom.detalhe})`);
   if (p.craque) linhas.push(`⭐ Craque: ${p.craque.nome} (${p.craque.detalhe})`);
-  if (p.luvaDeOuro) linhas.push(`🧤 Luva: ${p.luvaDeOuro.nome} (${p.luvaDeOuro.detalhe})`);
+  if (p.luvaDeOuro) linhas.push(`🧤 Goleiro campeão: ${p.luvaDeOuro.nome} (${p.luvaDeOuro.detalhe})`);
   if (p.cartolaAmarela) linhas.push(`🟨 Amarelos: ${p.cartolaAmarela.nome} (${p.cartolaAmarela.detalhe})`);
   if (p.expulsoes) linhas.push(`🟥 Vermelhos: ${p.expulsoes.nome} (${p.expulsoes.detalhe})`);
   if (p.fairPlay) linhas.push(`🤝 Fair play: ${(p.fairPlay.nomes || [p.fairPlay.nome]).join(", ")}`);
@@ -127,7 +127,7 @@ function textoRelatorioMensalWhatsApp(rel) {
   top(rel.campeoes, "Campeões (peladas ganhas)", "vitorias");
   top(rel.artilharia, "Artilharia", "gols");
   top(rel.garcons, "Assistências", "quantidade");
-  top(rel.goleiros, "Goleiros (sofridos)", "quantidade");
+  top(rel.goleiros, "Goleiros campeões", "vitorias");
   top(rel.amarelos, "Amarelos", "quantidade");
   top(rel.vermelhos, "Vermelhos", "quantidade");
   linhas.push("");
@@ -143,7 +143,7 @@ function renderRelatorioMensal(rel) {
   const partidas = rel.partidasNoPeriodo ?? rel.partidasNoMes ?? 0;
   const gkLista = (rel.goleiros || []).map((g) => ({
     nome: g.nome,
-    quantidade: `${g.quantidade} sofr. · ${g.peladas || 0} pel. · méd ${g.media ?? "-"}`,
+    quantidade: `${g.vitorias ?? g.quantidade} vitória(s)`,
   }));
   const labelPeriodo =
     rel.modo === "ano" ? "do ano" : rel.modo === "periodo" ? "do período" : "do mês";
@@ -175,11 +175,11 @@ function renderRelatorioMensal(rel) {
         ${premioCard("Artilheiro", p.artilheiro)}
         ${premioCard("Garçom", p.garcom)}
         ${premioCard("Craque", p.craque)}
-        ${premioCard("Luva de Ouro", p.luvaDeOuro)}
+        ${premioCard("Goleiro campeão", p.luvaDeOuro)}
         ${premioCard("Amarelos", p.cartolaAmarela)}
         ${premioCard("Vermelhos", p.expulsoes)}
       </div>
-      <p class="dica" style="margin-top:10px">Campeão = quem mais vezes ficou no time em 1º na tabela da pelada.</p>
+      <p class="dica" style="margin-top:10px">Campeão = time em 1º na tabela. Linha e goleiro do time levam a vitória.</p>
     </section>
     <section class="resumo-bloco">
       <h3>Campeões (peladas ganhas)</h3>
@@ -194,8 +194,8 @@ function renderRelatorioMensal(rel) {
       ${listaSimples(rel.garcons, "Nenhuma assistência no período.")}
     </section>
     <section class="resumo-bloco">
-      <h3>Goleiros (menos vazado)</h3>
-      ${listaSimples(gkLista, "Nenhum goleiro no período.")}
+      <h3>Goleiros campeões</h3>
+      ${listaSimples(gkLista, "Nenhum goleiro campeão no período.")}
     </section>
     <section class="resumo-bloco">
       <h3>Cartões amarelos</h3>
