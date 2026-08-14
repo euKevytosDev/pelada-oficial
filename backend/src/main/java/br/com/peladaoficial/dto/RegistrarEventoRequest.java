@@ -14,7 +14,7 @@ public class RegistrarEventoRequest {
     @NotNull
     private Long jogadorId;
 
-    /** Obrigatório quando tipo = GOL (goleiro que sofreu). */
+    /** Opcional quando tipo = GOL (goleiro que sofreu). Sem GK cadastrado, o gol vale no placar mesmo assim. */
     private Long goleiroId;
 
     /** Opcional quando tipo = GOL (quem deu a assistência). */

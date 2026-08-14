@@ -1572,7 +1572,7 @@ function renderPartida(partida) {
         let texto = "";
         if (e.tipo === "GOL") {
           const ass = e.assistenciaNome ? ` · assist. ${e.assistenciaNome}` : "";
-          texto = `Gol de ${e.jogadorNome} (${e.timeNome})${ass} · GK ${e.goleiroNome || "?"}`;
+          texto = `Gol de ${e.jogadorNome} (${e.timeNome})${ass}${e.goleiroNome ? ` · GK ${e.goleiroNome}` : ""}`;
         } else if (e.tipo === "GOL_CONTRA") {
           texto = `Gol contra de ${e.jogadorNome} (${e.timeNome})`;
         } else if (e.tipo === "CARTAO_AMARELO") {
@@ -1890,27 +1890,24 @@ async function registrarEventoAoVivo(tipo) {
         String(timeId) === String(partida.timeA.id) ? partida.timeB.id : partida.timeA.id;
       const goleiros = goleirosAptosParaSofrerGol(partida);
 
-      if (!goleiros.length) {
-        toast("Nenhum goleiro apto para marcar o gol sofrido");
-        return;
+      if (goleiros.length) {
+        const ordenados = [...goleiros].sort((a, b) => {
+          const aDoTime = String(a.timeId) === String(timeDefensorId) ? 0 : 1;
+          const bDoTime = String(b.timeId) === String(timeDefensorId) ? 0 : 1;
+          return aDoTime - bDoTime;
+        });
+
+        goleiroId = await escolherOpcao(
+          "Goleiro que sofreu?",
+          ordenados.map((g) => ({
+            id: g.id,
+            label: rotuloGoleiroLance(g, timeDefensorId),
+            goleiro: true,
+          }))
+        );
+        if (!goleiroId) return;
+        goleiroNome = (ordenados.find((g) => String(g.id) === String(goleiroId)) || {}).nome;
       }
-
-      const ordenados = [...goleiros].sort((a, b) => {
-        const aDoTime = String(a.timeId) === String(timeDefensorId) ? 0 : 1;
-        const bDoTime = String(b.timeId) === String(timeDefensorId) ? 0 : 1;
-        return aDoTime - bDoTime;
-      });
-
-      goleiroId = await escolherOpcao(
-        "Goleiro que sofreu?",
-        ordenados.map((g) => ({
-          id: g.id,
-          label: rotuloGoleiroLance(g, timeDefensorId),
-          goleiro: true,
-        }))
-      );
-      if (!goleiroId) return;
-      goleiroNome = (ordenados.find((g) => String(g.id) === String(goleiroId)) || {}).nome;
     }
   }
 

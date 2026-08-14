@@ -206,12 +206,14 @@ public class SyncCompletaService {
         Jogador assistencia = null;
 
         if (item.getTipo() == TipoEvento.GOL) {
-            goleiro = buscar(jogadores, item.getGoleiroClientId(), "goleiro do evento");
-            if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
-                throw erro("Goleiro informado não é goleiro");
+            if (item.getGoleiroClientId() != null && !item.getGoleiroClientId().isBlank()) {
+                goleiro = buscar(jogadores, item.getGoleiroClientId(), "goleiro do evento");
+                if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
+                    throw erro("Goleiro informado não é goleiro");
+                }
+                goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
             }
             jogador.setGols(jogador.getGols() + 1);
-            goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
             if (item.getAssistenciaClientId() != null && !item.getAssistenciaClientId().isBlank()) {
                 if (item.getAssistenciaClientId().trim().equals(item.getJogadorClientId().trim())) {
                     throw erro("Assistência não pode ser do mesmo autor do gol");

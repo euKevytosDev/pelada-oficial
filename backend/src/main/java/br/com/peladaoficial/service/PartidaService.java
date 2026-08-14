@@ -102,7 +102,7 @@ public class PartidaService {
     }
 
     /**
-     * GOL: time que fez o gol + autor + goleiro que sofreu (pode ser emprestado de outro time).
+     * GOL: time que fez + autor; goleiro que sofreu é opcional (pelada sem GK cadastrado).
      * GOL_CONTRA: time que sofreu + jogador desse time que fez o gol contra → placar sobe para o adversário.
      */
     @Transactional
@@ -133,13 +133,13 @@ public class PartidaService {
         Jogador assistencia = null;
 
         if (request.getTipo() == TipoEvento.GOL) {
-            if (request.getGoleiroId() == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o goleiro que sofreu o gol");
-            }
-            goleiro = jogadorRepository.findById(request.getGoleiroId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goleiro não encontrado"));
-            if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione um goleiro cadastrado");
+            if (request.getGoleiroId() != null) {
+                goleiro = jogadorRepository.findById(request.getGoleiroId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goleiro não encontrado"));
+                if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione um goleiro cadastrado");
+                }
+                goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
             }
 
             if (request.getAssistenciaId() != null) {
@@ -161,7 +161,6 @@ public class PartidaService {
                 partida.setGolsTimeB(partida.getGolsTimeB() + 1);
             }
             jogador.setGols(jogador.getGols() + 1);
-            goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
 
         } else if (request.getTipo() == TipoEvento.GOL_CONTRA) {
             // time = time que sofreu (onde está o jogador do gol contra)
