@@ -11,9 +11,13 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AssinaturaService {
@@ -25,22 +29,30 @@ public class AssinaturaService {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    public static final String ORIGEM_CORTESIA = "CORTESIA";
+
     private final UsuarioRepository usuarioRepository;
     private final MercadoPagoClient mercadoPagoClient;
     private final int trialDias;
     private final String frontUrl;
     private final String webhookUrl;
+    private final Set<String> emailsCortesia;
 
     public AssinaturaService(UsuarioRepository usuarioRepository,
                              MercadoPagoClient mercadoPagoClient,
                              @Value("${app.assinatura.trial-dias:7}") int trialDias,
                              @Value("${app.assinatura.front-url:https://eukevytosdev.github.io/pelada-oficial/}") String frontUrl,
-                             @Value("${app.assinatura.webhook-url:}") String webhookUrl) {
+                             @Value("${app.assinatura.webhook-url:}") String webhookUrl,
+                             @Value("${app.assinatura.pro-cortesia:raiankevinsouza@gmail.com}") String proCortesia) {
         this.usuarioRepository = usuarioRepository;
         this.mercadoPagoClient = mercadoPagoClient;
         this.trialDias = trialDias > 0 ? trialDias : 7;
         this.frontUrl = frontUrl.endsWith("/") ? frontUrl : frontUrl + "/";
         this.webhookUrl = webhookUrl;
+        this.emailsCortesia = Arrays.stream(nvl(proCortesia, "").split(","))
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     public List<Map<String, Object>> catalogo() {
@@ -53,8 +65,8 @@ public class AssinaturaService {
     @Transactional
     public Map<String, Object> garantirTrialEMap(Usuario usuario) {
         if (usuarioPersistido(usuario)) {
-            boolean mudou = false;
-            if (usuario.getTrialInicio() == null && !proAtivo(usuario)) {
+            boolean mudou = aplicarCortesia(usuario);
+            if (!mudou && usuario.getTrialInicio() == null && !proAtivo(usuario)) {
                 LocalDateTime agora = LocalDateTime.now();
                 usuario.setTrialInicio(agora);
                 usuario.setPlano(PLANO_PRO);
@@ -71,6 +83,7 @@ public class AssinaturaService {
 
     public boolean proAtivo(Usuario usuario) {
         if (usuario == null) return false;
+        if (emailCortesia(usuario)) return true;
         if (!PLANO_PRO.equalsIgnoreCase(nvl(usuario.getPlano(), PLANO_GRATIS))) return false;
         LocalDateTime expira = usuario.getPlanoExpiraEm();
         return expira != null && expira.isAfter(LocalDateTime.now());
@@ -82,6 +95,9 @@ public class AssinaturaService {
         CatalogoPlano plano = resolverPlano(planoId);
         if (!usuarioPersistido(usuario)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Faça login de novo para assinar");
+        }
+        if (emailCortesia(usuario)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sua conta já é Pro");
         }
         if (!mercadoPagoClient.configurado()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -127,6 +143,7 @@ public class AssinaturaService {
 
         Usuario usuario = usuarioRepository.findById(userId).orElse(null);
         if (usuario == null) return;
+        if (emailCortesia(usuario)) return;
 
         String ja = usuario.getUltimoPagamentoMp();
         if (paymentId.equals(ja)) return;
@@ -142,18 +159,43 @@ public class AssinaturaService {
     }
 
     public Map<String, Object> toMap(Usuario usuario) {
+        boolean cortesia = emailCortesia(usuario);
         boolean ativo = proAtivo(usuario);
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("proAtivo", ativo);
         map.put("plano", ativo ? PLANO_PRO : PLANO_GRATIS);
-        map.put("trial", "TRIAL".equalsIgnoreCase(nvl(usuario.getPagamentoOrigem(), "")));
-        map.put("origem", nvl(usuario.getPagamentoOrigem(), ""));
+        map.put("trial", !cortesia && "TRIAL".equalsIgnoreCase(nvl(usuario.getPagamentoOrigem(), "")));
+        map.put("origem", cortesia ? ORIGEM_CORTESIA : nvl(usuario.getPagamentoOrigem(), ""));
+        map.put("cortesia", cortesia);
         map.put("checkoutWeb", mercadoPagoClient.configurado());
-        LocalDateTime expira = usuario.getPlanoExpiraEm();
+        LocalDateTime expira = cortesia ? null : (usuario != null ? usuario.getPlanoExpiraEm() : null);
         map.put("expiraEm", expira != null ? expira.toString() : "");
         map.put("expiraEmTexto", expira != null ? FMT.format(expira) : "");
         map.put("trialDias", trialDias);
         return map;
+    }
+
+    private boolean aplicarCortesia(Usuario usuario) {
+        if (!emailCortesia(usuario)) return false;
+        boolean mudou = false;
+        if (!PLANO_PRO.equalsIgnoreCase(nvl(usuario.getPlano(), ""))) {
+            usuario.setPlano(PLANO_PRO);
+            mudou = true;
+        }
+        if (!ORIGEM_CORTESIA.equalsIgnoreCase(nvl(usuario.getPagamentoOrigem(), ""))) {
+            usuario.setPagamentoOrigem(ORIGEM_CORTESIA);
+            mudou = true;
+        }
+        if (usuario.getPlanoExpiraEm() != null) {
+            usuario.setPlanoExpiraEm(null);
+            mudou = true;
+        }
+        return mudou;
+    }
+
+    private boolean emailCortesia(Usuario usuario) {
+        if (usuario == null || usuario.getEmail() == null) return false;
+        return emailsCortesia.contains(usuario.getEmail().trim().toLowerCase(Locale.ROOT));
     }
 
     private boolean usuarioPersistido(Usuario usuario) {

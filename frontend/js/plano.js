@@ -16,15 +16,20 @@ const PlanoApp = (() => {
     const status = document.getElementById("cfg-plano-status");
     const nativo = typeof isAppNativo === "function" && isAppNativo();
     document.querySelectorAll("[data-checkout-web]").forEach((el) => {
-      el.classList.toggle("oculto", nativo);
+      el.classList.toggle("oculto", nativo || !!a.cortesia);
     });
     document.getElementById("plano-aviso-android")?.classList.toggle("oculto", !nativo);
+    document.getElementById("plano-aviso-cortesia")?.classList.toggle("oculto", !a.cortesia);
 
     if (!status) return;
     if (a.proAtivo) {
-      const tipo = a.trial ? "Teste Pro" : "Pelada Pro";
-      const ate = a.expiraEmTexto ? ` até ${a.expiraEmTexto}` : "";
-      status.textContent = `${tipo} ativo${ate}.`;
+      if (a.cortesia) {
+        status.textContent = "Pelada Pro ativo nesta conta.";
+      } else {
+        const tipo = a.trial ? "Teste Pro" : "Pelada Pro";
+        const ate = a.expiraEmTexto ? ` até ${a.expiraEmTexto}` : "";
+        status.textContent = `${tipo} ativo${ate}.`;
+      }
     } else {
       status.textContent = "Plano grátis — sorteio, placar e 1 cronômetro.";
     }
