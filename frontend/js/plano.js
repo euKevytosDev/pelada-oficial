@@ -13,6 +13,10 @@ const PlanoApp = (() => {
 
   function pintar() {
     const a = assinatura();
+    const pro = !!a.proAtivo;
+    document.getElementById("selo-pro")?.classList.toggle("oculto", !pro);
+    document.querySelector(".topo")?.classList.toggle("topo-com-pro", pro);
+
     const status = document.getElementById("cfg-plano-status");
     const nativo = typeof isAppNativo === "function" && isAppNativo();
     document.querySelectorAll("[data-checkout-web]").forEach((el) => {

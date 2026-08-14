@@ -2323,10 +2323,12 @@ function atualizarUserBar() {
   const usuario = getUsuario();
   if (!usuario) {
     bar.classList.add("oculto");
+    if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
     return;
   }
   bar.classList.remove("oculto");
   document.getElementById("user-nome").textContent = usuario.nome;
+  if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
 }
 
 async function entrarNaHome() {
