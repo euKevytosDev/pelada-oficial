@@ -41,6 +41,8 @@ public class SecurityConfig {
                 .anonymous(anon -> anon.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/planos").permitAll()
+                        .requestMatchers("/api/assinatura/webhook").permitAll()
                         .requestMatchers("/api/health", "/health", "/api/debug-auth").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

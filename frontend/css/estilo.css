@@ -517,6 +517,33 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   margin-top: 0;
 }
 
+.plano-preco {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--texto);
+}
+
+.plano-preco span {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--texto-suave);
+  margin-left: 4px;
+}
+
+.plano-lista {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--texto);
+  display: grid;
+  gap: 4px;
+}
+
+.plano-aviso-android {
+  margin: 0 0 12px;
+}
+
 .config-linha-toggle {
   display: flex;
   align-items: center;

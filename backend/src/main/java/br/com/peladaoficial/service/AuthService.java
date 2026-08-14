@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
@@ -23,15 +24,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final AssinaturaService assinaturaService;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       GoogleTokenVerifier googleTokenVerifier) {
+                       GoogleTokenVerifier googleTokenVerifier,
+                       AssinaturaService assinaturaService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.assinaturaService = assinaturaService;
     }
 
     @Transactional
@@ -104,13 +108,15 @@ public class AuthService {
     }
 
     private Map<String, Object> respostaAuth(Usuario usuario) {
+        Map<String, Object> user = new LinkedHashMap<>();
+        user.put("id", usuario.getId());
+        user.put("nome", usuario.getNome());
+        user.put("email", usuario.getEmail());
+        user.put("assinatura", assinaturaService.garantirTrialEMap(usuario));
+
         Map<String, Object> body = new HashMap<>();
         body.put("token", jwtService.gerarToken(usuario.getId(), usuario.getEmail()));
-        body.put("usuario", Map.of(
-                "id", usuario.getId(),
-                "nome", usuario.getNome(),
-                "email", usuario.getEmail()
-        ));
+        body.put("usuario", user);
         return body;
     }
 }

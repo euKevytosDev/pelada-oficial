@@ -76,6 +76,13 @@ public class SchemaPatchRunner implements ApplicationRunner {
                 // já nullable ou dialeto diferente
             }
             log.info("Schema OK: colunas usuarios.google_id / senha_hash verificadas");
+
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS plano varchar(20) DEFAULT 'GRATIS'");
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS plano_expira_em timestamp");
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS trial_inicio timestamp");
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pagamento_origem varchar(20)");
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_pagamento_mp varchar(80)");
+            log.info("Schema OK: colunas usuarios.plano / trial verificadas");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
             log.warn("Não foi possível garantir colunas de schema: {}", e.getMessage());

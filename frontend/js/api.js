@@ -317,4 +317,8 @@ const PeladaAPI = {
   listarObservacoes: (peladaId) => api(`/peladas/${peladaId}/observacoes`),
   removerObservacao: (peladaId, observacaoId) =>
     api(`/peladas/${peladaId}/observacoes/${observacaoId}`, { method: "DELETE" }),
+  me: () => api("/me"),
+  planos: () => api("/planos"),
+  checkoutAssinatura: (planoId) =>
+    api("/assinatura/checkout", { method: "POST", body: JSON.stringify({ planoId }), retry: false }),
 };

@@ -38,6 +38,19 @@ public class Usuario {
     @Column(nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
+    @Column(length = 20)
+    private String plano = "GRATIS";
+
+    private LocalDateTime planoExpiraEm;
+
+    private LocalDateTime trialInicio;
+
+    @Column(length = 20)
+    private String pagamentoOrigem;
+
+    @Column(length = 80)
+    private String ultimoPagamentoMp;
+
     public Usuario(String email, String nome, String senhaHash) {
         this.email = email;
         this.nome = nome;

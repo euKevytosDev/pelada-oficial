@@ -21,6 +21,7 @@ const estado = {
   telaAntesSumula: "tela-inicio",
   telaAntesConfig: "tela-inicio",
   telaAntesHistorico: "tela-inicio",
+  telaAntesPlanos: "tela-configuracoes",
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -34,6 +35,7 @@ function mostrarTela(id) {
     "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
     "tela-configuracoes": "Configurações",
+    "tela-planos": "Pelada Pro",
     "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
@@ -1213,7 +1215,9 @@ function cronoDuracaoSegundos(idx) {
 }
 
 function cronoDoisAtivos() {
-  return typeof ConfigApp !== "undefined" && !!ConfigApp.lerPrefs().crono2Ativo;
+  const prefs = typeof ConfigApp !== "undefined" && !!ConfigApp.lerPrefs().crono2Ativo;
+  const pro = typeof PlanoApp === "undefined" || PlanoApp.temPro();
+  return prefs && pro;
 }
 
 function cronoEls(idx) {
@@ -2324,6 +2328,7 @@ function atualizarUserBar() {
 
 async function entrarNaHome() {
   atualizarUserBar();
+  if (typeof PlanoApp !== "undefined") await PlanoApp.sincronizar();
   mostrarTela("tela-inicio");
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
@@ -2612,6 +2617,7 @@ async function bootAuth() {
 
   // Já tem login salvo — mantém sessão mesmo se a API estiver acordando
   atualizarUserBar();
+  if (typeof PlanoApp !== "undefined") PlanoApp.sincronizar().catch(() => {});
   try {
     await PeladaAPI.ativa();
     await entrarNaHome();
@@ -2844,6 +2850,7 @@ document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
 
 document.getElementById("cfg-crono2-ativo")?.addEventListener("click", () => {
   const next = !ConfigApp.lerPrefs().crono2Ativo;
+  if (next && typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro()) return;
   ConfigApp.salvarPrefs({ crono2Ativo: next });
   aplicarVisibilidadeCronos();
   toast(next ? "2 cronômetros ligados" : "1 cronômetro");
@@ -2858,6 +2865,7 @@ document.getElementById("btn-salvar-crono")?.addEventListener("click", () => {
 });
 
 async function abrirHistoricoCompleto(origem) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro()) return;
   estado.telaAntesHistorico = origem || "tela-inicio";
   try {
     await comLoading(async () => {
@@ -2875,6 +2883,7 @@ document.getElementById("cfg-historico")?.addEventListener("click", () => {
 });
 
 document.getElementById("cfg-sumula")?.addEventListener("click", () => {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro()) return;
   estado.telaAntesSumula = "tela-configuracoes";
   abrirTelaSumulaManual();
 });
@@ -2889,6 +2898,7 @@ document.getElementById("btn-voltar-historico")?.addEventListener("click", () =>
 
 montarSeletorEstrelas();
 ConfigApp.init();
+if (typeof PlanoApp !== "undefined") PlanoApp.init();
 aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();

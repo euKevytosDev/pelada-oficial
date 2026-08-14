@@ -97,6 +97,7 @@ const ConfigApp = (() => {
     if (blocoConta) blocoConta.classList.toggle("oculto", !usuario);
     const histBtn = document.getElementById("cfg-historico");
     if (histBtn) histBtn.classList.toggle("oculto", !usuario);
+    if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
   }
 
   function init() {

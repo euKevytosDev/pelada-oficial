@@ -3,6 +3,7 @@ package br.com.peladaoficial.controller;
 import br.com.peladaoficial.model.Usuario;
 import br.com.peladaoficial.security.AuthSupport;
 import br.com.peladaoficial.security.JwtService;
+import br.com.peladaoficial.service.AssinaturaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
@@ -20,10 +21,12 @@ public class MeController {
 
     private final AuthSupport authSupport;
     private final JwtService jwtService;
+    private final AssinaturaService assinaturaService;
 
-    public MeController(AuthSupport authSupport, JwtService jwtService) {
+    public MeController(AuthSupport authSupport, JwtService jwtService, AssinaturaService assinaturaService) {
         this.authSupport = authSupport;
         this.jwtService = jwtService;
+        this.assinaturaService = assinaturaService;
     }
 
     @GetMapping("/me")
@@ -33,6 +36,7 @@ public class MeController {
         map.put("id", u.getId());
         map.put("nome", u.getNome());
         map.put("email", u.getEmail());
+        map.put("assinatura", assinaturaService.garantirTrialEMap(u));
         return map;
     }
 
