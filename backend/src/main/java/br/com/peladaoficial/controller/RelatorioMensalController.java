@@ -18,9 +18,18 @@ public class RelatorioMensalController {
         this.relatorioMensalService = relatorioMensalService;
     }
 
+    /**
+     * modo=mes (padrão) · ano · periodo
+     * mes: ?ano=&mes=
+     * ano: ?modo=ano&ano=
+     * periodo: ?modo=periodo&de=AAAA-MM-DD&ate=AAAA-MM-DD
+     */
     @GetMapping("/relatorio-mensal")
-    public Map<String, Object> mensal(@RequestParam(required = false) Integer ano,
-                                      @RequestParam(required = false) Integer mes) {
-        return relatorioMensalService.montar(ano, mes);
+    public Map<String, Object> mensal(@RequestParam(required = false) String modo,
+                                      @RequestParam(required = false) Integer ano,
+                                      @RequestParam(required = false) Integer mes,
+                                      @RequestParam(required = false) String de,
+                                      @RequestParam(required = false) String ate) {
+        return relatorioMensalService.montar(modo, ano, mes, de, ate);
     }
 }

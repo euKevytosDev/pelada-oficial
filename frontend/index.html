@@ -17,7 +17,7 @@
       } catch (_) {}
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260814j" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260814k" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -312,12 +312,43 @@
 
       <section class="tela" id="tela-relatorio-mensal">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-relatorio">← Voltar</button>
-        <h2 class="lista-titulo">Relatório do mês</h2>
-        <p class="dica">Quem mais fez gol, deu assistência, levou cartão e menos vazou. Times mudam a cada pelada — o ranking é por jogador.</p>
-        <label>
-          Mês
-          <select id="relatorio-mes" aria-label="Escolher o mês do relatório"></select>
-        </label>
+        <h2 class="lista-titulo">Relatório</h2>
+        <p class="dica">Peladas do período, campeões (1º na tabela), gols, assistências e cartões. Times mudam — o ranking é por jogador.</p>
+
+        <div class="relatorio-modos" role="tablist" aria-label="Tipo de relatório">
+          <button type="button" class="relatorio-modo ativo" data-rel-modo="mes">Mês</button>
+          <button type="button" class="relatorio-modo" data-rel-modo="ano">Anual</button>
+          <button type="button" class="relatorio-modo" data-rel-modo="periodo">Período</button>
+        </div>
+
+        <div id="relatorio-filtro-mes" class="relatorio-filtro">
+          <label>
+            Mês
+            <select id="relatorio-mes" aria-label="Escolher o mês do relatório"></select>
+          </label>
+        </div>
+
+        <div id="relatorio-filtro-ano" class="relatorio-filtro oculto">
+          <label>
+            Ano
+            <select id="relatorio-ano" aria-label="Escolher o ano do relatório"></select>
+          </label>
+        </div>
+
+        <div id="relatorio-filtro-periodo" class="relatorio-filtro oculto">
+          <div class="relatorio-periodo-grid">
+            <label>
+              De
+              <input type="date" id="relatorio-de" />
+            </label>
+            <label>
+              Até
+              <input type="date" id="relatorio-ate" />
+            </label>
+          </div>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-periodo">Gerar período</button>
+        </div>
+
         <div class="acoes-share no-print">
           <button type="button" class="btn btn-principal" id="btn-pdf-mensal">Baixar PDF</button>
           <button type="button" class="btn btn-whats" id="btn-whats-mensal">WhatsApp</button>
@@ -605,12 +636,12 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/api.js?v=20260814j"></script>
+  <script src="js/api.js?v=20260814k"></script>
   <script src="js/config.js?v=20260814c"></script>
   <script src="js/plano.js?v=20260814e"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260814b"></script>
-  <script src="js/relatorio-mensal.js?v=20260814b"></script>
+  <script src="js/relatorio-mensal.js?v=20260814k"></script>
   <script src="js/caixa.js?v=20260814j"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
   <script src="js/app.js?v=20260814j"></script>

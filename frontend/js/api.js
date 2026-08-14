@@ -321,7 +321,17 @@ const PeladaAPI = {
   planos: () => api("/planos"),
   checkoutAssinatura: (planoId) =>
     api("/assinatura/checkout", { method: "POST", body: JSON.stringify({ planoId }), retry: false }),
-  relatorioMensal: (ano, mes) => api(`/relatorio-mensal?ano=${ano}&mes=${mes}`),
+  relatorioMensal: (ano, mes, extras) => {
+    const q = new URLSearchParams();
+    if (ano != null) q.set("ano", String(ano));
+    if (mes != null) q.set("mes", String(mes));
+    if (extras && typeof extras === "object") {
+      Object.entries(extras).forEach(([k, v]) => {
+        if (v != null && v !== "") q.set(k, String(v));
+      });
+    }
+    return api(`/relatorio-mensal?${q.toString()}`);
+  },
   caixa: (ano, mes) => api(`/caixa?ano=${ano}&mes=${mes}`),
   caixaValores: (ano, mes, dados) =>
     api(`/caixa/valores?ano=${ano}&mes=${mes}`, { method: "PUT", body: JSON.stringify(dados) }),
