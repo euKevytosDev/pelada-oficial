@@ -125,7 +125,7 @@ function renderBoletimCaixa(caixa) {
   `;
 }
 
-function itemJogadorCaixa(j) {
+function itemJogadorCaixa(j, caixa) {
   const pct = pctBarra(j.pago, j.cobrado);
   const statusCls = String(j.status || "").toLowerCase().replace("_", "-");
   const jogos = Number(j.jogos)
@@ -137,18 +137,36 @@ function itemJogadorCaixa(j) {
       : j.status === "QUITADO"
         ? "Quitado"
         : "Sem cobrança";
+  const mensalAtivo = j.modalidade === "MENSAL";
+  const avulsoAtivo = j.modalidade !== "MENSAL" && j.modalidade !== "ISENTO";
+  const valorRef =
+    j.modalidade === "MENSAL"
+      ? `mensal ${formatarReais(caixa?.valorMensal || 0)}`
+      : j.modalidade === "ISENTO"
+        ? "isento"
+        : `avulso ${formatarReais(caixa?.valorAvulso || 0)}`;
   return `
     <li>
-      <button type="button" class="caixa-jogador" data-caixa-id="${j.id}">
-        <span class="caixa-jogador-topo">
+      <div class="caixa-jogador">
+        <div class="caixa-jogador-topo">
           <strong>${escHtml(j.nome)}${j.goleiro ? " <span class=\"meta\">GK</span>" : ""}</strong>
-          <span class="caixa-status ${statusCls}">${falta}</span>
-        </span>
-        <span class="caixa-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>
-        <span class="caixa-jogador-base">
-          <span class="caixa-detalhe">${jogos} · ${rotuloModalidade(j.modalidade).toLowerCase()} · pago ${formatarReais(j.pago)}</span>
-        </span>
-      </button>
+          <span class="caixa-mod" role="group" aria-label="Tipo de cobrança">
+            <button type="button" class="caixa-mod-btn${mensalAtivo ? " ativo" : ""}"
+              data-caixa-mod="MENSAL" data-caixa-id="${j.id}">Mensal</button>
+            <button type="button" class="caixa-mod-btn${avulsoAtivo ? " ativo" : ""}"
+              data-caixa-mod="AVULSO" data-caixa-id="${j.id}">Avulso</button>
+          </span>
+        </div>
+        <button type="button" class="caixa-jogador-corpo" data-caixa-acao="${j.id}">
+          <span class="caixa-jogador-base">
+            <span class="caixa-status ${statusCls}">${falta}</span>
+          </span>
+          <span class="caixa-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>
+          <span class="caixa-jogador-base">
+            <span class="caixa-detalhe">${jogos} · ${valorRef} · pago ${formatarReais(j.pago)}</span>
+          </span>
+        </button>
+      </div>
     </li>`;
 }
 
@@ -194,12 +212,14 @@ function renderCaixa(caixa) {
       <div class="caixa-cta">${ctaUltima}</div>
       <h3 class="lista-titulo">Ainda devem <span class="caixa-conta">${pend.length}</span></h3>
       <ul class="lista caixa-lista">${
-        pend.length ? pend.map(itemJogadorCaixa).join("") : `<li class="caixa-vazio"><span>Ninguém deve neste mês.</span></li>`
+        pend.length
+          ? pend.map((j) => itemJogadorCaixa(j, caixa)).join("")
+          : `<li class="caixa-vazio"><span>Ninguém deve neste mês.</span></li>`
       }</ul>
       ${
         resto.length
           ? `<details class="caixa-mais"><summary>Quitados e sem cobrança (${resto.length})</summary>
-             <ul class="lista caixa-lista">${resto.map(itemJogadorCaixa).join("")}</ul></details>`
+             <ul class="lista caixa-lista">${resto.map((j) => itemJogadorCaixa(j, caixa)).join("")}</ul></details>`
           : ""
       }
     `;
@@ -331,9 +351,7 @@ async function abrirAcoesJogadorCaixa(id) {
     opcoes.push({ id: "quitar", label: `Quitou · ${formatarReais(j.pendente)}` });
   }
   opcoes.push({ id: "cobrar", label: `+1 jogo avulso (${avulso})` });
-  opcoes.push({ id: "mod-mensal", label: "Tipo: mensalista (só o valor do mês)" });
-  opcoes.push({ id: "mod-avulso", label: "Tipo: avulso" });
-  opcoes.push({ id: "mod-isento", label: "Tipo: isento" });
+  opcoes.push({ id: "mod-isento", label: "Marcar como isento" });
   if (Number(j.pago) > 0) {
     opcoes.push({ id: "desfazer", label: "Desfazer último pagamento" });
   }
@@ -380,12 +398,26 @@ async function abrirAcoesJogadorCaixa(id) {
     toast("Última cobrança cancelada");
     return;
   }
-  const mapa = { "mod-mensal": "MENSAL", "mod-avulso": "AVULSO", "mod-isento": "ISENTO" };
-  const modalidade = mapa[escolha];
-  if (modalidade) {
-    await caixaAcao((ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, modalidade), "Salvando...");
-    toast(`${j.nome} · ${rotuloModalidade(modalidade).toLowerCase()}`);
+  if (escolha === "mod-isento") {
+    await caixaAcao((ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, "ISENTO"), "Salvando...");
+    toast(`${j.nome} · isento`);
   }
+}
+
+async function mudarModalidadeCaixa(id, modalidade) {
+  const j = (estado.caixaAtual?.jogadores || []).find((x) => String(x.id) === String(id));
+  if (!j || j.modalidade === modalidade) return;
+  const r = await caixaAcao(
+    (ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, modalidade),
+    "Salvando tipo..."
+  );
+  if (!r) return;
+  const nome = j.nome || "Jogador";
+  toast(
+    modalidade === "MENSAL"
+      ? `${nome} · mensal (${formatarReais(estado.caixaAtual?.valorMensal || 0)})`
+      : `${nome} · avulso (${formatarReais(estado.caixaAtual?.valorAvulso || 0)})`
+  );
 }
 
 function guardarPresencaCaixa(local, peladaId) {
@@ -415,9 +447,15 @@ function initCaixaPelada() {
   });
   document.getElementById("caixa-mes")?.addEventListener("change", () => carregarCaixaNaTela());
   document.getElementById("caixa-painel")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-caixa-id]");
-    if (!btn) return;
-    abrirAcoesJogadorCaixa(btn.dataset.caixaId);
+    const mod = e.target.closest("[data-caixa-mod]");
+    if (mod) {
+      e.preventDefault();
+      mudarModalidadeCaixa(mod.dataset.caixaId, mod.dataset.caixaMod);
+      return;
+    }
+    const acao = e.target.closest("[data-caixa-acao]");
+    if (!acao) return;
+    abrirAcoesJogadorCaixa(acao.dataset.caixaAcao);
   });
   document.getElementById("form-caixa-valores")?.addEventListener("submit", (e) => {
     e.preventDefault();

@@ -380,9 +380,8 @@ public class CaixaService {
 
         LocalDateTime inicio = ym.atDay(1).atStartOfDay();
         LocalDateTime fim = ym.plusMonths(1).atDay(1).atStartOfDay();
-        for (Pelada p : peladaRepository.findByUsuarioOrderByCriadaEmDesc(usuario)) {
-            LocalDateTime ref = p.getEncerradaEm() != null ? p.getEncerradaEm() : p.getCriadaEm();
-            if (ref == null || ref.isBefore(inicio) || !ref.isBefore(fim)) continue;
+        List<Pelada> doMes = peladaRepository.findByUsuarioNoPeriodo(usuario, inicio, fim);
+        for (Pelada p : doMes) {
             peladasMes.add(p);
             Set<String> naPelada = new HashSet<>();
             for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(p.getId())) {
@@ -396,14 +395,6 @@ public class CaixaService {
                 jogos.merge(chave, 1, Integer::sum);
             }
         }
-        peladasMes.sort((a, b) -> {
-            LocalDateTime ra = a.getEncerradaEm() != null ? a.getEncerradaEm() : a.getCriadaEm();
-            LocalDateTime rb = b.getEncerradaEm() != null ? b.getEncerradaEm() : b.getCriadaEm();
-            if (ra == null && rb == null) return 0;
-            if (ra == null) return 1;
-            if (rb == null) return -1;
-            return rb.compareTo(ra);
-        });
         return new MesDados(chaves, peladasMes, jogos);
     }
 

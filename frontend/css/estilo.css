@@ -2329,10 +2329,17 @@ html[data-theme="dark"] .partida-lances {
 
 .caixa-jogador {
   width: 100%;
+  padding: 10px 14px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.caixa-jogador-corpo {
+  width: 100%;
   border: none;
   background: transparent;
   text-align: left;
-  padding: 12px 14px;
+  padding: 0;
   font: inherit;
   color: inherit;
   display: grid;
@@ -2350,6 +2357,37 @@ html[data-theme="dark"] .partida-lances {
 
 .caixa-jogador-topo strong {
   font-size: 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.caixa-mod {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  flex-shrink: 0;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(11, 61, 46, 0.06);
+}
+
+.caixa-mod-btn {
+  border: none;
+  background: transparent;
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 6px 10px;
+  min-width: 58px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.caixa-mod-btn.ativo {
+  background: #0b3d2e;
+  color: #f3efe4;
 }
 
 .caixa-detalhe {

@@ -122,6 +122,14 @@ public class SchemaPatchRunner implements ApplicationRunner {
                     nota varchar(80)
                 )
                 """);
+            try {
+                jdbc.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_caixa_lanc_usuario_comp
+                    ON caixa_lancamentos (usuario_id, competencia)
+                    """);
+            } catch (Exception ignored) {
+                /* índice já existe */
+            }
             log.info("Schema OK: tabelas da caixa verificadas");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
