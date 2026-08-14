@@ -1,5 +1,6 @@
 /**
- * Preferências do app (tema, pelada padrão, cronômetros) — salvas no celular.
+ * Preferências do app (pelada padrão, cronômetros) — salvas no celular.
+ * Tema fixo claro (escuro/automático desligados por contraste no celular).
  */
 const ConfigApp = (() => {
   const THEME_KEY = "pelada_tema";
@@ -32,30 +33,22 @@ const ConfigApp = (() => {
   }
 
   function lerTema() {
-    const t = localStorage.getItem(THEME_KEY);
-    return t === "dark" || t === "light" || t === "system" ? t : "system";
+    return "light";
   }
 
-  function temaEfetivo(modo) {
-    const m = modo || lerTema();
-    if (m === "dark") return "dark";
-    if (m === "light") return "light";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-
-  function aplicarTema(modo) {
-    const efetivo = temaEfetivo(modo);
-    document.documentElement.setAttribute("data-theme", efetivo);
+  function aplicarTema() {
+    document.documentElement.removeAttribute("data-theme");
+    try {
+      localStorage.setItem(THEME_KEY, "light");
+    } catch (_) {
+      /* ignore */
+    }
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", efetivo === "dark" ? "#071a14" : "#0B3D2E");
-    document.querySelectorAll("[data-tema-opt]").forEach((btn) => {
-      btn.classList.toggle("ativa", btn.dataset.temaOpt === (modo || lerTema()));
-    });
+    if (meta) meta.setAttribute("content", "#0B3D2E");
   }
 
-  function definirTema(modo) {
-    localStorage.setItem(THEME_KEY, modo);
-    aplicarTema(modo);
+  function definirTema() {
+    aplicarTema();
   }
 
   function aplicarPrefsFormulario(prefs) {
@@ -86,7 +79,7 @@ const ConfigApp = (() => {
   }
 
   function sincronizarTelaConfig() {
-    aplicarTema(lerTema());
+    aplicarTema();
     aplicarPrefsFormulario();
     const usuario = typeof getUsuario === "function" ? getUsuario() : null;
     const emailEl = document.getElementById("cfg-conta-email");
@@ -101,11 +94,8 @@ const ConfigApp = (() => {
   }
 
   function init() {
-    aplicarTema(lerTema());
+    aplicarTema();
     aplicarPrefsFormulario();
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-      if (lerTema() === "system") aplicarTema("system");
-    });
   }
 
   return {

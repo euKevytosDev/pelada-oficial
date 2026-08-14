@@ -11,14 +11,13 @@
   <link rel="apple-touch-icon" href="soccer-ball-svgrepo-com.svg" />
   <script>
     (function () {
-      var t = localStorage.getItem("pelada_tema") || "system";
-      var dark =
-        t === "dark" ||
-        (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      if (dark) document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.removeAttribute("data-theme");
+      try {
+        localStorage.setItem("pelada_tema", "light");
+      } catch (_) {}
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260814b" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260814c" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -170,16 +169,6 @@
         </div>
 
         <div class="card-form config-bloco">
-          <h3 class="config-titulo">Aparência</h3>
-          <p class="dica config-dica">Escolha o tema do app neste celular.</p>
-          <div class="config-segmento" role="group" aria-label="Tema">
-            <button type="button" class="config-seg-btn" data-tema-opt="light">Claro</button>
-            <button type="button" class="config-seg-btn" data-tema-opt="dark">Escuro</button>
-            <button type="button" class="config-seg-btn" data-tema-opt="system">Automático</button>
-          </div>
-        </div>
-
-        <div class="card-form config-bloco">
           <h3 class="config-titulo">Cronômetros da partida</h3>
           <label>
             Tempo do 1º cronômetro (minutos)
@@ -241,34 +230,65 @@
 
       <section class="tela" id="tela-planos">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-planos">← Voltar</button>
-        <h2 class="lista-titulo">Pelada Pro</h2>
-        <p class="dica">Jogar a pelada continua grátis. O Pro libera o extra do organizador.</p>
 
-        <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja, depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
+        <div class="plano-shell">
+          <header class="plano-hero">
+            <p class="plano-badge">7 dias grátis no 1º login</p>
+            <h2>Pelada Pro</h2>
+            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: PDF, relatório do mês e o 2º cronômetro.</p>
+          </header>
 
-        <div class="card-form config-bloco">
-          <h3 class="config-titulo">O que entra no Pro</h3>
-          <ul class="plano-lista">
-            <li>2º cronômetro</li>
-            <li>PDF da súmula</li>
-            <li>Relatório do mês (gols, assistências, cartões, luva)</li>
-            <li>Súmula colando texto</li>
+          <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja, depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
+
+          <ul class="plano-beneficios" aria-label="Benefícios do Pelada Pro">
+            <li>
+              <span class="plano-ben-marca" aria-hidden="true">PDF</span>
+              <div>
+                <strong>Súmula em PDF</strong>
+                <p>Baixa a súmula oficial depois do jogo e manda no grupo.</p>
+              </div>
+            </li>
+            <li>
+              <span class="plano-ben-marca" aria-hidden="true">Mês</span>
+              <div>
+                <strong>Relatório do mês</strong>
+                <p>Artilheiro, assistências, cartões e luva do mês — ranking por jogador.</p>
+              </div>
+            </li>
+            <li>
+              <span class="plano-ben-marca" aria-hidden="true">2×</span>
+              <div>
+                <strong>2º cronômetro</strong>
+                <p>Dois tempos na partida, cada um com play e reset.</p>
+              </div>
+            </li>
+            <li>
+              <span class="plano-ben-marca" aria-hidden="true">Txt</span>
+              <div>
+                <strong>Súmula colando texto</strong>
+                <p>Cola o resumo e gera a mesma súmula, sem marcar o jogo ao vivo.</p>
+              </div>
+            </li>
           </ul>
-          <p class="dica config-dica">7 dias de teste na primeira vez que entrar na conta.</p>
-        </div>
 
-        <div class="card-form config-bloco" data-checkout-web>
-          <h3 class="config-titulo">Mensal</h3>
-          <p class="plano-preco">R$ 14,90<span>/mês</span></p>
-          <p class="dica config-dica">Pix ou cartão no Mercado Pago. Cancela quando quiser.</p>
-          <button type="button" class="btn btn-principal" id="btn-plano-mensal">Assinar mensal</button>
-        </div>
+          <div class="plano-ofertas" data-checkout-web>
+            <article class="plano-oferta plano-oferta-destaque">
+              <p class="plano-tag">Mais vantajoso</p>
+              <h3>Anual</h3>
+              <p class="plano-preco">R$ 99<span>/ano</span></p>
+              <p class="plano-equiv">~R$ 8,25/mês · Pix ou cartão</p>
+              <button type="button" class="btn btn-principal" id="btn-plano-anual">Assinar anual</button>
+            </article>
 
-        <div class="card-form config-bloco" data-checkout-web>
-          <h3 class="config-titulo">Anual</h3>
-          <p class="plano-preco">R$ 99<span>/ano</span></p>
-          <p class="dica config-dica">Equivalente a ~R$ 8,25/mês.</p>
-          <button type="button" class="btn btn-principal" id="btn-plano-anual">Assinar anual</button>
+            <article class="plano-oferta">
+              <h3>Mensal</h3>
+              <p class="plano-preco">R$ 14,90<span>/mês</span></p>
+              <p class="plano-equiv">Cancela quando quiser</p>
+              <button type="button" class="btn btn-secundario" id="btn-plano-mensal">Assinar mensal</button>
+            </article>
+          </div>
+
+          <p class="plano-rodape-dica">Na partida: ver a súmula e mandar no WhatsApp em texto continua grátis. O Pro libera o PDF e o relatório do mês.</p>
         </div>
       </section>
 
@@ -531,12 +551,12 @@
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/api.js?v=20260814b"></script>
-  <script src="js/config.js?v=20260813b"></script>
-  <script src="js/plano.js?v=20260814b"></script>
+  <script src="js/config.js?v=20260814c"></script>
+  <script src="js/plano.js?v=20260814c"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260814b"></script>
   <script src="js/relatorio-mensal.js?v=20260814b"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260814b"></script>
+  <script src="js/app.js?v=20260814c"></script>
 </body>
 </html>

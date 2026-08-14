@@ -2834,13 +2834,6 @@ document.getElementById("btn-voltar-config")?.addEventListener("click", () => {
   mostrarTela(estado.telaAntesConfig || "tela-inicio");
 });
 
-document.querySelectorAll("[data-tema-opt]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    ConfigApp.definirTema(btn.dataset.temaOpt);
-    toast("Tema atualizado");
-  });
-});
-
 document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
   const nome = document.getElementById("cfg-nome-pelada")?.value?.trim();
   const qtd = parseInt(document.getElementById("cfg-qtd-times")?.value, 10);
