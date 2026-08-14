@@ -76,11 +76,25 @@ public class CaixaController {
         return caixaService.desfazerUltimo(id, ano, mes);
     }
 
+    @PostMapping("/jogadores/{id}/desfazer-cobranca")
+    public Map<String, Object> desfazerCobranca(@PathVariable Long id,
+                                                @RequestParam(required = false) Integer ano,
+                                                @RequestParam(required = false) Integer mes) {
+        return caixaService.desfazerCobranca(id, ano, mes);
+    }
+
     @PostMapping("/cobrar-jogo")
     public Map<String, Object> cobrarJogo(@RequestParam(required = false) Integer ano,
                                           @RequestParam(required = false) Integer mes,
                                           @RequestParam(required = false) Long peladaId,
                                           @RequestBody(required = false) CaixaPresencaRequest req) {
         return caixaService.cobrarJogo(ano, mes, peladaId, req);
+    }
+
+    @PostMapping("/cancelar-jogo")
+    public Map<String, Object> cancelarJogo(@RequestParam(required = false) Integer ano,
+                                            @RequestParam(required = false) Integer mes,
+                                            @RequestParam Long peladaId) {
+        return caixaService.cancelarJogo(ano, mes, peladaId);
     }
 }

@@ -26,6 +26,8 @@ public class CaixaPresencaRequest {
     public static class Item {
         private String nome;
         private Boolean goleiro;
+        /** false = inapto; não entra na cobrança automática do jogo. */
+        private Boolean apto;
 
         public String getNome() {
             return nome;
@@ -41,6 +43,14 @@ public class CaixaPresencaRequest {
 
         public void setGoleiro(Boolean goleiro) {
             this.goleiro = goleiro;
+        }
+
+        public Boolean getApto() {
+            return apto;
+        }
+
+        public void setApto(Boolean apto) {
+            this.apto = apto;
         }
     }
 }

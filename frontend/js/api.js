@@ -341,9 +341,16 @@ const PeladaAPI = {
     api(`/caixa/jogadores/${id}/quitar?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
   caixaDesfazer: (id, ano, mes) =>
     api(`/caixa/jogadores/${id}/desfazer?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
+  caixaDesfazerCobranca: (id, ano, mes) =>
+    api(`/caixa/jogadores/${id}/desfazer-cobranca?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
   caixaCobrarJogo: (ano, mes, dados) =>
     api(`/caixa/cobrar-jogo?ano=${ano}&mes=${mes}`, {
       method: "POST",
       body: JSON.stringify(dados || {}),
+    }),
+  caixaCancelarJogo: (ano, mes, peladaId) =>
+    api(`/caixa/cancelar-jogo?ano=${ano}&mes=${mes}&peladaId=${peladaId}`, {
+      method: "POST",
+      body: "{}",
     }),
 };

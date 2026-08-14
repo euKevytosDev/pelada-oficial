@@ -242,6 +242,44 @@ public class CaixaService {
     }
 
     @Transactional
+    public Map<String, Object> desfazerCobranca(Long jogadorId, Integer ano, Integer mes) {
+        Usuario usuario = exigirPro();
+        YearMonth ym = resolverMes(ano, mes);
+        CaixaJogador jogador = buscarJogador(usuario, jogadorId);
+        CaixaLancamento ultimo = lancamentoRepository
+                .findFirstByUsuarioAndJogadorAndCompetenciaAndTipoOrderByCriadoEmDesc(
+                        usuario, jogador, ym.toString(), CaixaLancamento.COBRANCA)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não há cobrança para cancelar"));
+        lancamentoRepository.delete(ultimo);
+        return montar(ano, mes);
+    }
+
+    @Transactional
+    public Map<String, Object> cancelarJogo(Integer ano, Integer mes, Long peladaId) {
+        Usuario usuario = exigirPro();
+        if (peladaId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe a pelada");
+        }
+        peladaRepository.findByIdAndUsuario(peladaId, usuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
+        String nota = "pelada:" + peladaId;
+        List<CaixaLancamento> lista = lancamentoRepository.findByUsuarioAndNota(usuario, nota);
+        int apagados = 0;
+        for (CaixaLancamento l : lista) {
+            if (CaixaLancamento.COBRANCA.equals(l.getTipo())) {
+                lancamentoRepository.delete(l);
+                apagados++;
+            }
+        }
+        if (apagados == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não tem cobrança automática deste jogo para cancelar");
+        }
+        Map<String, Object> out = montar(ano, mes);
+        out.put("canceladosAgora", apagados);
+        return out;
+    }
+
+    @Transactional
     public Map<String, Object> cobrarJogo(Integer ano, Integer mes, Long peladaId, CaixaPresencaRequest req) {
         Usuario usuario = exigirPro();
         YearMonth ym = resolverMes(ano, mes);
@@ -259,9 +297,11 @@ public class CaixaService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
             nota = "pelada:" + pelada.getId();
             for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(pelada.getId())) {
+                if (Boolean.FALSE.equals(j.getApto())) continue;
                 CaixaPresencaRequest.Item item = new CaixaPresencaRequest.Item();
                 item.setNome(j.getNome());
                 item.setGoleiro(Boolean.TRUE.equals(j.getGoleiro()));
+                item.setApto(true);
                 itens.add(item);
             }
         } else if (req != null && req.getJogadores() != null && !req.getJogadores().isEmpty()) {
@@ -278,9 +318,20 @@ public class CaixaService {
 
         int cobrados = 0;
         int pulados = 0;
+        Map<String, Boolean> aptoElenco = mapaAptoElenco(usuario);
         for (CaixaPresencaRequest.Item item : itens) {
             if (item.getNome() == null || item.getNome().isBlank()) continue;
-            CaixaJogador jogador = garantirJogador(usuario, item.getNome(), Boolean.TRUE.equals(item.getGoleiro()));
+            boolean goleiro = Boolean.TRUE.equals(item.getGoleiro());
+            String chave = CaixaJogador.chaveDe(item.getNome(), goleiro);
+            boolean apto = !Boolean.FALSE.equals(item.getApto());
+            if (item.getApto() == null) {
+                apto = aptoElenco.getOrDefault(chave, true);
+            }
+            if (!apto) {
+                pulados++;
+                continue;
+            }
+            CaixaJogador jogador = garantirJogador(usuario, item.getNome(), goleiro);
             if (CaixaJogador.ISENTO.equals(jogador.getModalidade()) || CaixaJogador.MENSAL.equals(jogador.getModalidade())) {
                 pulados++;
                 continue;
@@ -396,8 +447,9 @@ public class CaixaService {
     private static BigDecimal cobradoDoMes(CaixaJogador j, CaixaConfig config, BigDecimal extra) {
         BigDecimal extras = extra == null ? BigDecimal.ZERO : extra;
         String mod = j.getModalidade() == null ? CaixaJogador.AVULSO : j.getModalidade();
-        if (CaixaJogador.ISENTO.equals(mod)) return extras;
-        if (CaixaJogador.MENSAL.equals(mod)) return nvl(config.getValorMensal()).add(extras);
+        if (CaixaJogador.ISENTO.equals(mod)) return BigDecimal.ZERO;
+        // Mensalista: só o valor fixo do mês — não soma pelada avulsa em cima.
+        if (CaixaJogador.MENSAL.equals(mod)) return nvl(config.getValorMensal());
         return extras;
     }
 
@@ -444,10 +496,15 @@ public class CaixaService {
         Pelada ultima = mesDados.peladas.get(0);
         String nota = "pelada:" + ultima.getId();
         List<Map<String, Object>> avulsos = new ArrayList<>();
+        int cobradosNesteJogo = 0;
         for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.getId())) {
+            if (Boolean.FALSE.equals(j.getApto())) continue;
             CaixaJogador cj = garantirJogador(usuario, j.getNome(), Boolean.TRUE.equals(j.getGoleiro()));
             if (!CaixaJogador.AVULSO.equals(cj.getModalidade())) continue;
-            if (lancamentoRepository.existsByUsuarioAndJogadorAndNota(usuario, cj, nota)) continue;
+            if (lancamentoRepository.existsByUsuarioAndJogadorAndNota(usuario, cj, nota)) {
+                cobradosNesteJogo++;
+                continue;
+            }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", cj.getId());
             row.put("nome", cj.getNome());
@@ -461,7 +518,20 @@ public class CaixaService {
         out.put("quandoTexto", ref != null ? ref.toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) : "");
         out.put("avulsosParaCobrar", avulsos);
         out.put("podeCobrar", config.getValorAvulso().compareTo(BigDecimal.ZERO) > 0 && !avulsos.isEmpty());
+        out.put("podeCancelar", cobradosNesteJogo > 0 || lancamentoRepository.findByUsuarioAndNota(usuario, nota).stream()
+                .anyMatch(l -> CaixaLancamento.COBRANCA.equals(l.getTipo())));
         return out;
+    }
+
+    private Map<String, Boolean> mapaAptoElenco(Usuario usuario) {
+        Map<String, Boolean> mapa = new LinkedHashMap<>();
+        for (ElencoJogador e : elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(usuario)) {
+            mapa.put(
+                    CaixaJogador.chaveDe(e.getNome(), Boolean.TRUE.equals(e.getGoleiro())),
+                    !Boolean.FALSE.equals(e.getApto())
+            );
+        }
+        return mapa;
     }
 
     private static String chaveLista(List<CaixaPresencaRequest.Item> itens) {

@@ -14,4 +14,5 @@ public interface CaixaLancamentoRepository extends JpaRepository<CaixaLancamento
     Optional<CaixaLancamento> findFirstByUsuarioAndJogadorAndCompetenciaAndTipoOrderByCriadoEmDesc(
             Usuario usuario, CaixaJogador jogador, String competencia, String tipo);
     boolean existsByUsuarioAndJogadorAndNota(Usuario usuario, CaixaJogador jogador, String nota);
+    List<CaixaLancamento> findByUsuarioAndNota(Usuario usuario, String nota);
 }

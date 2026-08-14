@@ -171,10 +171,15 @@ function renderCaixa(caixa) {
     ? `<button type="button" class="btn btn-principal" id="btn-caixa-cobrar-ultima">
          Cobrar quem jogou em ${escHtml(ultima.quandoTexto || "último jogo")}
        </button>
-       <p class="dica">${nomesUltima.map(escHtml).join(", ")}${extraUltima > 0 ? ` e mais ${extraUltima}` : ""} · ${formatarReais(caixa.valorAvulso)} cada</p>`
-    : ultima.tem
-      ? `<p class="dica">Última pelada (${escHtml(ultima.quandoTexto || "")}) já está lançada para os avulsos.</p>`
-      : `<p class="dica">Encerre uma pelada neste mês para cobrar automaticamente quem entrou em campo.</p>`;
+       <p class="dica">${nomesUltima.map(escHtml).join(", ")}${extraUltima > 0 ? ` e mais ${extraUltima}` : ""} · ${formatarReais(caixa.valorAvulso)} cada · inaptos fora</p>`
+    : ultima.podeCancelar
+      ? `<button type="button" class="btn btn-secundario" id="btn-caixa-cancelar-ultima">
+           Cancelar cobrança de ${escHtml(ultima.quandoTexto || "último jogo")}
+         </button>
+         <p class="dica">Apaga o lançamento automático deste jogo. Pagamentos já anotados continuam.</p>`
+      : ultima.tem
+        ? `<p class="dica">Última pelada (${escHtml(ultima.quandoTexto || "")}): nada a cobrar nos avulsos aptos.</p>`
+        : `<p class="dica">Encerre uma pelada neste mês para cobrar automaticamente quem entrou em campo.</p>`;
 
   const painel = document.getElementById("caixa-painel");
   if (painel) {
@@ -199,6 +204,7 @@ function renderCaixa(caixa) {
       }
     `;
     document.getElementById("btn-caixa-cobrar-ultima")?.addEventListener("click", () => cobrarUltimaPeladaCaixa());
+    document.getElementById("btn-caixa-cancelar-ultima")?.addEventListener("click", () => cancelarUltimaPeladaCaixa());
   }
   renderBoletimCaixa(caixa);
   pintarFaixaCaixaHome(caixa);
@@ -286,6 +292,21 @@ async function cobrarUltimaPeladaCaixa() {
   toast(n ? `${n} avulso(s) cobrados neste jogo` : "Esse jogo já estava lançado");
 }
 
+async function cancelarUltimaPeladaCaixa() {
+  const ultima = estado.caixaAtual?.ultimaPelada;
+  if (!ultima?.id) return;
+  const ok = confirm(
+    `Cancelar a cobrança automática de ${ultima.quandoTexto || "último jogo"}?\n\nOs valores lançados desse jogo somem. Quem já pagou continua com o pagamento anotado.`
+  );
+  if (!ok) return;
+  const r = await caixaAcao(
+    (ano, mes) => PeladaAPI.caixaCancelarJogo(ano, mes, ultima.id),
+    "Cancelando cobrança..."
+  );
+  if (!r) return;
+  toast(`${Number(r.canceladosAgora) || 0} cobrança(s) apagada(s)`);
+}
+
 async function cobrarQuemJogouHoje() {
   if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro")) {
     return;
@@ -310,11 +331,14 @@ async function abrirAcoesJogadorCaixa(id) {
     opcoes.push({ id: "quitar", label: `Quitou · ${formatarReais(j.pendente)}` });
   }
   opcoes.push({ id: "cobrar", label: `+1 jogo avulso (${avulso})` });
-  opcoes.push({ id: "mod-mensal", label: "Tipo: mensalista" });
+  opcoes.push({ id: "mod-mensal", label: "Tipo: mensalista (só o valor do mês)" });
   opcoes.push({ id: "mod-avulso", label: "Tipo: avulso" });
   opcoes.push({ id: "mod-isento", label: "Tipo: isento" });
   if (Number(j.pago) > 0) {
     opcoes.push({ id: "desfazer", label: "Desfazer último pagamento" });
+  }
+  if (Number(j.cobrado) > 0 && j.modalidade !== "MENSAL") {
+    opcoes.push({ id: "desfazer-cobranca", label: "Cancelar última cobrança" });
   }
 
   const escolha = await escolherOpcao(j.nome, opcoes);
@@ -351,6 +375,11 @@ async function abrirAcoesJogadorCaixa(id) {
     toast("Último pagamento desfeito");
     return;
   }
+  if (escolha === "desfazer-cobranca") {
+    await caixaAcao((ano, mes) => PeladaAPI.caixaDesfazerCobranca(id, ano, mes), "Cancelando cobrança...");
+    toast("Última cobrança cancelada");
+    return;
+  }
   const mapa = { "mod-mensal": "MENSAL", "mod-avulso": "AVULSO", "mod-isento": "ISENTO" };
   const modalidade = mapa[escolha];
   if (modalidade) {
@@ -360,10 +389,13 @@ async function abrirAcoesJogadorCaixa(id) {
 }
 
 function guardarPresencaCaixa(local, peladaId) {
-  const lista = (local?.jogadores || []).map((j) => ({
-    nome: j.nome,
-    goleiro: !!j.goleiro,
-  }));
+  const lista = (local?.jogadores || [])
+    .filter((j) => j.apto !== false)
+    .map((j) => ({
+      nome: j.nome,
+      goleiro: !!j.goleiro,
+      apto: true,
+    }));
   estado.caixaPresencaPendente = lista;
   estado.caixaPeladaIdPendente = peladaId || null;
   const btn = document.getElementById("btn-caixa-cobrar-fim");
