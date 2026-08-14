@@ -2,6 +2,7 @@ package br.com.peladaoficial.service;
 
 import br.com.peladaoficial.dto.CaixaModalidadeRequest;
 import br.com.peladaoficial.dto.CaixaPagamentoRequest;
+import br.com.peladaoficial.dto.CaixaPresencaRequest;
 import br.com.peladaoficial.dto.CaixaValoresRequest;
 import br.com.peladaoficial.model.CaixaConfig;
 import br.com.peladaoficial.model.CaixaJogador;
@@ -78,7 +79,8 @@ public class CaixaService {
         YearMonth ym = resolverMes(ano, mes);
         String competencia = ym.toString();
         CaixaConfig config = garantirConfig(usuario);
-        Set<String> visiveis = sincronizarJogadores(usuario, ym);
+        MesDados mesDados = sincronizarJogadores(usuario, ym);
+        Set<String> visiveis = mesDados.visiveis;
 
         List<CaixaLancamento> lancamentos = lancamentoRepository.findByUsuarioAndCompetencia(usuario, competencia);
         Map<Long, BigDecimal> cobradoExtra = new LinkedHashMap<>();
@@ -123,6 +125,7 @@ public class CaixaService {
             row.put("pago", dinheiro(pagoJog));
             row.put("pendente", dinheiro(pendente));
             row.put("status", status);
+            row.put("jogos", mesDados.jogos.getOrDefault(j.getChave(), 0));
             lista.add(row);
         }
 
@@ -138,6 +141,11 @@ public class CaixaService {
         totais.put("quitados", quitados);
         totais.put("pendentes", pendentes);
         totais.put("jogadores", lista.size());
+        totais.put("peladas", mesDados.peladas.size());
+        int pct = totalCobrado.compareTo(BigDecimal.ZERO) <= 0
+                ? 0
+                : totalPago.multiply(BigDecimal.valueOf(100)).divide(totalCobrado, 0, RoundingMode.HALF_UP).intValue();
+        totais.put("percentual", Math.min(100, pct));
 
         String mesNome = ym.getMonth().getDisplayName(TextStyle.FULL, PT);
         mesNome = mesNome.substring(0, 1).toUpperCase(PT) + mesNome.substring(1);
@@ -150,6 +158,7 @@ public class CaixaService {
         out.put("valorMensal", dinheiro(config.getValorMensal()));
         out.put("valorAvulso", dinheiro(config.getValorAvulso()));
         out.put("totais", totais);
+        out.put("ultimaPelada", montarUltimaPelada(usuario, config, mesDados));
         out.put("jogadores", lista);
         return out;
     }
@@ -232,6 +241,66 @@ public class CaixaService {
         return montar(ano, mes);
     }
 
+    @Transactional
+    public Map<String, Object> cobrarJogo(Integer ano, Integer mes, Long peladaId, CaixaPresencaRequest req) {
+        Usuario usuario = exigirPro();
+        YearMonth ym = resolverMes(ano, mes);
+        CaixaConfig config = garantirConfig(usuario);
+        if (config.getValorAvulso().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Defina o valor avulso primeiro");
+        }
+
+        Long idPelada = peladaId != null ? peladaId : (req != null ? req.getPeladaId() : null);
+        List<CaixaPresencaRequest.Item> itens = new ArrayList<>();
+        String nota;
+
+        if (idPelada != null) {
+            Pelada pelada = peladaRepository.findByIdAndUsuario(idPelada, usuario)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
+            nota = "pelada:" + pelada.getId();
+            for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(pelada.getId())) {
+                CaixaPresencaRequest.Item item = new CaixaPresencaRequest.Item();
+                item.setNome(j.getNome());
+                item.setGoleiro(Boolean.TRUE.equals(j.getGoleiro()));
+                itens.add(item);
+            }
+        } else if (req != null && req.getJogadores() != null && !req.getJogadores().isEmpty()) {
+            itens.addAll(req.getJogadores());
+            nota = "lista:" + Integer.toUnsignedString(chaveLista(itens).hashCode(), 16);
+        } else {
+            MesDados mesDados = sincronizarJogadores(usuario, ym);
+            if (mesDados.peladas.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não tem pelada neste mês para cobrar");
+            }
+            Pelada ultima = mesDados.peladas.get(0);
+            return cobrarJogo(ano, mes, ultima.getId(), null);
+        }
+
+        int cobrados = 0;
+        int pulados = 0;
+        for (CaixaPresencaRequest.Item item : itens) {
+            if (item.getNome() == null || item.getNome().isBlank()) continue;
+            CaixaJogador jogador = garantirJogador(usuario, item.getNome(), Boolean.TRUE.equals(item.getGoleiro()));
+            if (CaixaJogador.ISENTO.equals(jogador.getModalidade()) || CaixaJogador.MENSAL.equals(jogador.getModalidade())) {
+                pulados++;
+                continue;
+            }
+            if (lancamentoRepository.existsByUsuarioAndJogadorAndNota(usuario, jogador, nota)) {
+                pulados++;
+                continue;
+            }
+            lancar(usuario, jogador, ym.toString(), CaixaLancamento.COBRANCA, config.getValorAvulso(), nota);
+            cobrados++;
+        }
+        if (cobrados == 0 && pulados == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ninguém para cobrar neste jogo");
+        }
+        Map<String, Object> out = montar(ano, mes);
+        out.put("cobradosAgora", cobrados);
+        out.put("jaEstavam", pulados);
+        return out;
+    }
+
     private Usuario exigirPro() {
         Usuario usuario = authSupport.usuarioAtual();
         assinaturaService.garantirTrialEMap(usuario);
@@ -248,8 +317,11 @@ public class CaixaService {
         });
     }
 
-    private Set<String> sincronizarJogadores(Usuario usuario, YearMonth ym) {
+    private MesDados sincronizarJogadores(Usuario usuario, YearMonth ym) {
         Set<String> chaves = new HashSet<>();
+        Map<String, Integer> jogos = new LinkedHashMap<>();
+        List<Pelada> peladasMes = new ArrayList<>();
+
         for (ElencoJogador e : elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(usuario)) {
             garantirJogador(usuario, e.getNome(), Boolean.TRUE.equals(e.getGoleiro()));
             chaves.add(CaixaJogador.chaveDe(e.getNome(), Boolean.TRUE.equals(e.getGoleiro())));
@@ -260,14 +332,28 @@ public class CaixaService {
         for (Pelada p : peladaRepository.findByUsuarioOrderByCriadaEmDesc(usuario)) {
             LocalDateTime ref = p.getEncerradaEm() != null ? p.getEncerradaEm() : p.getCriadaEm();
             if (ref == null || ref.isBefore(inicio) || !ref.isBefore(fim)) continue;
+            peladasMes.add(p);
+            Set<String> naPelada = new HashSet<>();
             for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(p.getId())) {
                 String chave = CaixaJogador.chaveDe(j.getNome(), Boolean.TRUE.equals(j.getGoleiro()));
+                naPelada.add(chave);
                 if (chaves.add(chave)) {
                     garantirJogador(usuario, j.getNome(), Boolean.TRUE.equals(j.getGoleiro()));
                 }
             }
+            for (String chave : naPelada) {
+                jogos.merge(chave, 1, Integer::sum);
+            }
         }
-        return chaves;
+        peladasMes.sort((a, b) -> {
+            LocalDateTime ra = a.getEncerradaEm() != null ? a.getEncerradaEm() : a.getCriadaEm();
+            LocalDateTime rb = b.getEncerradaEm() != null ? b.getEncerradaEm() : b.getCriadaEm();
+            if (ra == null && rb == null) return 0;
+            if (ra == null) return 1;
+            if (rb == null) return -1;
+            return rb.compareTo(ra);
+        });
+        return new MesDados(chaves, peladasMes, jogos);
     }
 
     private CaixaJogador garantirJogador(Usuario usuario, String nome, boolean goleiro) {
@@ -346,6 +432,46 @@ public class CaixaService {
         }
         return n;
     }
+
+    private Map<String, Object> montarUltimaPelada(Usuario usuario,
+                                                   CaixaConfig config,
+                                                   MesDados mesDados) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (mesDados.peladas.isEmpty()) {
+            out.put("tem", false);
+            return out;
+        }
+        Pelada ultima = mesDados.peladas.get(0);
+        String nota = "pelada:" + ultima.getId();
+        List<Map<String, Object>> avulsos = new ArrayList<>();
+        for (Jogador j : peladaJogadorRepository.findByPeladaIdOrderByNomeAsc(ultima.getId())) {
+            CaixaJogador cj = garantirJogador(usuario, j.getNome(), Boolean.TRUE.equals(j.getGoleiro()));
+            if (!CaixaJogador.AVULSO.equals(cj.getModalidade())) continue;
+            if (lancamentoRepository.existsByUsuarioAndJogadorAndNota(usuario, cj, nota)) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", cj.getId());
+            row.put("nome", cj.getNome());
+            avulsos.add(row);
+        }
+        LocalDateTime ref = ultima.getEncerradaEm() != null ? ultima.getEncerradaEm() : ultima.getCriadaEm();
+        out.put("tem", true);
+        out.put("id", ultima.getId());
+        out.put("nome", ultima.getNome());
+        out.put("quando", ref != null ? ref.toString() : "");
+        out.put("quandoTexto", ref != null ? ref.toLocalDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) : "");
+        out.put("avulsosParaCobrar", avulsos);
+        out.put("podeCobrar", config.getValorAvulso().compareTo(BigDecimal.ZERO) > 0 && !avulsos.isEmpty());
+        return out;
+    }
+
+    private static String chaveLista(List<CaixaPresencaRequest.Item> itens) {
+        return itens.stream()
+                .map(i -> CaixaJogador.chaveDe(i.getNome(), Boolean.TRUE.equals(i.getGoleiro())))
+                .sorted()
+                .reduce("", (a, b) -> a + ";" + b);
+    }
+
+    private record MesDados(Set<String> visiveis, List<Pelada> peladas, Map<String, Integer> jogos) {}
 
     private static BigDecimal nvl(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;

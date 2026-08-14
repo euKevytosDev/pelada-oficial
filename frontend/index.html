@@ -17,7 +17,7 @@
       } catch (_) {}
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260814g" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260814h" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -134,6 +134,7 @@
         <div class="hero-copy">
           <p>Monte os times, sorteie equilibrado e marque o jogo ao vivo.</p>
         </div>
+        <button type="button" class="caixa-faixa oculto" id="caixa-faixa-home"></button>
         <div id="box-continuar" class="card-form oculto">
           <p class="continuar-txt">Você tem uma pelada em andamento.</p>
           <button type="button" class="btn btn-principal" id="btn-continuar">Continuar pelada</button>
@@ -244,7 +245,7 @@
           <header class="plano-hero">
             <p class="plano-badge">7 dias grátis no 1º login</p>
             <h2>Pelada Pro</h2>
-            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa de quem pagou, PDF, relatório do mês e o 2º cronômetro.</p>
+            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa ligada ao quem jogou, PDF, relatório do mês e o 2º cronômetro.</p>
           </header>
 
           <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja, depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
@@ -254,7 +255,7 @@
               <span class="plano-ben-marca" aria-hidden="true">Cx</span>
               <div>
                 <strong>Caixa da pelada</strong>
-                <p>Quem pagou, quem deve. Mensal ou avulso — se pagar só uma parte, o resto fica pendente.</p>
+                <p>Cobra quem jogou no dia, vê o mês em um painel e manda o boletim no grupo — sem planilha no WhatsApp.</p>
               </div>
             </li>
             <li>
@@ -327,50 +328,37 @@
       <section class="tela" id="tela-caixa">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-caixa">← Voltar</button>
         <h2 class="lista-titulo">Caixa da pelada</h2>
-        <p class="dica">Só você vê. Marca mensalista ou avulso, anota o que pagou e o que ainda falta.</p>
+        <p class="dica">O app sabe quem entrou em campo. Cobra o jogo, acompanha o mês e manda o boletim — só você vê o painel.</p>
 
         <label>
           Mês
           <select id="caixa-mes" aria-label="Mês da caixa"></select>
         </label>
 
-        <form class="card-form caixa-valores" id="form-caixa-valores">
-          <h3 class="config-titulo">Valores</h3>
-          <div class="caixa-valores-grid">
-            <label>
-              Mensal fixo
-              <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
-            </label>
-            <label>
-              Avulso fixo
-              <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
-            </label>
-          </div>
-          <button type="button" class="btn btn-principal" id="btn-caixa-salvar-valores">Salvar valores</button>
-        </form>
+        <div id="caixa-painel"></div>
 
-        <div class="caixa-resumo" id="caixa-resumo"></div>
-
-        <div class="caixa-filtros">
-          <label>
-            Ver
-            <select id="caixa-filtro" aria-label="Filtrar jogadores da caixa">
-              <option value="todos">Todos</option>
-              <option value="pendente">Devendo</option>
-              <option value="quitado">Quitados</option>
-            </select>
-          </label>
-          <label>
-            Buscar
-            <input type="search" id="caixa-busca" placeholder="Nome do jogador" maxlength="80" />
-          </label>
-        </div>
-
-        <ul class="lista caixa-lista" id="caixa-lista"></ul>
+        <details class="caixa-config">
+          <summary>Valores mensal e avulso</summary>
+          <form class="card-form caixa-valores" id="form-caixa-valores">
+            <div class="caixa-valores-grid">
+              <label>
+                Mensal fixo
+                <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
+              </label>
+              <label>
+                Avulso por jogo
+                <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
+              </label>
+            </div>
+            <button type="button" class="btn btn-principal" id="btn-caixa-salvar-valores">Salvar valores</button>
+          </form>
+        </details>
 
         <div class="acoes-share no-print">
-          <button type="button" class="btn btn-whats" id="btn-caixa-whats">WhatsApp das pendências</button>
+          <button type="button" class="btn btn-principal" id="btn-caixa-pdf">Boletim PDF</button>
+          <button type="button" class="btn btn-whats" id="btn-caixa-whats">Mandar no grupo</button>
         </div>
+        <div id="caixa-boletim" class="resumo-oficial oculto" aria-hidden="true"></div>
       </section>
 
       <section class="tela" id="tela-historico">
@@ -568,6 +556,7 @@
           <button type="button" class="btn btn-principal" id="btn-pdf">Baixar PDF</button>
           <button type="button" class="btn btn-whats" id="btn-whats-resumo">WhatsApp</button>
         </div>
+        <button type="button" class="btn btn-secundario btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem jogou hoje</button>
 
         <div class="card-form no-print" id="box-atraso-fim">
           <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
@@ -616,14 +605,14 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/api.js?v=20260814g"></script>
+  <script src="js/api.js?v=20260814h"></script>
   <script src="js/config.js?v=20260814c"></script>
   <script src="js/plano.js?v=20260814e"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260814b"></script>
   <script src="js/relatorio-mensal.js?v=20260814b"></script>
-  <script src="js/caixa.js?v=20260814g"></script>
+  <script src="js/caixa.js?v=20260814h"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260814g"></script>
+  <script src="js/app.js?v=20260814h"></script>
 </body>
 </html>

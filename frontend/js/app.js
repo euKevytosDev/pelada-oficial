@@ -26,6 +26,8 @@ const estado = {
   telaAntesCaixa: "tela-inicio",
   relatorioMensalAtual: null,
   caixaAtual: null,
+  caixaPresencaPendente: null,
+  caixaPeladaIdPendente: null,
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -602,6 +604,7 @@ async function abrirSumulaPelada(peladaId) {
     atualizarStatusSyncFim(null);
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
+    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     mostrarTela("tela-fim");
   }, "Carregando súmula...");
 }
@@ -2312,6 +2315,7 @@ async function encerrarPelada() {
   const resumo = LocalJogo.montarResumoLocal();
   const payload = LocalJogo.montarPayloadSync();
   const peladaId = estado.peladaId || local?.peladaId || null;
+  if (typeof guardarPresencaCaixa === "function") guardarPresencaCaixa(local, peladaId);
 
   // Backup local; elenco final (com apto/inapto) grava na conta antes do sync pesado
   salvarElencoLocalBackup(elencoDoPayload(payload));
@@ -2382,6 +2386,7 @@ async function entrarNaHome() {
   atualizarUserBar();
   if (typeof PlanoApp !== "undefined") await PlanoApp.sincronizar();
   mostrarTela("tela-inicio");
+  if (typeof atualizarFaixaCaixaHome === "function") atualizarFaixaCaixaHome();
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
   // Tenta restaurar elenco se foi zerado por encerrar fantasma
@@ -2528,6 +2533,7 @@ async function retomarPelada(pelada) {
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim");
+    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     mostrarTela("tela-fim");
     return;
   }
@@ -3414,6 +3420,7 @@ function gerarSumulaManualAgora() {
     estado.sumulaManual = true;
     const boxAtraso = document.getElementById("box-atraso-fim");
     if (boxAtraso) boxAtraso.classList.add("oculto");
+    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     renderResumoOficial(resumo);
     mostrarTela("tela-fim");
     toast("Súmula pronta — PDF, planilha ou WhatsApp");

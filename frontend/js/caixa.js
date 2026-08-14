@@ -1,5 +1,5 @@
 /**
- * Caixa da pelada (Pelada Pro) — só o organizador vê quem pagou e quem deve.
+ * Caixa da pelada (Pelada Pro) — painel do mês + cobrança de quem jogou.
  */
 function preencherSelectMesCaixa() {
   const sel = document.getElementById("caixa-mes");
@@ -54,88 +54,187 @@ function escHtml(s) {
   }[c]));
 }
 
+function pctBarra(pago, cobrado) {
+  const c = Number(cobrado) || 0;
+  const p = Number(pago) || 0;
+  if (c <= 0) return 0;
+  return Math.min(100, Math.round((p / c) * 100));
+}
+
 function textoCaixaWhatsApp(caixa) {
   const t = caixa.totais || {};
   const linhas = [];
   linhas.push(`*Caixa — ${caixa.titulo || "mês"}*`);
-  linhas.push(`Mensal ${formatarReais(caixa.valorMensal)} · avulso ${formatarReais(caixa.valorAvulso)}`);
-  linhas.push(`Recebido ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}`);
+  linhas.push(`${t.peladas || 0} pelada(s) · ${t.percentual || 0}% recebido`);
+  linhas.push(`Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}`);
   const lista = caixa.jogadores || [];
   const pend = lista.filter((j) => j.status === "PENDENTE");
-  const ok = lista.filter((j) => j.status === "QUITADO");
   if (pend.length) {
     linhas.push("");
-    linhas.push("*Pendentes*");
+    linhas.push("*Ainda devem*");
     pend.forEach((j) => {
-      linhas.push(`• ${j.nome}: pagou ${formatarReais(j.pago)} · falta ${formatarReais(j.pendente)}`);
+      const jogos = Number(j.jogos) ? ` · ${j.jogos} jogo(s)` : "";
+      linhas.push(`• ${j.nome}: falta ${formatarReais(j.pendente)}${jogos}`);
     });
-  }
-  if (ok.length) {
+  } else {
     linhas.push("");
-    linhas.push("*Quitados*");
-    ok.forEach((j) => linhas.push(`• ${j.nome}`));
+    linhas.push("Ninguém deve neste mês.");
   }
   linhas.push("");
-  linhas.push("_Pelada Oficial — só o organizador_");
+  linhas.push("_Pelada Oficial_");
   return linhas.join("\n");
+}
+
+function renderBoletimCaixa(caixa) {
+  const el = document.getElementById("caixa-boletim");
+  if (!el) return;
+  const t = caixa.totais || {};
+  const pend = (caixa.jogadores || []).filter((j) => j.status === "PENDENTE");
+  const ok = (caixa.jogadores || []).filter((j) => j.status === "QUITADO");
+  el.innerHTML = `
+    <header class="resumo-topo">
+      <div>
+        <p class="eyebrow">Caixa da pelada</p>
+        <h2>${escHtml(caixa.titulo || "Mês")}</h2>
+      </div>
+      <p class="resumo-data">${t.percentual || 0}% recebido</p>
+    </header>
+    <p class="dica" style="margin-top:0">Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)} · ${t.peladas || 0} pelada(s)</p>
+    <section class="resumo-bloco">
+      <h3>Ainda devem <span class="badge-qtd">${pend.length}</span></h3>
+      ${
+        pend.length
+          ? `<ul class="lista-resumo">${pend
+              .map(
+                (j) =>
+                  `<li><span>${escHtml(j.nome)}${j.jogos ? ` · ${j.jogos} jogo(s)` : ""}</span><strong>${formatarReais(j.pendente)}</strong></li>`
+              )
+              .join("")}</ul>`
+          : `<p class="dica">Ninguém deve.</p>`
+      }
+    </section>
+    <section class="resumo-bloco">
+      <h3>Quitados <span class="badge-qtd">${ok.length}</span></h3>
+      ${
+        ok.length
+          ? `<ul class="lista-resumo">${ok.map((j) => `<li><span>${escHtml(j.nome)}</span><strong>ok</strong></li>`).join("")}</ul>`
+          : `<p class="dica">Ainda ninguém quitou.</p>`
+      }
+    </section>
+    <footer class="resumo-rodape">Pelada Oficial — boletim da caixa</footer>
+  `;
+}
+
+function itemJogadorCaixa(j) {
+  const pct = pctBarra(j.pago, j.cobrado);
+  const statusCls = String(j.status || "").toLowerCase().replace("_", "-");
+  const jogos = Number(j.jogos)
+    ? `${j.jogos} jogo${Number(j.jogos) === 1 ? "" : "s"}`
+    : "não jogou neste mês";
+  const falta =
+    j.status === "PENDENTE"
+      ? `Falta ${formatarReais(j.pendente)}`
+      : j.status === "QUITADO"
+        ? "Quitado"
+        : "Sem cobrança";
+  return `
+    <li>
+      <button type="button" class="caixa-jogador" data-caixa-id="${j.id}">
+        <span class="caixa-jogador-topo">
+          <strong>${escHtml(j.nome)}${j.goleiro ? " <span class=\"meta\">GK</span>" : ""}</strong>
+          <span class="caixa-status ${statusCls}">${falta}</span>
+        </span>
+        <span class="caixa-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>
+        <span class="caixa-jogador-base">
+          <span class="caixa-detalhe">${jogos} · ${rotuloModalidade(j.modalidade).toLowerCase()} · pago ${formatarReais(j.pago)}</span>
+        </span>
+      </button>
+    </li>`;
 }
 
 function renderCaixa(caixa) {
   const t = caixa.totais || {};
-  const resumo = document.getElementById("caixa-resumo");
-  if (resumo) {
-    resumo.innerHTML = `
-      <p class="caixa-resumo-pago">Recebido ${formatarReais(t.pago)}</p>
-      <p class="caixa-resumo-pendente">Falta ${formatarReais(t.pendente)}</p>
-    `;
-  }
+  const ultima = caixa.ultimaPelada || {};
+  const lista = caixa.jogadores || [];
+  const pend = lista.filter((j) => j.status === "PENDENTE");
+  const resto = lista.filter((j) => j.status !== "PENDENTE");
+  const pct = Math.min(100, Number(t.percentual) || 0);
 
   const mensal = document.getElementById("caixa-valor-mensal");
   const avulso = document.getElementById("caixa-valor-avulso");
   if (mensal && document.activeElement !== mensal) mensal.value = reaisParaInput(caixa.valorMensal);
   if (avulso && document.activeElement !== avulso) avulso.value = reaisParaInput(caixa.valorAvulso);
 
-  const filtro = document.getElementById("caixa-filtro")?.value || "todos";
-  const busca = (document.getElementById("caixa-busca")?.value || "").trim().toLowerCase();
-  let lista = caixa.jogadores || [];
-  if (filtro === "pendente") lista = lista.filter((j) => j.status === "PENDENTE");
-  if (filtro === "quitado") lista = lista.filter((j) => j.status === "QUITADO");
-  if (busca) lista = lista.filter((j) => String(j.nome || "").toLowerCase().includes(busca));
+  const nomesUltima = (ultima.avulsosParaCobrar || []).map((j) => j.nome).slice(0, 4);
+  const extraUltima = (ultima.avulsosParaCobrar || []).length - nomesUltima.length;
+  const ctaUltima = ultima.podeCobrar
+    ? `<button type="button" class="btn btn-principal" id="btn-caixa-cobrar-ultima">
+         Cobrar quem jogou em ${escHtml(ultima.quandoTexto || "último jogo")}
+       </button>
+       <p class="dica">${nomesUltima.map(escHtml).join(", ")}${extraUltima > 0 ? ` e mais ${extraUltima}` : ""} · ${formatarReais(caixa.valorAvulso)} cada</p>`
+    : ultima.tem
+      ? `<p class="dica">Última pelada (${escHtml(ultima.quandoTexto || "")}) já está lançada para os avulsos.</p>`
+      : `<p class="dica">Encerre uma pelada neste mês para cobrar automaticamente quem entrou em campo.</p>`;
 
-  const ul = document.getElementById("caixa-lista");
-  if (!ul) return;
-  if (!lista.length) {
-    ul.innerHTML = `<li class="caixa-vazio"><span>Ninguém nesta lista ainda. Cadastre o elenco na pelada — eles aparecem aqui.</span></li>`;
+  const painel = document.getElementById("caixa-painel");
+  if (painel) {
+    painel.innerHTML = `
+      <div class="caixa-meter">
+        <p class="caixa-meter-kicker">${escHtml(caixa.titulo || "")} · ${t.peladas || 0} pelada(s)</p>
+        <p class="caixa-meter-valor">${pct}<span>%</span></p>
+        <p class="caixa-meter-legenda">da caixa recebida</p>
+        <span class="caixa-barra caixa-barra-lg" aria-hidden="true"><span style="width:${pct}%"></span></span>
+        <p class="caixa-meter-numeros">Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}</p>
+      </div>
+      <div class="caixa-cta">${ctaUltima}</div>
+      <h3 class="lista-titulo">Ainda devem <span class="caixa-conta">${pend.length}</span></h3>
+      <ul class="lista caixa-lista">${
+        pend.length ? pend.map(itemJogadorCaixa).join("") : `<li class="caixa-vazio"><span>Ninguém deve neste mês.</span></li>`
+      }</ul>
+      ${
+        resto.length
+          ? `<details class="caixa-mais"><summary>Quitados e sem cobrança (${resto.length})</summary>
+             <ul class="lista caixa-lista">${resto.map(itemJogadorCaixa).join("")}</ul></details>`
+          : ""
+      }
+    `;
+    document.getElementById("btn-caixa-cobrar-ultima")?.addEventListener("click", () => cobrarUltimaPeladaCaixa());
+  }
+  renderBoletimCaixa(caixa);
+  pintarFaixaCaixaHome(caixa);
+}
+
+function pintarFaixaCaixaHome(caixa) {
+  const faixa = document.getElementById("caixa-faixa-home");
+  if (!faixa) return;
+  const t = caixa?.totais || {};
+  const pend = Number(t.pendentes) || 0;
+  const falta = Number(t.pendente) || 0;
+  if (!caixa || (!pend && !falta && !(Number(t.cobrado) > 0))) {
+    faixa.classList.add("oculto");
+    faixa.textContent = "";
     return;
   }
-  ul.innerHTML = lista
-    .map((j) => {
-      const statusCls = String(j.status || "").toLowerCase().replace("_", "-");
-      const detalhe =
-        j.status === "PENDENTE"
-          ? `Pago ${formatarReais(j.pago)} · falta ${formatarReais(j.pendente)}`
-          : j.status === "QUITADO"
-            ? `Quitado · ${formatarReais(j.pago)}`
-            : j.modalidade === "MENSAL"
-              ? "Mensalista — ainda sem pagamento neste mês"
-              : "Avulso — cobre uma pelada quando ele jogar";
-      return `
-        <li>
-          <button type="button" class="caixa-jogador" data-caixa-id="${j.id}">
-            <span class="caixa-jogador-topo">
-              <strong>${escHtml(j.nome)}${j.goleiro ? " <span class=\"meta\">GK</span>" : ""}</strong>
-              <span class="caixa-tag">${rotuloModalidade(j.modalidade)}</span>
-            </span>
-            <span class="caixa-jogador-base">
-              <span class="caixa-detalhe">${detalhe}</span>
-              <span class="caixa-status ${statusCls}">${
-                j.status === "PENDENTE" ? formatarReais(j.pendente) : j.status === "QUITADO" ? "ok" : "—"
-              }</span>
-            </span>
-          </button>
-        </li>`;
-    })
-    .join("");
+  faixa.classList.remove("oculto");
+  faixa.textContent = pend
+    ? `Caixa: ${pend} ainda devem · ${formatarReais(falta)}`
+    : `Caixa do mês quitada · ${formatarReais(t.pago)}`;
+}
+
+async function atualizarFaixaCaixaHome() {
+  const faixa = document.getElementById("caixa-faixa-home");
+  if (!faixa) return;
+  if (typeof PlanoApp === "undefined" || !PlanoApp.temPro()) {
+    faixa.classList.add("oculto");
+    return;
+  }
+  try {
+    const agora = new Date();
+    const caixa = await PeladaAPI.caixa(agora.getFullYear(), agora.getMonth() + 1);
+    pintarFaixaCaixaHome(caixa);
+  } catch (_) {
+    faixa.classList.add("oculto");
+  }
 }
 
 async function carregarCaixaNaTela() {
@@ -169,22 +268,48 @@ async function caixaAcao(fn, texto) {
       estado.caixaAtual = caixa;
       renderCaixa(caixa);
     }, texto);
+    return estado.caixaAtual;
   } catch (err) {
     toast(err.message || "Não deu para atualizar a caixa");
+    return null;
   }
+}
+
+async function cobrarUltimaPeladaCaixa() {
+  const ultima = estado.caixaAtual?.ultimaPelada;
+  const r = await caixaAcao(
+    (ano, mes) => PeladaAPI.caixaCobrarJogo(ano, mes, ultima?.id ? { peladaId: ultima.id } : {}),
+    "Lançando quem jogou..."
+  );
+  if (!r) return;
+  const n = Number(r.cobradosAgora) || 0;
+  toast(n ? `${n} avulso(s) cobrados neste jogo` : "Esse jogo já estava lançado");
+}
+
+async function cobrarQuemJogouHoje() {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro")) {
+    return;
+  }
+  const peladaId = estado.caixaPeladaIdPendente || estado.peladaId;
+  const jogadores = estado.caixaPresencaPendente || [];
+  preencherSelectMesCaixa();
+  mostrarTela("tela-caixa");
+  const body = peladaId ? { peladaId } : { jogadores };
+  const r = await caixaAcao((ano, mes) => PeladaAPI.caixaCobrarJogo(ano, mes, body), "Cobrando quem jogou...");
+  if (!r) return;
+  const n = Number(r.cobradosAgora) || 0;
+  toast(n ? `${n} avulso(s) cobrados` : "Esse jogo já estava na caixa");
 }
 
 async function abrirAcoesJogadorCaixa(id) {
   const j = (estado.caixaAtual?.jogadores || []).find((x) => String(x.id) === String(id));
   if (!j) return;
   const avulso = formatarReais(estado.caixaAtual?.valorAvulso || 0);
-  const opcoes = [
-    { id: "pagar", label: "Registrar pagamento" },
-  ];
+  const opcoes = [{ id: "pagar", label: "Registrar pagamento" }];
   if (j.status === "PENDENTE") {
-    opcoes.push({ id: "quitar", label: `Quitou · paga ${formatarReais(j.pendente)}` });
+    opcoes.push({ id: "quitar", label: `Quitou · ${formatarReais(j.pendente)}` });
   }
-  opcoes.push({ id: "cobrar", label: `+1 pelada avulsa (${avulso})` });
+  opcoes.push({ id: "cobrar", label: `+1 jogo avulso (${avulso})` });
   opcoes.push({ id: "mod-mensal", label: "Tipo: mensalista" });
   opcoes.push({ id: "mod-avulso", label: "Tipo: avulso" });
   opcoes.push({ id: "mod-isento", label: "Tipo: isento" });
@@ -192,7 +317,7 @@ async function abrirAcoesJogadorCaixa(id) {
     opcoes.push({ id: "desfazer", label: "Desfazer último pagamento" });
   }
 
-  const escolha = await escolherOpcao(`${j.nome}`, opcoes);
+  const escolha = await escolherOpcao(j.nome, opcoes);
   if (!escolha) return;
 
   if (escolha === "pagar") {
@@ -217,8 +342,8 @@ async function abrirAcoesJogadorCaixa(id) {
     return;
   }
   if (escolha === "cobrar") {
-    await caixaAcao((ano, mes) => PeladaAPI.caixaCobrar(id, ano, mes), "Cobrando pelada...");
-    toast("Pelada cobrada");
+    await caixaAcao((ano, mes) => PeladaAPI.caixaCobrar(id, ano, mes), "Cobrando...");
+    toast("Jogo cobrado");
     return;
   }
   if (escolha === "desfazer") {
@@ -234,19 +359,33 @@ async function abrirAcoesJogadorCaixa(id) {
   }
 }
 
+function guardarPresencaCaixa(local, peladaId) {
+  const lista = (local?.jogadores || []).map((j) => ({
+    nome: j.nome,
+    goleiro: !!j.goleiro,
+  }));
+  estado.caixaPresencaPendente = lista;
+  estado.caixaPeladaIdPendente = peladaId || null;
+  const btn = document.getElementById("btn-caixa-cobrar-fim");
+  if (!btn) return;
+  const pro = typeof PlanoApp !== "undefined" && PlanoApp.temPro();
+  btn.classList.toggle("oculto", !pro || !lista.length);
+}
+
 function initCaixaPelada() {
   document.getElementById("btn-caixa-inicio")?.addEventListener("click", () => abrirCaixaPelada());
   document.getElementById("btn-caixa-home")?.addEventListener("click", () => abrirCaixaPelada());
   document.getElementById("cfg-caixa")?.addEventListener("click", () => abrirCaixaPelada());
+  document.getElementById("caixa-faixa-home")?.addEventListener("click", () => abrirCaixaPelada());
+  document.getElementById("btn-caixa-cobrar-fim")?.addEventListener("click", () => cobrarQuemJogouHoje());
   document.getElementById("btn-voltar-caixa")?.addEventListener("click", () => {
     mostrarTela(estado.telaAntesCaixa || "tela-inicio");
   });
   document.getElementById("caixa-mes")?.addEventListener("change", () => carregarCaixaNaTela());
-  document.getElementById("caixa-filtro")?.addEventListener("change", () => {
-    if (estado.caixaAtual) renderCaixa(estado.caixaAtual);
-  });
-  document.getElementById("caixa-busca")?.addEventListener("input", () => {
-    if (estado.caixaAtual) renderCaixa(estado.caixaAtual);
+  document.getElementById("caixa-painel")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-caixa-id]");
+    if (!btn) return;
+    abrirAcoesJogadorCaixa(btn.dataset.caixaId);
   });
   document.getElementById("form-caixa-valores")?.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -261,14 +400,20 @@ function initCaixaPelada() {
     );
     toast("Valores da caixa salvos");
   });
-  document.getElementById("caixa-lista")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-caixa-id]");
-    if (!btn) return;
-    abrirAcoesJogadorCaixa(btn.dataset.caixaId);
-  });
   document.getElementById("btn-caixa-whats")?.addEventListener("click", () => {
     const caixa = estado.caixaAtual;
     if (!caixa) return;
     window.open(`https://wa.me/?text=${encodeURIComponent(textoCaixaWhatsApp(caixa))}`, "_blank");
+  });
+  document.getElementById("btn-caixa-pdf")?.addEventListener("click", async () => {
+    const el = document.getElementById("caixa-boletim");
+    if (!el || !estado.caixaAtual) return;
+    el.classList.remove("oculto");
+    try {
+      const nome = (estado.caixaAtual.titulo || "caixa").replace(/\s+/g, "-").toLowerCase();
+      await baixarPdfElemento("caixa-boletim", `caixa-${nome}.pdf`);
+    } finally {
+      el.classList.add("oculto");
+    }
   });
 }

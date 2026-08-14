@@ -2,6 +2,7 @@ package br.com.peladaoficial.controller;
 
 import br.com.peladaoficial.dto.CaixaModalidadeRequest;
 import br.com.peladaoficial.dto.CaixaPagamentoRequest;
+import br.com.peladaoficial.dto.CaixaPresencaRequest;
 import br.com.peladaoficial.dto.CaixaValoresRequest;
 import br.com.peladaoficial.service.CaixaService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,5 +74,13 @@ public class CaixaController {
                                         @RequestParam(required = false) Integer ano,
                                         @RequestParam(required = false) Integer mes) {
         return caixaService.desfazerUltimo(id, ano, mes);
+    }
+
+    @PostMapping("/cobrar-jogo")
+    public Map<String, Object> cobrarJogo(@RequestParam(required = false) Integer ano,
+                                          @RequestParam(required = false) Integer mes,
+                                          @RequestParam(required = false) Long peladaId,
+                                          @RequestBody(required = false) CaixaPresencaRequest req) {
+        return caixaService.cobrarJogo(ano, mes, peladaId, req);
     }
 }

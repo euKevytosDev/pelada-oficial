@@ -2215,46 +2215,111 @@ html[data-theme="dark"] .partida-lances {
 }
 
 /* Caixa da pelada */
+.caixa-faixa {
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: #0b3d2e;
+  color: #f3efe4;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.caixa-meter {
+  margin: 12px 0 16px;
+  padding: 18px 16px 16px;
+  border-radius: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--linha);
+  text-align: center;
+}
+
+.caixa-meter-kicker,
+.caixa-meter-legenda,
+.caixa-meter-numeros {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.86rem;
+}
+
+.caixa-meter-valor {
+  margin: 4px 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 3.2rem;
+  line-height: 1;
+  color: var(--texto);
+}
+
+.caixa-meter-valor span {
+  font-size: 1.4rem;
+  margin-left: 2px;
+}
+
+.caixa-meter-numeros {
+  margin-top: 10px;
+}
+
+.caixa-barra {
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(11, 61, 46, 0.12);
+  overflow: hidden;
+}
+
+.caixa-barra span {
+  display: block;
+  height: 100%;
+  background: #0b3d2e;
+  border-radius: 99px;
+}
+
+.caixa-barra-lg {
+  height: 10px;
+  margin-top: 12px;
+}
+
+.caixa-cta {
+  margin: 0 0 18px;
+}
+
+.caixa-cta .btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+.caixa-conta {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  font-weight: 700;
+}
+
 .caixa-valores-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.caixa-resumo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 14px 0 4px;
+.caixa-config,
+.caixa-mais {
+  margin: 16px 0;
 }
 
-.caixa-resumo p {
-  margin: 0;
-  padding: 12px 12px;
-  border-radius: 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--linha);
-  font-size: 0.9rem;
+.caixa-config summary,
+.caixa-mais summary {
+  cursor: pointer;
   font-weight: 700;
-}
-
-.caixa-resumo-pago {
-  color: var(--verde-campo);
-}
-
-.caixa-resumo-pendente {
-  color: #9a6b12;
-}
-
-.caixa-filtros {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 12px;
+  color: var(--texto);
+  padding: 8px 0;
 }
 
 .caixa-lista {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .caixa-lista li {
@@ -2287,18 +2352,6 @@ html[data-theme="dark"] .partida-lances {
   font-size: 1rem;
 }
 
-.caixa-tag {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--texto-suave);
-  background: var(--bg-card-alt);
-  border-radius: 999px;
-  padding: 3px 8px;
-}
-
 .caixa-detalhe {
   font-size: 0.82rem;
   color: var(--texto-suave);
@@ -2326,4 +2379,8 @@ html[data-theme="dark"] .partida-lances {
 .caixa-vazio {
   padding: 14px !important;
   color: var(--texto-suave);
+}
+
+#btn-caixa-cobrar-fim {
+  margin: 0 0 14px;
 }
