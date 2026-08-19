@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "br.com.peladaoficial.app"
+    namespace "com.rkds.reidapelada"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "br.com.peladaoficial.app"
+        applicationId "com.rkds.reidapelada"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

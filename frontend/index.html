@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,15 +15,18 @@
       document.documentElement.removeAttribute("data-theme");
       try {
         localStorage.setItem("pelada_tema", "light");
-      } catch (_) {}
+      } catch (_) { }
     })();
   </script>
   <link rel="stylesheet" href="css/estilo.css?v=20260814k" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
 </head>
+
 <body>
   <div id="splash" class="splash" role="status" aria-live="polite" aria-label="Carregando Pelada Oficial">
     <div class="splash-conteudo">
@@ -60,13 +64,13 @@
       </button>
       <div class="topo-corpo">
         <div class="marca">
-        <img class="marca-bola" src="soccer-ball-svgrepo-com.svg" alt="" width="30" height="30" aria-hidden="true" />
-        <h1>Pelada Oficial</h1>
-      </div>
-      <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
-      <div class="user-bar oculto" id="user-bar">
-        <span id="user-nome"></span>
-      </div>
+          <img class="marca-bola" src="soccer-ball-svgrepo-com.svg" alt="" width="30" height="30" aria-hidden="true" />
+          <h1>Pelada Oficial</h1>
+        </div>
+        <p class="subtitulo" id="subtitulo-tela">Controle da pelada no celular</p>
+        <div class="user-bar oculto" id="user-bar">
+          <span id="user-nome"></span>
+        </div>
       </div>
     </header>
 
@@ -89,9 +93,14 @@
           <label>
             Senha
             <span class="campo-senha">
-              <input type="password" id="login-senha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="current-password" />
-              <button type="button" class="btn-olho" data-senha="login-senha" aria-label="Mostrar senha" title="Mostrar senha" aria-pressed="false">
-                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
+              <input type="password" id="login-senha" placeholder="mínimo 6 caracteres" minlength="6" required
+                autocomplete="current-password" />
+              <button type="button" class="btn-olho" data-senha="login-senha" aria-label="Mostrar senha"
+                title="Mostrar senha" aria-pressed="false">
+                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                </svg>
               </button>
             </span>
           </label>
@@ -110,9 +119,14 @@
           <label>
             Senha
             <span class="campo-senha">
-              <input type="password" id="cadastro-senha" placeholder="mínimo 6 caracteres" minlength="6" required autocomplete="new-password" />
-              <button type="button" class="btn-olho" data-senha="cadastro-senha" aria-label="Mostrar senha" title="Mostrar senha" aria-pressed="false">
-                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
+              <input type="password" id="cadastro-senha" placeholder="mínimo 6 caracteres" minlength="6" required
+                autocomplete="new-password" />
+              <button type="button" class="btn-olho" data-senha="cadastro-senha" aria-label="Mostrar senha"
+                title="Mostrar senha" aria-pressed="false">
+                <svg class="icone-olho" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                </svg>
               </button>
             </span>
           </label>
@@ -126,7 +140,8 @@
 
         <p class="dica">Seus resultados ficam salvos na sua conta.</p>
         <div class="acoes-finas" style="margin-top:12px">
-          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula-auth">Gerar súmula (sem marcar jogo)</button>
+          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula-auth">Gerar súmula (sem marcar
+            jogo)</button>
         </div>
       </section>
 
@@ -143,7 +158,8 @@
           <h2 class="lista-titulo" style="margin-top:0">Peladas recentes</h2>
           <p class="dica">Encerradas há menos de 24h podem continuar com mais partidas.</p>
           <ul class="lista lista-historico" id="lista-historico-home"></ul>
-          <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico completo</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico
+            completo</button>
           <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal">Relatório do mês</button>
           <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-home">Caixa da pelada</button>
         </div>
@@ -188,7 +204,8 @@
               <p class="config-toggle-titulo">2º cronômetro</p>
               <p class="dica config-dica">Liga outro relógio acima, com play e reset próprios.</p>
             </div>
-            <button type="button" class="config-switch" id="cfg-crono2-ativo" role="switch" aria-checked="false" aria-label="Ligar ou desligar o segundo cronômetro">
+            <button type="button" class="config-switch" id="cfg-crono2-ativo" role="switch" aria-checked="false"
+              aria-label="Ligar ou desligar o segundo cronômetro">
               <span class="config-switch-track" aria-hidden="true"><span class="config-switch-knob"></span></span>
               <span class="config-switch-txt" id="cfg-crono2-label">Off</span>
             </button>
@@ -245,17 +262,20 @@
           <header class="plano-hero">
             <p class="plano-badge">7 dias grátis no 1º login</p>
             <h2>Pelada Pro</h2>
-            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa ligada ao quem jogou, PDF, relatório do mês e o 2º cronômetro.</p>
+            <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa ligada ao quem
+              jogou, PDF, relatório do mês e o 2º cronômetro.</p>
           </header>
 
-          <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja, depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
+          <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja,
+            depois da conta validar. O teste de 7 dias já vale nesta conta.</p>
 
           <ul class="plano-beneficios" aria-label="Benefícios do Pelada Pro">
             <li>
               <span class="plano-ben-marca" aria-hidden="true">Cx</span>
               <div>
                 <strong>Caixa da pelada</strong>
-                <p>Cobra quem jogou no dia, vê o mês em um painel e manda o boletim no grupo — sem planilha no WhatsApp.</p>
+                <p>Cobra quem jogou no dia, vê o mês em um painel e manda o boletim no grupo — sem planilha no WhatsApp.
+                </p>
               </div>
             </li>
             <li>
@@ -292,28 +312,31 @@
             <article class="plano-oferta plano-oferta-destaque">
               <p class="plano-tag">Mais vantajoso</p>
               <h3>Anual</h3>
-              <p class="plano-preco">R$ 99<span>/ano</span></p>
-              <p class="plano-equiv">~R$ 8,25/mês · Pix ou cartão</p>
+              <p class="plano-preco">R$ 149,90<span>/ano</span></p>
+              <p class="plano-equiv">~R$ 12,49/mês · Pix ou cartão</p>
               <button type="button" class="btn btn-principal" id="btn-plano-anual">Assinar anual</button>
             </article>
 
             <article class="plano-oferta">
               <h3>Mensal</h3>
-              <p class="plano-preco">R$ 14,90<span>/mês</span></p>
+              <p class="plano-preco">R$ 24,90<span>/mês</span></p>
               <p class="plano-equiv">Cancela quando quiser</p>
               <button type="button" class="btn btn-secundario" id="btn-plano-mensal">Assinar mensal</button>
             </article>
           </div>
 
-          <p class="plano-rodape-dica oculto" id="plano-aviso-cortesia">Sua conta já tem o Pelada Pro liberado, sem cobrança no app.</p>
-          <p class="plano-rodape-dica">Na partida: ver a súmula e mandar no WhatsApp em texto continua grátis. O Pro libera a caixa, o PDF e o relatório do mês.</p>
+          <p class="plano-rodape-dica oculto" id="plano-aviso-cortesia">Sua conta já tem o Pelada Pro liberado, sem
+            cobrança no app.</p>
+          <p class="plano-rodape-dica">Na partida: ver a súmula e mandar no WhatsApp em texto continua grátis. O Pro
+            libera a caixa, o PDF e o relatório do mês.</p>
         </div>
       </section>
 
       <section class="tela" id="tela-relatorio-mensal">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-relatorio">← Voltar</button>
         <h2 class="lista-titulo">Relatório</h2>
-        <p class="dica">Peladas do período, campeões (1º na tabela), gols, assistências e cartões. Times mudam — o ranking é por jogador.</p>
+        <p class="dica">Peladas do período, campeões (1º na tabela), gols, assistências e cartões. Times mudam — o
+          ranking é por jogador.</p>
 
         <div class="relatorio-modos" role="tablist" aria-label="Tipo de relatório">
           <button type="button" class="relatorio-modo ativo" data-rel-modo="mes">Mês</button>
@@ -359,7 +382,8 @@
       <section class="tela" id="tela-caixa">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-caixa">← Voltar</button>
         <h2 class="lista-titulo">Caixa da pelada</h2>
-        <p class="dica">O app sabe quem entrou em campo. Cobra o jogo, acompanha o mês e manda o boletim — só você vê o painel.</p>
+        <p class="dica">O app sabe quem entrou em campo. Cobra o jogo, acompanha o mês e manda o boletim — só você vê o
+          painel.</p>
 
         <label>
           Mês
@@ -406,7 +430,8 @@
         <div class="card-form">
           <label>
             Texto da pelada
-            <textarea id="texto-sumula-manual" rows="18" spellcheck="true" placeholder="Cole times, placares, cartões e premiação..."></textarea>
+            <textarea id="texto-sumula-manual" rows="18" spellcheck="true"
+              placeholder="Cole times, placares, cartões e premiação..."></textarea>
           </label>
           <div class="acoes-finas">
             <button type="button" class="btn btn-principal" id="btn-sumula-gerar">Gerar súmula</button>
@@ -418,8 +443,10 @@
       </section>
 
       <section class="tela" id="tela-jogadores">
-        <button type="button" class="btn-voltar-suave btn-cancelar-pelada" id="btn-cancelar-pelada">Cancelar pelada</button>
-        <p class="dica" id="dica-elenco">O elenco da conta já vem carregado. Ao sortear os times, a lista é salva na sua conta.</p>
+        <button type="button" class="btn-voltar-suave btn-cancelar-pelada" id="btn-cancelar-pelada">Cancelar
+          pelada</button>
+        <p class="dica" id="dica-elenco">O elenco da conta já vem carregado. Ao sortear os times, a lista é salva na sua
+          conta.</p>
         <form id="form-jogador" class="card-form">
           <label>
             Nome do jogador de linha
@@ -472,7 +499,8 @@
               <div class="cronometro-linha">
                 <div class="cronometro-tempo" id="cronometro-tempo-2">07:00</div>
                 <div class="cronometro-acoes">
-                  <button type="button" class="btn-crono-icon" id="btn-crono-toggle-2" aria-label="Iniciar ou pausar o 2º cronômetro">
+                  <button type="button" class="btn-crono-icon" id="btn-crono-toggle-2"
+                    aria-label="Iniciar ou pausar o 2º cronômetro">
                     <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M8 5v14l11-7z" fill="currentColor" />
                     </svg>
@@ -480,10 +508,13 @@
                       <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
                     </svg>
                   </button>
-                  <button type="button" class="btn-crono-icon" id="btn-crono-reset-2" aria-label="Reiniciar o 2º cronômetro">
+                  <button type="button" class="btn-crono-icon" id="btn-crono-reset-2"
+                    aria-label="Reiniciar o 2º cronômetro">
                     <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-                      <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" />
+                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round" />
                     </svg>
                   </button>
                 </div>
@@ -520,7 +551,8 @@
             <button type="button" class="btn-crono-icon" id="btn-crono-reset" aria-label="Reiniciar cronômetro">
               <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
                 <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </button>
             <div class="crono-barra" aria-hidden="true">
@@ -542,7 +574,8 @@
         <div class="acoes-fixas">
           <button type="button" class="btn btn-principal" id="btn-finalizar-partida">Finalizar partida</button>
           <button type="button" class="btn btn-secundario" id="btn-desfazer-evento">Desfazer último toque</button>
-          <button type="button" class="btn btn-link-perigo" id="btn-cancelar-partida-atual">Cancelar esta partida</button>
+          <button type="button" class="btn btn-link-perigo" id="btn-cancelar-partida-atual">Cancelar esta
+            partida</button>
         </div>
       </section>
 
@@ -587,7 +620,8 @@
           <button type="button" class="btn btn-principal" id="btn-pdf">Baixar PDF</button>
           <button type="button" class="btn btn-whats" id="btn-whats-resumo">WhatsApp</button>
         </div>
-        <button type="button" class="btn btn-secundario btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem jogou hoje</button>
+        <button type="button" class="btn btn-secundario btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem
+          jogou hoje</button>
 
         <div class="card-form no-print" id="box-atraso-fim">
           <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
@@ -646,4 +680,5 @@
   <script src="js/sumula-manual.js?v=20260723c"></script>
   <script src="js/app.js?v=20260814j"></script>
 </body>
+
 </html>
