@@ -30,11 +30,11 @@ public class PartidaService {
     private final AuthSupport authSupport;
 
     public PartidaService(PeladaRepository peladaRepository,
-                          PartidaRepository partidaRepository,
-                          TimeRepository timeRepository,
-                          JogadorRepository jogadorRepository,
-                          EventoPartidaRepository eventoRepository,
-                          AuthSupport authSupport) {
+            PartidaRepository partidaRepository,
+            TimeRepository timeRepository,
+            JogadorRepository jogadorRepository,
+            EventoPartidaRepository eventoRepository,
+            AuthSupport authSupport) {
         this.peladaRepository = peladaRepository;
         this.partidaRepository = partidaRepository;
         this.timeRepository = timeRepository;
@@ -102,8 +102,10 @@ public class PartidaService {
     }
 
     /**
-     * GOL: time que fez + autor; goleiro que sofreu é opcional (pelada sem GK cadastrado).
-     * GOL_CONTRA: time que sofreu + jogador desse time que fez o gol contra → placar sobe para o adversário.
+     * GOL: time que fez + autor; goleiro que sofreu é opcional (pelada sem GK
+     * cadastrado).
+     * GOL_CONTRA: time que sofreu + jogador desse time que fez o gol contra →
+     * placar sobe para o adversário.
      */
     @Transactional
     public EventoPartida registrarEvento(Long partidaId, RegistrarEventoRequest request) {
@@ -136,18 +138,22 @@ public class PartidaService {
             if (request.getGoleiroId() != null) {
                 goleiro = jogadorRepository.findById(request.getGoleiroId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goleiro não encontrado"));
-                if (!Boolean.TRUE.equals(goleiro.getGoleiro())) {
+                if (!Boolean.TRUE.equals(goleiro.getGoleiro()) || !Boolean.TRUE.equals(goleiro.getApto())) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selecione um goleiro cadastrado");
                 }
                 goleiro.setGolsSofridos(goleiro.getGolsSofridos() + 1);
             }
 
-            if (request.getAssistenciaId() != null) {
+            if (request.getAssistenciaId() != null)
+
+            {
                 if (request.getAssistenciaId().equals(request.getJogadorId())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assistência não pode ser do mesmo autor do gol");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Assistência não pode ser do mesmo autor do gol");
                 }
                 assistencia = jogadorRepository.findById(request.getAssistenciaId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assistência não encontrada"));
+                        .orElseThrow(
+                                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assistência não encontrada"));
                 if (Boolean.TRUE.equals(assistencia.getGoleiro())) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Goleiro não pode dar assistência");
                 }
@@ -162,7 +168,9 @@ public class PartidaService {
             }
             jogador.setGols(jogador.getGols() + 1);
 
-        } else if (request.getTipo() == TipoEvento.GOL_CONTRA) {
+        } else if (request.getTipo() == TipoEvento.GOL_CONTRA)
+
+        {
             // time = time que sofreu (onde está o jogador do gol contra)
             // placar sobe para o adversário
             if (time.getId().equals(partida.getTimeA().getId())) {
@@ -178,7 +186,8 @@ public class PartidaService {
             jogador.setCartoesVermelhos(jogador.getCartoesVermelhos() + 1);
         }
 
-        EventoPartida evento = new EventoPartida(request.getTipo(), partida, time, jogador, goleiro, assistencia);
+        EventoPartida evento = new EventoPartida(request.getTipo(), partida, time, jogador, goleiro,
+                assistencia);
         if (clientLanceId != null && !clientLanceId.isBlank()) {
             evento.setClientLanceId(clientLanceId.trim());
         }
@@ -376,7 +385,7 @@ public class PartidaService {
     public List<Jogador> listarGoleirosDaPelada(Long peladaId) {
         buscarPeladaDoUsuario(peladaId);
         return jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId).stream()
-                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()))
+                .filter(j -> Boolean.TRUE.equals(j.getGoleiro()) && Boolean.TRUE.equals(j.getApto()))
                 .peek(j -> {
                     if (j.getTime() != null) {
                         j.getTime().getId();

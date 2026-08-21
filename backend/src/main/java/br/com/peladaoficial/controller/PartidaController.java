@@ -10,7 +10,6 @@ import br.com.peladaoficial.service.PartidaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +28,7 @@ public class PartidaController {
 
     @PostMapping("/peladas/{peladaId}/partidas")
     public Map<String, Object> iniciar(@PathVariable Long peladaId,
-                                       @Valid @RequestBody IniciarPartidaRequest request) {
+            @Valid @RequestBody IniciarPartidaRequest request) {
         return toPartidaMap(partidaService.iniciar(peladaId, request));
     }
 
@@ -52,7 +51,7 @@ public class PartidaController {
         return listarGoleiros(peladaId);
     }
 
-    @GetMapping({"/partidas/{id}", "/jogos/{id}"})
+    @GetMapping({ "/partidas/{id}", "/jogos/{id}" })
     public Map<String, Object> buscar(@PathVariable Long id) {
         return toPartidaMap(partidaService.buscar(id));
     }
@@ -65,7 +64,7 @@ public class PartidaController {
             "/jogos/{id}/eventos"
     })
     public Map<String, Object> registrarEvento(@PathVariable Long id,
-                                               @Valid @RequestBody RegistrarEventoRequest request) {
+            @Valid @RequestBody RegistrarEventoRequest request) {
         partidaService.registrarEvento(id, request);
         // Devolve a partida completa já atualizada (placar + eventos) — 1 round-trip só
         return toPartidaMap(partidaService.buscar(id));
@@ -112,13 +111,11 @@ public class PartidaController {
         map.put("timeA", Map.of(
                 "id", partida.getTimeA().getId(),
                 "nome", partida.getTimeA().getNome(),
-                "cor", partida.getTimeA().getCor()
-        ));
+                "cor", partida.getTimeA().getCor()));
         map.put("timeB", Map.of(
                 "id", partida.getTimeB().getId(),
                 "nome", partida.getTimeB().getNome(),
-                "cor", partida.getTimeB().getCor()
-        ));
+                "cor", partida.getTimeB().getCor()));
         return map;
     }
 
@@ -127,9 +124,11 @@ public class PartidaController {
         map.put("eventos", partida.getEventos().stream().map(this::toEventoMap).collect(Collectors.toList()));
 
         List<Jogador> linhaA = partida.getTimeA().getJogadores().stream()
-                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro())).collect(Collectors.toList());
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && Boolean.TRUE.equals(j.getApto()))
+                .collect(Collectors.toList());
         List<Jogador> linhaB = partida.getTimeB().getJogadores().stream()
-                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro())).collect(Collectors.toList());
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && Boolean.TRUE.equals(j.getApto()))
+                .collect(Collectors.toList());
 
         map.put("jogadoresTimeA", linhaA.stream().map(this::toJogadorSimples).collect(Collectors.toList()));
         map.put("jogadoresTimeB", linhaB.stream().map(this::toJogadorSimples).collect(Collectors.toList()));
@@ -177,7 +176,7 @@ public class PartidaController {
         map.put("golsContra", t.getGolsContra());
         map.put("nomeManual", Boolean.TRUE.equals(t.getNomeManual()));
         map.put("jogadores", t.getJogadores().stream()
-                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()) && Boolean.TRUE.equals(j.getApto()))
                 .map(this::toJogadorSimples)
                 .collect(Collectors.toList()));
         t.getGoleiroDoTime().ifPresent(gk -> map.put("goleiro", toJogadorSimples(gk)));
