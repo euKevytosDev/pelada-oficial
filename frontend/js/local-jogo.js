@@ -819,6 +819,8 @@ const LocalJogo = (() => {
         .map((j) => ({
           nome: j.nome,
           gols: golsMap.get(String(j.id)) || 0,
+          assistencias: assistPorJogador.get(String(j.id))?.quantidade || 0,
+          golsContra: golsContraPorJogador.get(String(j.id))?.quantidade || 0,
         }));
       const gkRaw = t.goleiro;
       const gkApto = gkRaw && aptoIds.has(String(gkRaw.id));

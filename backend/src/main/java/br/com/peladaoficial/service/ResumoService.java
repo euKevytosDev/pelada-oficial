@@ -237,6 +237,7 @@ public class ResumoService {
                     jm.put("nome", j.getNome());
                     jm.put("estrelas", j.getEstrelas());
                     jm.put("gols", j.getGols());
+                    jm.put("assistencias", j.getAssistencias());
                     jm.put("golsContra", j.getGolsContra());
                     jm.put("amarelos", j.getCartoesAmarelos());
                     jm.put("vermelhos", j.getCartoesVermelhos());

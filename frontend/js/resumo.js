@@ -179,7 +179,9 @@ function renderResumoOficial(resumo) {
         .map((j) => {
           const gols = j.gols || 0;
           const ass = j.assistencias || 0;
-          return `<li><span>${j.nome}</span><span class="meta">${gols} gol(s) · ${ass} assist.</span></li>`;
+          const contra = j.golsContra || 0;
+          const contraTxt = contra ? ` · ${contra} contra` : "";
+          return `<li><span>${j.nome}</span><span class="meta">${gols} gol(s) · ${ass} assist.${contraTxt}</span></li>`;
         })
         .join("");
       return `

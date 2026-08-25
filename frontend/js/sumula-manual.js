@@ -14,7 +14,7 @@ Goleiro: Júnior (6 gols sofridos)
 3. Miquéias 1 gol 1 assistência
 4. Fernando 1 gol
 5. Dudu 2 assistências
-6. Ricardo
+6. Ricardo 1 gol contra
 
 TIME 2 - Gabriel
 Goleiro: Jonatan (6 gols sofridos)
@@ -62,6 +62,7 @@ Partidas
 9ª	Gabriel	0 x 1	Victor Santos
 10ª	Abelardo	0 x 2	Victor Santos
 11ª	Ricardo	0 x 1	Victor Santos
+Gol contra: Ricardo
 12ª	Gabriel	2 x 1	Victor Santos
 13ª	Gabriel	1 x 0	Abelardo
 
@@ -83,16 +84,36 @@ function extrairStatsDoNome(linha) {
     .replace(/^[0-9]+[.)]\s*/, "")
     .replace(/^[-*•]\s*/, "")
     .trim();
-  const golsM = limpa.match(/(\d+)\s*gols?/i);
+  const contraM = limpa.match(/(\d+)\s*gols?\s+contra/i);
+  const golsM = limpa.replace(/\d+\s*gols?\s+contra/gi, "").match(/(\d+)\s*gols?/i);
   const assM = limpa.match(/(\d+)\s*assist(?:[eê]ncias?)?/i);
   const gols = golsM ? Number(golsM[1]) : 0;
   const assistencias = assM ? Number(assM[1]) : 0;
+  const golsContra = contraM ? Number(contraM[1]) : 0;
   const nome = limpa
+    .replace(/\s*[—\-–,]?\s*\d+\s*gols?\s+contra/gi, "")
     .replace(/\s*[—\-–,]?\s*\d+\s*gols?/gi, "")
     .replace(/\s*[—\-–,]?\s*\d+\s*assist(?:[eê]ncias?)?/gi, "")
     .replace(/\s*[—\-–]\s*$/, "")
     .trim();
-  return { nome: nome || limpa, gols, assistencias };
+  return { nome: nome || limpa, gols, assistencias, golsContra };
+}
+
+function normalizarNomeJogador(nome) {
+  return String(nome || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function acharJogadorNosTimes(timesMap, nome) {
+  const alvo = normalizarNomeJogador(nome);
+  if (!alvo) return null;
+  for (const time of Object.values(timesMap)) {
+    const jogador = (time.jogadores || []).find((j) => normalizarNomeJogador(j.nome) === alvo);
+    if (jogador) return { jogador, timeNome: time.nome };
+  }
+  return null;
 }
 
 function parsePremioTexto(valor) {
@@ -215,8 +236,8 @@ function montarResumoDeTexto(textoBruto) {
     corpoTime.split("\n").forEach((linha) => {
       const t = linha.trim();
       if (!/^\d+[.)]/.test(t)) return;
-      const { nome, gols, assistencias } = extrairStatsDoNome(t);
-      if (nome) jogadores.push({ nome, gols, assistencias });
+      const { nome, gols, assistencias, golsContra } = extrairStatsDoNome(t);
+      if (nome) jogadores.push({ nome, gols, assistencias, golsContra });
     });
 
     const cor = CORES_SUMULA[timesOrdem.length % CORES_SUMULA.length];
@@ -255,6 +276,11 @@ function montarResumoDeTexto(textoBruto) {
       return;
     }
     if (!partidaAtual) return;
+    const golContra = t.match(/^Gol\s+contra:\s*(.+)$/i);
+    if (golContra) {
+      partidaAtual.eventos.push({ tipo: "GOL_CONTRA", jogadorNome: golContra[1].trim() });
+      return;
+    }
     const gol = t.match(/^Gol:\s*(.+?)(?:\s*[·•]\s*Assist[eê]ncia:\s*(.+))?$/i);
     if (gol) {
       partidaAtual.eventos.push({
@@ -276,6 +302,24 @@ function montarResumoDeTexto(textoBruto) {
   });
 
   const classificacao = calcularClassificacao(timesMap, partidas);
+
+  const nomesGolContra = [];
+  partidas.forEach((p) => {
+    (p.eventos || []).forEach((e) => {
+      if (e.tipo === "GOL_CONTRA" && e.jogadorNome) nomesGolContra.push(e.jogadorNome);
+    });
+  });
+  if (nomesGolContra.length) {
+    Object.values(timesMap).forEach((t) => {
+      (t.jogadores || []).forEach((j) => {
+        j.golsContra = 0;
+      });
+    });
+    nomesGolContra.forEach((nome) => {
+      const hit = acharJogadorNosTimes(timesMap, nome);
+      if (hit) hit.jogador.golsContra = (hit.jogador.golsContra || 0) + 1;
+    });
+  }
 
   const amarelos = [];
   const vermelhos = [];
@@ -341,6 +385,28 @@ function montarResumoDeTexto(textoBruto) {
     });
   });
   rankingAssist.sort((a, b) => b.assistencias - a.assistencias || a.nome.localeCompare(b.nome, "pt-BR"));
+
+  const rankingGolsContra = [];
+  const contraPorChave = new Map();
+  const registrarContra = (nome, timeNome, qtd) => {
+    if (!nome || !qtd) return;
+    const chave = `${normalizarNomeJogador(nome)}|${normalizarNomeJogador(timeNome || "")}`;
+    const cur = contraPorChave.get(chave) || { nome, quantidade: 0, time: timeNome || "" };
+    cur.quantidade += qtd;
+    if (timeNome) cur.time = timeNome;
+    contraPorChave.set(chave, cur);
+  };
+  timesOrdem.forEach((nomeTime) => {
+    (timesMap[nomeTime].jogadores || []).forEach((j) => {
+      if ((j.golsContra || 0) > 0) registrarContra(j.nome, nomeTime, j.golsContra);
+    });
+  });
+  nomesGolContra.forEach((nome) => {
+    if (acharJogadorNosTimes(timesMap, nome)) return;
+    registrarContra(nome, "", 1);
+  });
+  rankingGolsContra.push(...contraPorChave.values());
+  rankingGolsContra.sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const pegarCampo = (label) => {
     const re = new RegExp(`${label}\\s*:\\s*(.+)`, "i");
@@ -472,7 +538,7 @@ function montarResumoDeTexto(textoBruto) {
     cartoesVermelhos: vermelhos,
     totalAmarelos: amarelos.reduce((s, c) => s + c.quantidade, 0),
     totalVermelhos: vermelhos.reduce((s, c) => s + c.quantidade, 0),
-    golsContra: [],
+    golsContra: rankingGolsContra,
     observacoes: [...texto.matchAll(/Atraso:\s*(.+?)\s+às\s+(\d{1,2}:\d{2})/gi)].map((m) => ({
       tipo: "ATRASO",
       jogadorNome: m[1].trim(),
@@ -513,8 +579,10 @@ function baixarPlanilhaCsv(resumo) {
   (resumo.times || []).forEach((t) => {
     row(t.nome);
     row("Goleiro", t.goleiro ? `${t.goleiro.nome} (${t.goleiro.golsSofridos ?? 0} sofridos)` : "—");
-    row("#", "Jogador", "Gols", "Assistências");
-    (t.jogadores || []).forEach((j, i) => row(i + 1, j.nome, j.gols || 0, j.assistencias || 0));
+    row("#", "Jogador", "Gols", "Assistências", "Gols contra");
+    (t.jogadores || []).forEach((j, i) =>
+      row(i + 1, j.nome, j.gols || 0, j.assistencias || 0, j.golsContra || 0)
+    );
     row("");
   });
   row("ARTILHARIA");
@@ -532,6 +600,10 @@ function baixarPlanilhaCsv(resumo) {
   row("CARTÕES VERMELHOS");
   row("Jogador", "Qtd");
   (resumo.cartoesVermelhos || []).forEach((c) => row(c.nome, c.quantidade));
+  row("");
+  row("GOLS CONTRA");
+  row("Jogador", "Qtd", "Time");
+  (resumo.golsContra || []).forEach((c) => row(c.nome, c.quantidade, c.time || ""));
   row("");
   row("PARTIDAS");
   row("Rodada", "Time A", "Gols A", "Gols B", "Time B", "Lances");
