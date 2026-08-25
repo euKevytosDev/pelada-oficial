@@ -1911,7 +1911,7 @@ async function escolherJogadorDoLance(titulo, partida, timeId, { excluirId, soLi
       }
       ops.push({ id: j.id, label, goleiro: !!j.goleiro });
     });
-    if (comOutro) ops.push({ id: ID_OUTRO_TIME, label: "Outro time", outroTime: true });
+    if (comOutro) ops.push({ id: ID_OUTRO_TIME, label: "Outro jogador", outroTime: true });
     return ops;
   };
 
@@ -1926,7 +1926,7 @@ async function escolherJogadorDoLance(titulo, partida, timeId, { excluirId, soLi
 
   const escolha = await escolherOpcao(titulo, montarOpcoes(doTime, false, true, incluirSem));
   if (escolha === ID_OUTRO_TIME) {
-    return escolherOpcao("Outro time — quem?", montarOpcoes(todos, true, false, false));
+    return escolherOpcao("Outro jogador — quem?", montarOpcoes(todos, true, false, false));
   }
   return escolha;
 }
