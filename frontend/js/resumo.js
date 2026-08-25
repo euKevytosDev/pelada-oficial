@@ -179,8 +179,7 @@ function renderResumoOficial(resumo) {
         .map((j) => {
           const gols = j.gols || 0;
           const ass = j.assistencias || 0;
-          const meta = ass > 0 ? `${gols} gol(s) · ${ass} assist.` : `${gols} gol(s)`;
-          return `<li><span>${j.nome}</span><span class="meta">${meta}</span></li>`;
+          return `<li><span>${j.nome}</span><span class="meta">${gols} gol(s) · ${ass} assist.</span></li>`;
         })
         .join("");
       return `
@@ -223,7 +222,7 @@ function renderResumoOficial(resumo) {
         <p class="eyebrow">Futebol entre amigos</p>
         <h2>${p.nome || "Pelada Oficial"}</h2>
       </div>
-      <p class="resumo-data">${dataHojeBr()}</p>
+      <p class="resumo-data">${formatarDataBr(p.encerradaEm || p.criadaEm)}</p>
     </header>
 
     <section class="resumo-bloco">
@@ -291,7 +290,7 @@ function textoResumoWhatsApp(resumo) {
   const p = resumo.pelada || {};
   const linhas = [];
   linhas.push(`*${p.nome || "Pelada Oficial"}*`);
-  linhas.push(`📅 ${dataHojeBr()}`);
+  linhas.push(`📅 ${formatarDataBr(p.encerradaEm || p.criadaEm)}`);
   linhas.push("");
   linhas.push("*Classificação*");
   (resumo.classificacao || []).forEach((t) => {

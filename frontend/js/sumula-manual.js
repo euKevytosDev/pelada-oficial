@@ -175,13 +175,14 @@ function montarResumoDeTexto(textoBruto) {
   const texto = String(textoBruto || "").replace(/\r\n/g, "\n").trim();
   if (!texto) throw new Error("Cole o texto da pelada antes de gerar.");
 
-  const dataIso = (() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}T12:00:00`;
-  })();
+  const dataIso = parseDataBrParaIso(texto);
+  let nomePelada = "Pelada Oficial";
+  for (const linha of texto.split("\n").slice(0, 8)) {
+    const t = linha.trim();
+    if (!t || /^FUTEBOL/i.test(t) || /^Data:/i.test(t) || /^TIME\s*\d+/i.test(t)) continue;
+    nomePelada = t;
+    break;
+  }
 
   const timesMap = {};
   const timesOrdem = [];
@@ -228,26 +229,50 @@ function montarResumoDeTexto(textoBruto) {
   }
 
   const partidas = [];
-  const partidasMatch = texto.match(/Partidas([\s\S]*?)(?=\n\s*Pontua|\n\s*Campe|\n\s*Bola|\n\s*Luva|$)/i);
+  const partidasMatch = texto.match(/Partidas([\s\S]*?)(?=\n\s*Pontua|\n\s*Time\s+Campe|\n\s*Campe|\n\s*Bola|\n\s*Luva|$)/i);
   const blocoPartidas = partidasMatch ? partidasMatch[1] : "";
+  let partidaAtual = null;
   blocoPartidas.split("\n").forEach((linha) => {
     const t = linha.trim();
     if (!t || /^partida/i.test(t) || /^rodada/i.test(t)) return;
     const m =
       t.match(/^(\d+)\s*ª?\s+(.+?)\s+(\d+)\s*[xX×]\s*(\d+)\s+(.+)$/) ||
       t.match(/^(\d+)\s*ª?\t+(.+?)\t+(\d+)\s*[xX×]\s*(\d+)\t+(.+)$/);
-    if (!m) return;
-    const timeA = m[2].trim();
-    const timeB = m[5].trim();
-    partidas.push({
-      numero: Number(m[1]),
-      timeA,
-      golsA: Number(m[3]),
-      golsB: Number(m[4]),
-      timeB,
-      corA: timesMap[timeA]?.cor || "#1B5E20",
-      corB: timesMap[timeB]?.cor || "#0D47A1",
-    });
+    if (m) {
+      const timeA = m[2].trim();
+      const timeB = m[5].trim();
+      partidaAtual = {
+        numero: Number(m[1]),
+        timeA,
+        golsA: Number(m[3]),
+        golsB: Number(m[4]),
+        timeB,
+        corA: timesMap[timeA]?.cor || "#1B5E20",
+        corB: timesMap[timeB]?.cor || "#0D47A1",
+        eventos: [],
+      };
+      partidas.push(partidaAtual);
+      return;
+    }
+    if (!partidaAtual) return;
+    const gol = t.match(/^Gol:\s*(.+?)(?:\s*[·•]\s*Assist[eê]ncia:\s*(.+))?$/i);
+    if (gol) {
+      partidaAtual.eventos.push({
+        tipo: "GOL",
+        jogadorNome: gol[1].trim(),
+        assistenciaNome: gol[2] ? gol[2].trim() : null,
+      });
+      return;
+    }
+    const am = t.match(/^Cart[aã]o\s+amarelo:\s*(.+)$/i);
+    if (am) {
+      partidaAtual.eventos.push({ tipo: "CARTAO_AMARELO", jogadorNome: am[1].trim() });
+      return;
+    }
+    const vm = t.match(/^Cart[aã]o\s+vermelho:\s*(.+)$/i);
+    if (vm) {
+      partidaAtual.eventos.push({ tipo: "CARTAO_VERMELHO", jogadorNome: vm[1].trim() });
+    }
   });
 
   const classificacao = calcularClassificacao(timesMap, partidas);
@@ -368,6 +393,30 @@ function montarResumoDeTexto(textoBruto) {
     };
   }
 
+  const qtdCartao = (lista, nome) =>
+    (lista || []).find((c) => String(c.nome).toLowerCase() === String(nome).toLowerCase())?.quantidade || 0;
+  const scoresCraque = [];
+  timesOrdem.forEach((nomeTime) => {
+    (timesMap[nomeTime].jogadores || []).forEach((j) => {
+      const pts =
+        (j.gols || 0) * 2 +
+        (j.assistencias || 0) -
+        qtdCartao(amarelos, j.nome) -
+        qtdCartao(vermelhos, j.nome) * 2;
+      scoresCraque.push({ nome: j.nome, pts });
+    });
+  });
+  if (scoresCraque.length) {
+    const maxC = Math.max(...scoresCraque.map((x) => x.pts));
+    const tops = scoresCraque.filter((x) => x.pts === maxC);
+    premios.craque = {
+      nome: tops.map((t) => t.nome).join(" / "),
+      nomes: tops.map((t) => t.nome),
+      empate: tops.length > 1,
+      detalhe: `${maxC} pt${maxC === 1 ? "" : "s"} (gol 2 · assistência 1 · A -1 · V -2)`,
+    };
+  }
+
   const campeaoTxt = pegarCampo("Campe[aã]o");
   const artilheiroTxt = pegarCampo("Artilheiro") || pegarCampo("Bola de Ouro");
   const craqueTxt = pegarCampo("Craque");
@@ -384,7 +433,7 @@ function montarResumoDeTexto(textoBruto) {
   }
   if (craqueTxt !== null) {
     const p = parsePremioTexto(craqueTxt);
-    premios.craque = p ? { ...p, detalhe: premios.craque?.detalhe || "" } : null;
+    if (p) premios.craque = { ...p, detalhe: premios.craque?.detalhe || "" };
   }
   if (garcomTxt !== null) {
     const p = parsePremioTexto(garcomTxt);
@@ -407,7 +456,7 @@ function montarResumoDeTexto(textoBruto) {
 
   return {
     pelada: {
-      nome: "Pelada Oficial",
+      nome: nomePelada,
       status: "ENCERRADA",
       criadaEm: dataIso,
       encerradaEm: dataIso,
@@ -424,7 +473,11 @@ function montarResumoDeTexto(textoBruto) {
     totalAmarelos: amarelos.reduce((s, c) => s + c.quantidade, 0),
     totalVermelhos: vermelhos.reduce((s, c) => s + c.quantidade, 0),
     golsContra: [],
-    observacoes: [],
+    observacoes: [...texto.matchAll(/Atraso:\s*(.+?)\s+às\s+(\d{1,2}:\d{2})/gi)].map((m) => ({
+      tipo: "ATRASO",
+      jogadorNome: m[1].trim(),
+      horario: m[2],
+    })),
     premios,
   };
 }
