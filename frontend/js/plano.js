@@ -89,10 +89,11 @@ const PlanoApp = (() => {
                <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
              </article>
              <article class="paywall-oferta">
-               <strong>Mensal</strong>
+               <strong>Mensal cartão</strong>
                <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
-               <p class="paywall-equiv">Pix ou cartão · cancela quando quiser</p>
-               <button type="button" class="btn btn-secundario" id="paywall-btn-mensal">Assinar mensal</button>
+               <p class="paywall-equiv">Renova automaticamente no cartão</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Assinar no cartão</button>
+               <button type="button" class="btn btn-secundario paywall-btn-pix" id="paywall-btn-mensal-pix">Pagar no Pix</button>
              </article>
            </div>
            <button type="button" class="btn btn-secundario paywall-ver-planos" id="paywall-ver-planos">Ver todos os planos</button>
@@ -110,7 +111,11 @@ const PlanoApp = (() => {
       if (typeof fecharModal === "function") fecharModal();
       assinar("pro_anual");
     });
-    document.getElementById("paywall-btn-mensal")?.addEventListener("click", () => {
+    document.getElementById("paywall-btn-mensal-cartao")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      assinar("pro_mensal_recorrente");
+    });
+    document.getElementById("paywall-btn-mensal-pix")?.addEventListener("click", () => {
       if (typeof fecharModal === "function") fecharModal();
       assinar("pro_mensal");
     });
@@ -204,7 +209,8 @@ const PlanoApp = (() => {
       mostrarTela(estado.telaAntesPlanos || "tela-configuracoes");
     });
     document.getElementById("btn-abrir-planos")?.addEventListener("click", () => abrir("tela-configuracoes"));
-    document.getElementById("btn-plano-mensal")?.addEventListener("click", () => assinar("pro_mensal"));
+    document.getElementById("btn-plano-mensal-cartao")?.addEventListener("click", () => assinar("pro_mensal_recorrente"));
+    document.getElementById("btn-plano-mensal-pix")?.addEventListener("click", () => assinar("pro_mensal"));
     document.getElementById("btn-plano-anual")?.addEventListener("click", () => assinar("pro_anual"));
     protegerSelectQtdTimes(document.getElementById("qtd-times"));
     protegerSelectQtdTimes(document.getElementById("cfg-qtd-times"));

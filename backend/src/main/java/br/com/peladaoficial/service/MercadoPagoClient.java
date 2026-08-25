@@ -80,4 +80,63 @@ public class MercadoPagoClient {
                 .retrieve()
                 .body(Map.class);
     }
+
+    /**
+     * Assinatura mensal no cartão (cobrança automática).
+     * Retorna init_point para o pagador autorizar no checkout do Mercado Pago.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> criarAssinaturaRecorrente(String titulo,
+                                                         BigDecimal valor,
+                                                         String externalRef,
+                                                         String payerEmail,
+                                                         String backUrl,
+                                                         String notificationUrl) {
+        if (!configurado()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Pagamento na web ainda não está ligado. Peça o token do Mercado Pago.");
+        }
+
+        Map<String, Object> autoRecurring = new LinkedHashMap<>();
+        autoRecurring.put("frequency", 1);
+        autoRecurring.put("frequency_type", "months");
+        autoRecurring.put("transaction_amount", valor);
+        autoRecurring.put("currency_id", "BRL");
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("reason", titulo);
+        body.put("external_reference", externalRef);
+        body.put("payer_email", payerEmail);
+        body.put("auto_recurring", autoRecurring);
+        body.put("back_url", backUrl);
+        body.put("status", "pending");
+        if (notificationUrl != null && !notificationUrl.isBlank()) {
+            body.put("notification_url", notificationUrl);
+        }
+
+        Map<String, Object> resp = http.post()
+                .uri("/preapproval")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + accessToken)
+                .body(body)
+                .retrieve()
+                .body(Map.class);
+        if (resp == null || resp.get("init_point") == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Mercado Pago não devolveu o checkout da assinatura");
+        }
+        return resp;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> buscarPreapproval(String preapprovalId) {
+        if (!configurado()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Mercado Pago não configurado");
+        }
+        return http.get()
+                .uri("/preapproval/{id}", preapprovalId)
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .body(Map.class);
+    }
 }

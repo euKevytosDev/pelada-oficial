@@ -51,6 +51,10 @@ public class Usuario {
     @Column(length = 80)
     private String ultimoPagamentoMp;
 
+    /** ID da assinatura recorrente no Mercado Pago (preapproval). */
+    @Column(length = 80)
+    private String mpPreapprovalId;
+
     public Usuario(String email, String nome, String senhaHash) {
         this.email = email;
         this.nome = nome;

@@ -25,6 +25,7 @@ public class AssinaturaService {
     public static final String PLANO_GRATIS = "GRATIS";
     public static final String PLANO_PRO = "PRO";
     public static final String PRO_MENSAL = "pro_mensal";
+    public static final String PRO_MENSAL_RECORRENTE = "pro_mensal_recorrente";
     public static final String PRO_ANUAL = "pro_anual";
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -57,8 +58,10 @@ public class AssinaturaService {
 
     public List<Map<String, Object>> catalogo() {
         return List.of(
-                planoPublico(PRO_MENSAL, "Mensal", "R$ 49,90", "49.90", "Cobra todo mês. Cancela quando quiser."),
-                planoPublico(PRO_ANUAL, "Anual", "R$ 349,90", "349.90", "~R$ 29,15/mês. Melhor custo.")
+                planoPublico(PRO_ANUAL, "Anual", "R$ 349,90", "349.90", "~R$ 29,15/mês. Pix ou cartão avulso."),
+                planoPublico(PRO_MENSAL, "Mensal Pix", "R$ 49,90", "49.90", "Paga uma vez no Pix (30 dias de Pro)."),
+                planoPublico(PRO_MENSAL_RECORRENTE, "Mensal cartão", "R$ 49,90", "49.90",
+                        "Renova automaticamente todo mês no cartão.")
         );
     }
 
@@ -107,6 +110,23 @@ public class AssinaturaService {
         String externalRef = usuario.getId() + ":" + plano.id();
         String success = frontUrl + "?pago=ok";
         String fail = frontUrl + "?pago=falhou";
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (PRO_MENSAL_RECORRENTE.equals(plano.id())) {
+            Map<String, Object> sub = mercadoPagoClient.criarAssinaturaRecorrente(
+                    plano.tituloMp(),
+                    plano.valor(),
+                    externalRef,
+                    usuario.getEmail(),
+                    success,
+                    webhookUrl
+            );
+            out.put("initPoint", sub.get("init_point"));
+            out.put("preapprovalId", sub.get("id"));
+            out.put("tipo", "recorrente");
+            return out;
+        }
+
         Map<String, Object> pref = mercadoPagoClient.criarPreferencia(
                 plano.tituloMp(),
                 plano.valor(),
@@ -115,9 +135,9 @@ public class AssinaturaService {
                 success,
                 fail
         );
-        Map<String, Object> out = new LinkedHashMap<>();
         out.put("initPoint", pref.get("init_point"));
         out.put("preferenceId", pref.get("id"));
+        out.put("tipo", "avulso");
         return out;
     }
 
@@ -130,6 +150,56 @@ public class AssinaturaService {
         if (!"approved".equalsIgnoreCase(status)) return;
 
         String ext = String.valueOf(pag.getOrDefault("external_reference", ""));
+        String planoId = extrairPlanoId(ext);
+        if (planoId == null) {
+            Object preId = pag.get("preapproval_id");
+            if (preId != null) {
+                processarAssinatura(String.valueOf(preId));
+            }
+            return;
+        }
+        CatalogoPlano plano = resolverPlano(planoId);
+        ativarProPorPagamento(ext, plano, paymentId.trim(), "WEB_MP");
+    }
+
+    @Transactional
+    public void processarAssinatura(String preapprovalId) {
+        if (preapprovalId == null || preapprovalId.isBlank()) return;
+        Map<String, Object> sub = mercadoPagoClient.buscarPreapproval(preapprovalId.trim());
+        if (sub == null) return;
+
+        String status = String.valueOf(sub.getOrDefault("status", ""));
+        if (!"authorized".equalsIgnoreCase(status) && !"active".equalsIgnoreCase(status)) {
+            return;
+        }
+
+        String ext = String.valueOf(sub.getOrDefault("external_reference", ""));
+        String planoId = extrairPlanoId(ext);
+        if (planoId == null || !PRO_MENSAL_RECORRENTE.equals(planoId)) return;
+
+        int sep = ext.indexOf(':');
+        long userId;
+        try {
+            userId = Long.parseLong(ext.substring(0, sep));
+        } catch (NumberFormatException e) {
+            return;
+        }
+
+        Usuario usuario = usuarioRepository.findById(userId).orElse(null);
+        if (usuario == null || emailCortesia(usuario)) return;
+
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime base = usuario.getPlanoExpiraEm();
+        if (base == null || base.isBefore(agora)) base = agora;
+
+        usuario.setPlano(PLANO_PRO);
+        usuario.setPlanoExpiraEm(base.plusDays(35));
+        usuario.setPagamentoOrigem("WEB_MP_RECORRENTE");
+        usuario.setMpPreapprovalId(preapprovalId.trim());
+        usuarioRepository.save(usuario);
+    }
+
+    private void ativarProPorPagamento(String ext, CatalogoPlano plano, String paymentId, String origem) {
         int sep = ext.indexOf(':');
         if (sep <= 0) return;
         long userId;
@@ -138,8 +208,6 @@ public class AssinaturaService {
         } catch (NumberFormatException e) {
             return;
         }
-        String planoId = ext.substring(sep + 1);
-        CatalogoPlano plano = resolverPlano(planoId);
 
         Usuario usuario = usuarioRepository.findById(userId).orElse(null);
         if (usuario == null) return;
@@ -153,9 +221,15 @@ public class AssinaturaService {
         if (base == null || base.isBefore(agora)) base = agora;
         usuario.setPlano(PLANO_PRO);
         usuario.setPlanoExpiraEm(base.plusDays(plano.dias()));
-        usuario.setPagamentoOrigem("WEB_MP");
+        usuario.setPagamentoOrigem(origem);
         usuario.setUltimoPagamentoMp(paymentId);
         usuarioRepository.save(usuario);
+    }
+
+    private String extrairPlanoId(String ext) {
+        int sep = ext.indexOf(':');
+        if (sep <= 0 || sep >= ext.length() - 1) return null;
+        return ext.substring(sep + 1);
     }
 
     public Map<String, Object> toMap(Usuario usuario) {
@@ -209,8 +283,11 @@ public class AssinaturaService {
         if (PRO_ANUAL.equals(planoId)) {
             return new CatalogoPlano(PRO_ANUAL, "Pelada Pro anual", new BigDecimal("349.90"), 365);
         }
+        if (PRO_MENSAL_RECORRENTE.equals(planoId)) {
+            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Pelada Pro mensal (cartão)", new BigDecimal("49.90"), 30);
+        }
         if (PRO_MENSAL.equals(planoId) || planoId == null || planoId.isBlank()) {
-            return new CatalogoPlano(PRO_MENSAL, "Pelada Pro mensal", new BigDecimal("49.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL, "Pelada Pro mensal (Pix)", new BigDecimal("49.90"), 30);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano inválido");
     }

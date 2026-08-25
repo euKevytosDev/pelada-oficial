@@ -903,6 +903,10 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   min-height: 44px;
 }
 
+.paywall-btn-pix {
+  margin-top: 8px;
+}
+
 .paywall-ver-planos {
   width: 100%;
   margin-top: 4px;

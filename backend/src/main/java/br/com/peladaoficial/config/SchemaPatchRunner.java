@@ -82,6 +82,7 @@ public class SchemaPatchRunner implements ApplicationRunner {
             jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS trial_inicio timestamp");
             jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pagamento_origem varchar(20)");
             jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_pagamento_mp varchar(80)");
+            jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mp_preapproval_id varchar(80)");
             log.info("Schema OK: colunas usuarios.plano / trial verificadas");
 
             jdbc.execute("""

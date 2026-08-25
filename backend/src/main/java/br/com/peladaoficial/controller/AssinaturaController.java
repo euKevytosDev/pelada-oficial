@@ -46,7 +46,14 @@ public class AssinaturaController {
         }
         if (paymentId != null) {
             try {
-                assinaturaService.processarNotificacao(paymentId);
+                String type = body != null ? String.valueOf(body.getOrDefault("type", "")) : "";
+                String action = body != null ? String.valueOf(body.getOrDefault("action", "")) : "";
+                if (type.contains("subscription") || type.contains("preapproval")
+                        || action.contains("subscription") || action.contains("preapproval")) {
+                    assinaturaService.processarAssinatura(paymentId);
+                } else {
+                    assinaturaService.processarNotificacao(paymentId);
+                }
             } catch (Exception ignored) {
                 /* MP reenvia se falhar; não devolve 500 para payload estranho */
             }
