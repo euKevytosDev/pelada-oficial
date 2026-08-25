@@ -166,13 +166,65 @@ const LocalJogo = (() => {
   }
 
   function indiceTimeMaisFraco(somaEstrelas, qtdJogadores) {
-    let melhor = 0;
-    for (let i = 1; i < somaEstrelas.length; i++) {
-      const menos = somaEstrelas[i] < somaEstrelas[melhor];
-      const empate = somaEstrelas[i] === somaEstrelas[melhor] && qtdJogadores[i] < qtdJogadores[melhor];
-      if (menos || empate) melhor = i;
+    let minQtd = qtdJogadores[0];
+    for (let i = 1; i < qtdJogadores.length; i++) {
+      if (qtdJogadores[i] < minQtd) minQtd = qtdJogadores[i];
     }
-    return melhor;
+    let minSoma = Infinity;
+    for (let i = 0; i < qtdJogadores.length; i++) {
+      if (qtdJogadores[i] !== minQtd) continue;
+      if (somaEstrelas[i] < minSoma) minSoma = somaEstrelas[i];
+    }
+    const idxs = [];
+    for (let i = 0; i < qtdJogadores.length; i++) {
+      if (qtdJogadores[i] === minQtd && somaEstrelas[i] === minSoma) idxs.push(i);
+    }
+    return idxs[Math.floor(Math.random() * idxs.length)] || 0;
+  }
+
+  /** Troca 1x1 entre times para aproximar as estrelas, sem mudar a quantidade. */
+  function equilibrarPorTrocas(times, soma) {
+    const linhaDe = (t) => (t.jogadores || []).filter((j) => !j.goleiro);
+    for (let round = 0; round < 24; round++) {
+      let melhorou = false;
+      for (let i = 0; i < times.length; i++) {
+        for (let j = i + 1; j < times.length; j++) {
+          const diff = soma[i] - soma[j];
+          if (Math.abs(diff) <= 1) continue;
+          const high = diff > 0 ? i : j;
+          const low = diff > 0 ? j : i;
+          const d = soma[high] - soma[low];
+          let bestH = null;
+          let bestL = null;
+          let bestAbs = Math.abs(d);
+          for (const ph of linhaDe(times[high])) {
+            for (const pl of linhaDe(times[low])) {
+              const delta = (ph.estrelas || 0) - (pl.estrelas || 0);
+              if (delta <= 0) continue;
+              const novoAbs = Math.abs(d - 2 * delta);
+              if (novoAbs < bestAbs) {
+                bestAbs = novoAbs;
+                bestH = ph;
+                bestL = pl;
+              }
+            }
+          }
+          if (!bestH || !bestL) continue;
+          const th = times[high];
+          const tl = times[low];
+          th.jogadores = th.jogadores.filter((x) => String(x.id) !== String(bestH.id));
+          tl.jogadores = tl.jogadores.filter((x) => String(x.id) !== String(bestL.id));
+          const copiaH = { ...bestH, timeId: tl.id };
+          const copiaL = { ...bestL, timeId: th.id };
+          th.jogadores.push(copiaL);
+          tl.jogadores.push(copiaH);
+          soma[high] += (bestL.estrelas || 0) - (bestH.estrelas || 0);
+          soma[low] += (bestH.estrelas || 0) - (bestL.estrelas || 0);
+          melhorou = true;
+        }
+      }
+      if (!melhorou) break;
+    }
   }
 
   function nomeAutomaticoTime(jogadoresDoTime) {
@@ -232,6 +284,14 @@ const LocalJogo = (() => {
       soma[idx] += jog.estrelas || 0;
       qtds[idx] += 1;
     }
+
+    equilibrarPorTrocas(times, soma);
+    times.forEach((t) => {
+      (t.jogadores || []).forEach((j) => {
+        const orig = porId.get(String(j.id));
+        if (orig) orig.timeId = t.id;
+      });
+    });
 
     const gkMix = [...goleiros].sort(() => Math.random() - 0.5);
     const nGk = Math.min(gkMix.length, times.length);

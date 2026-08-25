@@ -441,6 +441,8 @@ public class PeladaService {
             qtdJogadores[melhorIndice]++;
         }
 
+        equilibrarPorTrocas(times, somaEstrelas);
+
         // Goleiros também entram no primeiro sorteio:
         // vão para os PRIMEIROS times (A, B, C...).
         // Ex.: 4 times e 2 goleiros → 1 no Time A e 1 no Time B.
@@ -463,18 +465,87 @@ public class PeladaService {
         return times;
     }
 
+    /**
+     * Primeiro iguala a quantidade de jogadores; só depois as estrelas.
+     * Assim um 10★ não deixa um time com 1 e outro com 8 de 1★.
+     */
     private int indiceTimeMaisFraco(int[] somaEstrelas, int[] qtdJogadores) {
-        int melhorIndice = 0;
-        for (int i = 1; i < somaEstrelas.length; i++) {
-            boolean menosEstrelas = somaEstrelas[i] < somaEstrelas[melhorIndice];
-            boolean empateMenosGente =
-                    somaEstrelas[i] == somaEstrelas[melhorIndice]
-                            && qtdJogadores[i] < qtdJogadores[melhorIndice];
-            if (menosEstrelas || empateMenosGente) {
-                melhorIndice = i;
+        int minQtd = qtdJogadores[0];
+        for (int q : qtdJogadores) {
+            if (q < minQtd) minQtd = q;
+        }
+        int minSoma = Integer.MAX_VALUE;
+        for (int i = 0; i < qtdJogadores.length; i++) {
+            if (qtdJogadores[i] != minQtd) continue;
+            if (somaEstrelas[i] < minSoma) minSoma = somaEstrelas[i];
+        }
+        List<Integer> idxs = new ArrayList<>();
+        for (int i = 0; i < qtdJogadores.length; i++) {
+            if (qtdJogadores[i] == minQtd && somaEstrelas[i] == minSoma) {
+                idxs.add(i);
             }
         }
-        return melhorIndice;
+        return idxs.get(new Random().nextInt(idxs.size()));
+    }
+
+    /** Troca 1x1 para aproximar as estrelas, sem mudar o número de jogadores do time. */
+    private void equilibrarPorTrocas(List<Time> times, int[] soma) {
+        for (int round = 0; round < 24; round++) {
+            boolean melhorou = false;
+            for (int i = 0; i < times.size(); i++) {
+                for (int j = i + 1; j < times.size(); j++) {
+                    if (trocarSeMelhora(times.get(i), times.get(j), soma, i, j)) {
+                        melhorou = true;
+                    }
+                }
+            }
+            if (!melhorou) break;
+        }
+    }
+
+    private boolean trocarSeMelhora(Time timeA, Time timeB, int[] soma, int ia, int ib) {
+        int diff = soma[ia] - soma[ib];
+        if (Math.abs(diff) <= 1) return false;
+        int high = diff > 0 ? ia : ib;
+        int low = diff > 0 ? ib : ia;
+        Time th = high == ia ? timeA : timeB;
+        Time tl = low == ia ? timeA : timeB;
+        int d = soma[high] - soma[low];
+        Jogador bestH = null;
+        Jogador bestL = null;
+        int bestAbs = Math.abs(d);
+        for (Jogador ph : linhaDoTime(th)) {
+            for (Jogador pl : linhaDoTime(tl)) {
+                int delta = nEstrelas(ph) - nEstrelas(pl);
+                if (delta <= 0) continue;
+                int novoAbs = Math.abs(d - 2 * delta);
+                if (novoAbs < bestAbs) {
+                    bestAbs = novoAbs;
+                    bestH = ph;
+                    bestL = pl;
+                }
+            }
+        }
+        if (bestH == null || bestL == null) return false;
+        th.getJogadores().remove(bestH);
+        tl.getJogadores().remove(bestL);
+        bestH.setTime(tl);
+        bestL.setTime(th);
+        th.getJogadores().add(bestL);
+        tl.getJogadores().add(bestH);
+        soma[high] += nEstrelas(bestL) - nEstrelas(bestH);
+        soma[low] += nEstrelas(bestH) - nEstrelas(bestL);
+        return true;
+    }
+
+    private static List<Jogador> linhaDoTime(Time t) {
+        return t.getJogadores().stream()
+                .filter(j -> !Boolean.TRUE.equals(j.getGoleiro()))
+                .collect(Collectors.toList());
+    }
+
+    private static int nEstrelas(Jogador j) {
+        return j.getEstrelas() == null ? 0 : j.getEstrelas();
     }
 
     @Transactional(readOnly = true)
