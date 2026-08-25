@@ -11,9 +11,9 @@ TIME 1 - Ricardo
 Goleiro: Júnior (6 gols sofridos)
 1. Gleisinho
 2. Bury
-3. Miquéias 1 gol
+3. Miquéias 1 gol 1 assistência
 4. Fernando 1 gol
-5. Dudu
+5. Dudu 2 assistências
 6. Ricardo
 
 TIME 2 - Gabriel
@@ -21,16 +21,16 @@ Goleiro: Jonatan (6 gols sofridos)
 1. Wesley
 2. Guilherme
 3. Juka
-4. Gabriel A — 1 gol
+4. Gabriel A — 1 gol 1 assistência
 5. Lucas R. — 1 gol
-6. Gabriel 3 gols
+6. Gabriel 3 gols 2 assistências
 
 TIME 3 - Abelardo
 Goleiro:
 1. Wesley P
 2. Josiel
 3. Lecão
-4. Raian
+4. Raian 1 assistência
 5. Lucão
 6. Abelardo
 
@@ -68,7 +68,7 @@ Partidas
 Time Campeão: Gabriel
 Artilheiro: Gabriel
 Craque: Gabriel
-Garçom: Nenhum
+Garçom: Gabriel
 Luva de Ouro: Júnior e Jonatan`;
 
 function parseDataBrParaIso(texto) {
@@ -78,16 +78,21 @@ function parseDataBrParaIso(texto) {
   return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}T12:00:00`;
 }
 
-function extrairGolsDoNome(linha) {
+function extrairStatsDoNome(linha) {
   const limpa = linha
     .replace(/^[0-9]+[.)]\s*/, "")
     .replace(/^[-*•]\s*/, "")
     .trim();
-  const match = limpa.match(/^(.*?)(?:\s*[—\-–]?\s*(\d+)\s*gols?)?\s*$/i);
-  if (!match) return { nome: limpa, gols: 0 };
-  const nome = (match[1] || "").replace(/\s*[—\-–]\s*$/, "").trim();
-  const gols = match[2] ? Number(match[2]) : 0;
-  return { nome, gols };
+  const golsM = limpa.match(/(\d+)\s*gols?/i);
+  const assM = limpa.match(/(\d+)\s*assist(?:[eê]ncias?)?/i);
+  const gols = golsM ? Number(golsM[1]) : 0;
+  const assistencias = assM ? Number(assM[1]) : 0;
+  const nome = limpa
+    .replace(/\s*[—\-–,]?\s*\d+\s*gols?/gi, "")
+    .replace(/\s*[—\-–,]?\s*\d+\s*assist(?:[eê]ncias?)?/gi, "")
+    .replace(/\s*[—\-–]\s*$/, "")
+    .trim();
+  return { nome: nome || limpa, gols, assistencias };
 }
 
 function parsePremioTexto(valor) {
@@ -209,8 +214,8 @@ function montarResumoDeTexto(textoBruto) {
     corpoTime.split("\n").forEach((linha) => {
       const t = linha.trim();
       if (!/^\d+[.)]/.test(t)) return;
-      const { nome, gols } = extrairGolsDoNome(t);
-      if (nome) jogadores.push({ nome, gols });
+      const { nome, gols, assistencias } = extrairStatsDoNome(t);
+      if (nome) jogadores.push({ nome, gols, assistencias });
     });
 
     const cor = CORES_SUMULA[timesOrdem.length % CORES_SUMULA.length];
@@ -297,6 +302,21 @@ function montarResumoDeTexto(textoBruto) {
   }
   golsSofridos.sort((a, b) => a.quantidade - b.quantidade || a.nome.localeCompare(b.nome, "pt-BR"));
 
+  const rankingAssist = [];
+  timesOrdem.forEach((nomeTime) => {
+    (timesMap[nomeTime].jogadores || []).forEach((j) => {
+      if (j.assistencias > 0) {
+        rankingAssist.push({
+          nome: j.nome,
+          assistencias: j.assistencias,
+          quantidade: j.assistencias,
+          time: nomeTime,
+        });
+      }
+    });
+  });
+  rankingAssist.sort((a, b) => b.assistencias - a.assistencias || a.nome.localeCompare(b.nome, "pt-BR"));
+
   const pegarCampo = (label) => {
     const re = new RegExp(`${label}\\s*:\\s*(.+)`, "i");
     const m = texto.match(re);
@@ -337,6 +357,16 @@ function montarResumoDeTexto(textoBruto) {
       detalhe: `${min} sofrido${min === 1 ? "" : "s"}`,
     };
   }
+  if (rankingAssist.length) {
+    const maxA = rankingAssist[0].assistencias;
+    const tops = rankingAssist.filter((a) => a.assistencias === maxA);
+    premios.garcom = {
+      nome: tops.map((t) => t.nome).join(" / "),
+      nomes: tops.map((t) => t.nome),
+      empate: tops.length > 1,
+      detalhe: `${maxA} assistência${maxA === 1 ? "" : "s"}`,
+    };
+  }
 
   const campeaoTxt = pegarCampo("Campe[aã]o");
   const artilheiroTxt = pegarCampo("Artilheiro") || pegarCampo("Bola de Ouro");
@@ -358,7 +388,7 @@ function montarResumoDeTexto(textoBruto) {
   }
   if (garcomTxt !== null) {
     const p = parsePremioTexto(garcomTxt);
-    premios.garcom = p ? { ...p, detalhe: premios.garcom?.detalhe || "" } : null;
+    if (p) premios.garcom = { ...p, detalhe: premios.garcom?.detalhe || "" };
   }
   if (luvaTxt !== null) {
     const p = parsePremioTexto(luvaTxt);
@@ -387,6 +417,7 @@ function montarResumoDeTexto(textoBruto) {
     times,
     partidas,
     artilharia,
+    assistencias: rankingAssist,
     golsSofridos,
     cartoesAmarelos: amarelos,
     cartoesVermelhos: vermelhos,
@@ -429,13 +460,17 @@ function baixarPlanilhaCsv(resumo) {
   (resumo.times || []).forEach((t) => {
     row(t.nome);
     row("Goleiro", t.goleiro ? `${t.goleiro.nome} (${t.goleiro.golsSofridos ?? 0} sofridos)` : "—");
-    row("#", "Jogador", "Gols");
-    (t.jogadores || []).forEach((j, i) => row(i + 1, j.nome, j.gols || 0));
+    row("#", "Jogador", "Gols", "Assistências");
+    (t.jogadores || []).forEach((j, i) => row(i + 1, j.nome, j.gols || 0, j.assistencias || 0));
     row("");
   });
   row("ARTILHARIA");
   row("Jogador", "Gols", "Time");
   (resumo.artilharia || []).forEach((a) => row(a.nome, a.gols || a.quantidade, a.time || ""));
+  row("");
+  row("ASSISTÊNCIAS");
+  row("Jogador", "Assistências", "Time");
+  (resumo.assistencias || []).forEach((a) => row(a.nome, a.assistencias || a.quantidade, a.time || ""));
   row("");
   row("CARTÕES AMARELOS");
   row("Jogador", "Qtd");

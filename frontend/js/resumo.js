@@ -176,10 +176,12 @@ function renderResumoOficial(resumo) {
         ? `${t.goleiro.nome} <span class="meta">(${t.goleiro.golsSofridos ?? 0} sofridos)</span>`
         : "sem goleiro";
       const jogadores = (t.jogadores || [])
-        .map(
-          (j) =>
-            `<li><span>${j.nome}</span><span class="meta">${j.gols || 0} gol(s)</span></li>`
-        )
+        .map((j) => {
+          const gols = j.gols || 0;
+          const ass = j.assistencias || 0;
+          const meta = ass > 0 ? `${gols} gol(s) · ${ass} assist.` : `${gols} gol(s)`;
+          return `<li><span>${j.nome}</span><span class="meta">${meta}</span></li>`;
+        })
         .join("");
       return `
         <article class="time-resumo" style="border-left-color:${t.cor}">

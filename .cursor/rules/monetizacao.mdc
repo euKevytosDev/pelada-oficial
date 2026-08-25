@@ -9,6 +9,6 @@ alwaysApply: true
 - **Android (Play):** não abrir checkout/link de pagamento no app nativo. Quem já pagou no site (mesmo login) usa o Pro no app. Play Billing só depois da identidade + merchant.
 - **iOS:** só pela web (mesmo login).
 - **Grátis:** elenco, sorteio **até 3 times**, placar, 1 cronômetro, gol/cartão, **ver** a súmula no fim (e WhatsApp em texto). Histórico para ver súmula.
-- **Pro:** **4 e 5 times**, **PDF**, relatório do mês, súmula colando texto, **caixa da pelada** (painel do mês + cobrança de quem jogou — só o organizador).
+- **Pro:** **4 e 5 times**, **PDF**, relatório do mês, **caixa da pelada** (painel do mês + cobrança de quem jogou — só o organizador).
 - Não abrir paywall ao entrar no app. Só quando o usuário toca em recurso Pro (PDF, relatório do mês, caixa, **4 ou 5 times**).
 - Não vender o mesmo digital por link dentro do app da Play. Não anunciar “assine no site” na listagem Android.

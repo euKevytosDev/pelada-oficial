@@ -2549,17 +2549,29 @@ async function encerrarPelada() {
 
 /* ---------- eventos ---------- */
 
+const EMAIL_SUMULA_MANUAL = "raiankevinsouza@gmail.com";
+
+function podeSumulaManual() {
+  return (getUsuario()?.email || "").trim().toLowerCase() === EMAIL_SUMULA_MANUAL;
+}
+
+function atualizarVisibilidadeSumulaManual() {
+  document.getElementById("cfg-sumula")?.classList.toggle("oculto", !podeSumulaManual());
+}
+
 function atualizarUserBar() {
   const bar = document.getElementById("user-bar");
   const usuario = getUsuario();
   if (!usuario) {
     bar.classList.add("oculto");
     if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
+    atualizarVisibilidadeSumulaManual();
     return;
   }
   bar.classList.remove("oculto");
   document.getElementById("user-nome").textContent = usuario.nome;
   if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
+  atualizarVisibilidadeSumulaManual();
 }
 
 async function entrarNaHome() {
@@ -3585,6 +3597,10 @@ document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
 });
 
 function abrirTelaSumulaManual() {
+  if (!podeSumulaManual()) {
+    toast("Essa ferramenta não está disponível nesta conta");
+    return;
+  }
   estado.telaAntesSumula = estado.telaAntesSumula || "tela-inicio";
   const ta = document.getElementById("texto-sumula-manual");
   if (ta && !ta.value.trim()) ta.value = EXEMPLO_SUMULA;
@@ -3592,6 +3608,10 @@ function abrirTelaSumulaManual() {
 }
 
 function gerarSumulaManualAgora() {
+  if (!podeSumulaManual()) {
+    toast("Essa ferramenta não está disponível nesta conta");
+    return;
+  }
   try {
     const texto = document.getElementById("texto-sumula-manual").value;
     const resumo = montarResumoDeTexto(texto);
@@ -3608,10 +3628,6 @@ function gerarSumulaManualAgora() {
   }
 }
 
-document.getElementById("btn-gerar-sumula-auth")?.addEventListener("click", () => {
-  estado.telaAntesSumula = "tela-auth";
-  abrirTelaSumulaManual();
-});
 document.getElementById("btn-sumula-voltar")?.addEventListener("click", () => {
   mostrarTela(estado.telaAntesSumula || "tela-inicio");
 });

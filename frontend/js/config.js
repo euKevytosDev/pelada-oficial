@@ -83,6 +83,7 @@ const ConfigApp = (() => {
     const histBtn = document.getElementById("cfg-historico");
     if (histBtn) histBtn.classList.toggle("oculto", !usuario);
     if (typeof PlanoApp !== "undefined") PlanoApp.pintar();
+    if (typeof atualizarVisibilidadeSumulaManual === "function") atualizarVisibilidadeSumulaManual();
   }
 
   function init() {

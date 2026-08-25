@@ -139,10 +139,6 @@
         </div>
 
         <p class="dica">Seus resultados ficam salvos na sua conta.</p>
-        <div class="acoes-finas" style="margin-top:12px">
-          <button type="button" class="btn btn-secundario" id="btn-gerar-sumula-auth">Gerar súmula (sem marcar
-            jogo)</button>
-        </div>
       </section>
 
       <section class="tela" id="tela-inicio">
@@ -236,7 +232,7 @@
           <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal">Relatório do mês</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-caixa">Caixa da pelada</button>
-          <button type="button" class="btn btn-secundario btn-block" id="cfg-sumula">Gerar súmula (colar texto)</button>
+          <button type="button" class="btn btn-secundario btn-block oculto" id="cfg-sumula">Gerar súmula (colar texto)</button>
         </div>
 
         <div class="card-form config-bloco" id="cfg-conta-bloco">
@@ -293,13 +289,6 @@
               <div>
                 <strong>Relatório do mês</strong>
                 <p>Artilheiro, assistências, cartões e luva do mês — ranking por jogador.</p>
-              </div>
-            </li>
-            <li>
-              <span class="plano-ben-marca" aria-hidden="true">Txt</span>
-              <div>
-                <strong>Súmula colando texto</strong>
-                <p>Cola o resumo e gera a mesma súmula, sem marcar o jogo ao vivo.</p>
               </div>
             </li>
           </ul>
@@ -421,7 +410,7 @@
 
       <section class="tela" id="tela-sumula-manual">
         <div class="hero-copy">
-          <p>Cole o resumo da pelada no formato abaixo. Gera a mesma súmula do PDF, sem depender do jogo ao vivo.</p>
+          <p>Ferramenta interna: cole times, gols, assistências e placares no formato do exemplo.</p>
         </div>
         <div class="card-form">
           <label>
@@ -434,7 +423,7 @@
             <button type="button" class="btn btn-secundario" id="btn-sumula-exemplo">Carregar exemplo 20/07</button>
             <button type="button" class="btn btn-secundario" id="btn-sumula-voltar">Voltar</button>
           </div>
-          <p class="dica">Dica: use TIME 1 - Nome, lista de jogadores, Partidas (1ª TimeA 1 x 0 TimeB) e Cartões.</p>
+          <p class="dica">Ex.: <code>3. Gabriel 3 gols 2 assistências</code> · Partidas: <code>1ª TimeA 1 x 0 TimeB</code></p>
         </div>
       </section>
 
@@ -637,14 +626,14 @@
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/api.js?v=20260814k"></script>
-  <script src="js/config.js?v=20260825b"></script>
+  <script src="js/config.js?v=20260825e"></script>
   <script src="js/plano.js?v=20260825d"></script>
   <script src="js/local-jogo.js?v=20260825d"></script>
-  <script src="js/resumo.js?v=20260814b"></script>
+  <script src="js/resumo.js?v=20260825e"></script>
   <script src="js/relatorio-mensal.js?v=20260814l"></script>
   <script src="js/caixa.js?v=20260814j"></script>
-  <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260825d"></script>
+  <script src="js/sumula-manual.js?v=20260825e"></script>
+  <script src="js/app.js?v=20260825e"></script>
 </body>
 
 </html>
