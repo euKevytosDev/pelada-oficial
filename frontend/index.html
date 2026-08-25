@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260825a" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260825b" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -194,26 +194,20 @@
         </div>
 
         <div class="card-form config-bloco">
-          <h3 class="config-titulo">Cronômetros da partida</h3>
+          <h3 class="config-titulo">Cronômetro e cartões</h3>
           <label>
-            Tempo do 1º cronômetro (minutos)
+            Tempo do cronômetro (minutos)
             <input type="number" id="cfg-crono1-min" min="1" max="99" step="1" inputmode="numeric" value="7" />
           </label>
-          <div class="config-linha-toggle">
-            <div>
-              <p class="config-toggle-titulo">2º cronômetro</p>
-              <p class="dica config-dica">Liga outro relógio acima, com play e reset próprios.</p>
-            </div>
-            <button type="button" class="config-switch" id="cfg-crono2-ativo" role="switch" aria-checked="false"
-              aria-label="Ligar ou desligar o segundo cronômetro">
-              <span class="config-switch-track" aria-hidden="true"><span class="config-switch-knob"></span></span>
-              <span class="config-switch-txt" id="cfg-crono2-label">Off</span>
-            </button>
-          </div>
-          <label id="cfg-crono2-min-wrap" class="oculto">
-            Tempo do 2º cronômetro (minutos)
-            <input type="number" id="cfg-crono2-min" min="1" max="99" step="1" inputmode="numeric" value="7" />
+          <label>
+            Tempo do cartão amarelo (minutos)
+            <input type="number" id="cfg-cartao-amarelo-min" min="1" max="99" step="1" inputmode="numeric" value="2" />
           </label>
+          <label>
+            Tempo do cartão vermelho (minutos)
+            <input type="number" id="cfg-cartao-vermelho-min" min="1" max="99" step="1" inputmode="numeric" value="5" />
+          </label>
+          <p class="dica config-dica">No cartão, o relógio começa sozinho. Em 0 fica piscando e some depois de 20 s.</p>
           <button type="button" class="btn btn-principal" id="btn-salvar-crono">Salvar tempos</button>
         </div>
 
@@ -263,7 +257,7 @@
             <p class="plano-badge">7 dias grátis no 1º login</p>
             <h2>Pelada Pro</h2>
             <p class="plano-lead">Jogar a pelada continua grátis. O Pro é o kit do organizador: caixa ligada ao quem
-              jogou, PDF, relatório do mês e o 2º cronômetro.</p>
+              jogou, PDF, relatório do mês e súmula em texto.</p>
           </header>
 
           <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja,
@@ -290,13 +284,6 @@
               <div>
                 <strong>Relatório do mês</strong>
                 <p>Artilheiro, assistências, cartões e luva do mês — ranking por jogador.</p>
-              </div>
-            </li>
-            <li>
-              <span class="plano-ben-marca" aria-hidden="true">2×</span>
-              <div>
-                <strong>2º cronômetro</strong>
-                <p>Dois tempos na partida, cada um com play e reset.</p>
               </div>
             </li>
             <li>
@@ -494,36 +481,6 @@
       <section class="tela" id="tela-partida">
         <div class="partida-topo-linha">
           <button type="button" class="btn-voltar-suave" id="btn-voltar-partida">← Sair da partida</button>
-          <div class="cronometros-partida" id="cronometros-partida">
-            <div class="cronometro-partida oculto" id="cronometro-partida-2" data-crono="1">
-              <div class="cronometro-linha">
-                <div class="cronometro-tempo" id="cronometro-tempo-2">07:00</div>
-                <div class="cronometro-acoes">
-                  <button type="button" class="btn-crono-icon" id="btn-crono-toggle-2"
-                    aria-label="Iniciar ou pausar o 2º cronômetro">
-                    <svg class="crono-ico crono-ico-play" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M8 5v14l11-7z" fill="currentColor" />
-                    </svg>
-                    <svg class="crono-ico crono-ico-pause oculto" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M6 5h4v14H6zm8 0h4v14h-4z" fill="currentColor" />
-                    </svg>
-                  </button>
-                  <button type="button" class="btn-crono-icon" id="btn-crono-reset-2"
-                    aria-label="Reiniciar o 2º cronômetro">
-                    <svg class="crono-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none">
-                      <path d="M21 12a9 9 0 1 1-2.6-6.3" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" />
-                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="crono-barra" aria-hidden="true">
-                <span class="crono-barra-fill" id="crono-ring-fg-2"></span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div class="placar-bloco">
@@ -671,14 +628,14 @@
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/api.js?v=20260814k"></script>
-  <script src="js/config.js?v=20260814c"></script>
+  <script src="js/config.js?v=20260825b"></script>
   <script src="js/plano.js?v=20260814e"></script>
   <script src="js/local-jogo.js?v=20260804h"></script>
   <script src="js/resumo.js?v=20260814b"></script>
   <script src="js/relatorio-mensal.js?v=20260814l"></script>
   <script src="js/caixa.js?v=20260814j"></script>
   <script src="js/sumula-manual.js?v=20260723c"></script>
-  <script src="js/app.js?v=20260825a"></script>
+  <script src="js/app.js?v=20260825b"></script>
 </body>
 
 </html>

@@ -1474,6 +1474,52 @@ html[data-theme="dark"] .btn-apagar {
   font-size: 0.92rem;
 }
 
+#lista-eventos li.evento-com-timer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+#lista-eventos .evento-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#lista-eventos .cartao-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  min-width: 4.2em;
+  text-align: center;
+  color: var(--texto);
+}
+
+#lista-eventos .cartao-timer-zero {
+  color: #c62828;
+  animation: cartao-timer-pisca 0.45s ease-in-out infinite;
+}
+
+#lista-eventos .cartao-timer-slot {
+  min-width: 4.2em;
+}
+
+#lista-eventos .evento-com-timer .meta {
+  justify-self: end;
+  text-align: right;
+}
+
+@keyframes cartao-timer-pisca {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
 .tabela-wrap {
   padding: 8px;
   overflow: hidden;
@@ -2054,7 +2100,7 @@ html[data-theme="dark"] .partida-lances {
   }
 }
 
-/* Topo da partida: sair à esquerda, 2º cronômetro compacto à direita */
+/* Topo da partida: sair à esquerda */
 .partida-topo-linha {
   display: flex;
   align-items: center;

@@ -10,8 +10,8 @@ const ConfigApp = (() => {
     nomePelada: "Pelada Oficial",
     qtdTimes: 2,
     crono1Minutos: 7,
-    crono2Minutos: 7,
-    crono2Ativo: false,
+    cartaoAmareloMinutos: 2,
+    cartaoVermelhoMinutos: 5,
   };
 
   function lerPrefs() {
@@ -63,19 +63,11 @@ const ConfigApp = (() => {
     if (cfgQtd) cfgQtd.value = String(p.qtdTimes || prefsPadrao.qtdTimes);
 
     const cfgCrono1 = document.getElementById("cfg-crono1-min");
-    const cfgCrono2 = document.getElementById("cfg-crono2-min");
+    const cfgAm = document.getElementById("cfg-cartao-amarelo-min");
+    const cfgVm = document.getElementById("cfg-cartao-vermelho-min");
     if (cfgCrono1) cfgCrono1.value = String(p.crono1Minutos ?? prefsPadrao.crono1Minutos);
-    if (cfgCrono2) cfgCrono2.value = String(p.crono2Minutos ?? prefsPadrao.crono2Minutos);
-
-    const dois = !!p.crono2Ativo;
-    const tog = document.getElementById("cfg-crono2-ativo");
-    if (tog) {
-      tog.classList.toggle("ligada", dois);
-      tog.setAttribute("aria-checked", dois ? "true" : "false");
-    }
-    const lab = document.getElementById("cfg-crono2-label");
-    if (lab) lab.textContent = dois ? "On" : "Off";
-    document.getElementById("cfg-crono2-min-wrap")?.classList.toggle("oculto", !dois);
+    if (cfgAm) cfgAm.value = String(p.cartaoAmareloMinutos ?? prefsPadrao.cartaoAmareloMinutos);
+    if (cfgVm) cfgVm.value = String(p.cartaoVermelhoMinutos ?? prefsPadrao.cartaoVermelhoMinutos);
   }
 
   function sincronizarTelaConfig() {
