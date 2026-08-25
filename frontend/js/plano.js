@@ -64,27 +64,39 @@ const PlanoApp = (() => {
     const nativo = typeof isAppNativo === "function" && isAppNativo();
     const msg = mensagem || "Esse recurso faz parte do Pelada Pro.";
     const corpo = nativo
-      ? `<p class="paywall-lead">Você não é Pro</p>
-         <p class="paywall-msg">${escaparHtml(msg)}</p>
-         <p class="dica">No app Android a assinatura entra pela Play Store. O teste de 7 dias já vale nesta conta.</p>`
-      : `<p class="paywall-lead">Você não é Pro</p>
-         <p class="paywall-msg">${escaparHtml(msg)}</p>
-         <div class="paywall-ofertas">
-           <article class="paywall-oferta paywall-oferta-destaque">
-             <p class="paywall-tag">Mais vantajoso</p>
-             <strong>Anual</strong>
-             <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
-             <p class="paywall-equiv">~R$ 29,15/mês · Pix ou cartão</p>
-             <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
-           </article>
-           <article class="paywall-oferta">
-             <strong>Mensal</strong>
-             <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
-             <p class="paywall-equiv">Pix ou cartão · cancela quando quiser</p>
-             <button type="button" class="btn btn-secundario" id="paywall-btn-mensal">Assinar mensal</button>
-           </article>
-         </div>
-         <button type="button" class="btn btn-secundario paywall-ver-planos" id="paywall-ver-planos">Ver todos os planos</button>`;
+      ? `<div class="paywall">
+           <p class="paywall-selo">Pelada Pro</p>
+           <p class="paywall-lead">Faça o upgrade da conta</p>
+           <p class="paywall-msg">${escaparHtml(msg)}</p>
+           <p class="dica">No app Android a assinatura entra pela Play Store. O teste de 7 dias já vale nesta conta.</p>
+         </div>`
+      : `<div class="paywall">
+           <p class="paywall-selo">Pelada Pro</p>
+           <p class="paywall-lead">Faça o upgrade da conta</p>
+           <p class="paywall-msg">${escaparHtml(msg)}</p>
+           <ul class="paywall-lista">
+             <li>4 e 5 times no sorteio</li>
+             <li>Cartões amarelo e vermelho</li>
+             <li>PDF e WhatsApp da súmula</li>
+             <li>Caixa da pelada e relatório do mês</li>
+           </ul>
+           <div class="paywall-ofertas">
+             <article class="paywall-oferta paywall-oferta-destaque">
+               <p class="paywall-tag">Mais vantajoso</p>
+               <strong>Anual</strong>
+               <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
+               <p class="paywall-equiv">~R$ 29,15/mês · Pix ou cartão</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
+             </article>
+             <article class="paywall-oferta">
+               <strong>Mensal</strong>
+               <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
+               <p class="paywall-equiv">Pix ou cartão · cancela quando quiser</p>
+               <button type="button" class="btn btn-secundario" id="paywall-btn-mensal">Assinar mensal</button>
+             </article>
+           </div>
+           <button type="button" class="btn btn-secundario paywall-ver-planos" id="paywall-ver-planos">Ver todos os planos</button>
+         </div>`;
 
     if (typeof abrirModal !== "function") {
       abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
@@ -92,7 +104,8 @@ const PlanoApp = (() => {
       return;
     }
 
-    abrirModal("Pelada Pro", corpo);
+    abrirModal("Upgrade para Pro", corpo);
+    document.getElementById("modal")?.classList.add("modal-paywall");
     document.getElementById("paywall-btn-anual")?.addEventListener("click", () => {
       if (typeof fecharModal === "function") fecharModal();
       assinar("pro_anual");
@@ -111,6 +124,18 @@ const PlanoApp = (() => {
     if (temPro()) return true;
     mostrarPaywallPro(mensagem);
     return false;
+  }
+
+  /** Ao escolher 4 ou 5 times sem Pro: abre o modal e volta o select para 3. */
+  function protegerSelectQtdTimes(selectEl) {
+    if (!selectEl) return;
+    selectEl.addEventListener("change", () => {
+      const n = Number(selectEl.value) || 2;
+      if (n <= 3) return;
+      if (temPro()) return;
+      selectEl.value = "3";
+      mostrarPaywallPro("4 e 5 times fazem parte do Pelada Pro. Faça o upgrade para liberar.");
+    });
   }
 
   async function sincronizar() {
@@ -181,6 +206,8 @@ const PlanoApp = (() => {
     document.getElementById("btn-abrir-planos")?.addEventListener("click", () => abrir("tela-configuracoes"));
     document.getElementById("btn-plano-mensal")?.addEventListener("click", () => assinar("pro_mensal"));
     document.getElementById("btn-plano-anual")?.addEventListener("click", () => assinar("pro_anual"));
+    protegerSelectQtdTimes(document.getElementById("qtd-times"));
+    protegerSelectQtdTimes(document.getElementById("cfg-qtd-times"));
     pintar();
   }
 

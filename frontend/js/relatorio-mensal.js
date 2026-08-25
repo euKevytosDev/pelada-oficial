@@ -233,7 +233,7 @@ function escHtmlRel(s) {
 }
 
 async function abrirRelatorioMensal() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("O relatório do mês faz parte do Pelada Pro")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("O relatório do mês faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   estado.telaAntesRelatorio = document.querySelector(".tela.ativa")?.id || "tela-inicio";
@@ -295,6 +295,12 @@ function initRelatorioMensal() {
   document.getElementById("btn-whats-mensal")?.addEventListener("click", () => {
     const rel = estado.relatorioMensalAtual;
     if (!rel) return;
+    if (
+      typeof PlanoApp !== "undefined" &&
+      !PlanoApp.exigirPro("Para compartilhar o relatório no WhatsApp, faça o upgrade para o Pelada Pro")
+    ) {
+      return;
+    }
     const texto = textoRelatorioMensalWhatsApp(rel);
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   });

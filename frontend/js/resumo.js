@@ -392,7 +392,7 @@ async function compartilharNativo(resumo) {
 }
 
 async function baixarPdfResumo() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, use o Pelada Pro")) return;
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Pelada Pro")) return;
   const el = document.getElementById("resumo-oficial");
   if (!el) return;
   if (typeof html2pdf === "undefined") {
@@ -415,7 +415,7 @@ async function baixarPdfResumo() {
 }
 
 async function baixarPdfElemento(elId, filename) {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, use o Pelada Pro")) return;
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Pelada Pro")) return;
   const el = document.getElementById(elId);
   if (!el) return;
   if (typeof html2pdf === "undefined") {

@@ -277,7 +277,7 @@ async function carregarCaixaNaTela() {
 }
 
 async function abrirCaixaPelada() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   estado.telaAntesCaixa = document.querySelector(".tela.ativa")?.id || "tela-inicio";
@@ -328,7 +328,7 @@ async function cancelarUltimaPeladaCaixa() {
 }
 
 async function cobrarQuemJogouHoje() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   const peladaId = estado.caixaPeladaIdPendente || estado.peladaId;

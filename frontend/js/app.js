@@ -765,7 +765,9 @@ function abrirModal(titulo, corpoHtml) {
 }
 
 function fecharModal() {
-  document.getElementById("modal").classList.add("oculto");
+  const modal = document.getElementById("modal");
+  modal.classList.add("oculto");
+  modal.classList.remove("modal-paywall");
   document.getElementById("modal-corpo").innerHTML = "";
 }
 
@@ -1952,7 +1954,7 @@ async function registrarEventoAoVivo(tipo) {
   if (
     (tipo === "CARTAO_AMARELO" || tipo === "CARTAO_VERMELHO") &&
     typeof PlanoApp !== "undefined" &&
-    !PlanoApp.exigirPro("Cartão amarelo e vermelho fazem parte do Pelada Pro")
+    !PlanoApp.exigirPro("Cartão amarelo e vermelho fazem parte do Pelada Pro. Faça o upgrade para liberar.")
   ) {
     return;
   }
@@ -3049,7 +3051,7 @@ function exigirQtdTimesPro(qtd) {
   const n = Number(qtd) || 2;
   if (n <= 3) return true;
   if (typeof PlanoApp === "undefined") return true;
-  return PlanoApp.exigirPro("4 e 5 times fazem parte do Pelada Pro");
+  return PlanoApp.exigirPro("4 e 5 times fazem parte do Pelada Pro. Faça o upgrade para liberar.");
 }
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
@@ -3486,7 +3488,7 @@ document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
     toast("Abra a súmula primeiro");
     return;
   }
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, use o Pelada Pro")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, faça o upgrade para o Pelada Pro")) {
     return;
   }
   compartilharWhatsApp(estado.resumoAtual);

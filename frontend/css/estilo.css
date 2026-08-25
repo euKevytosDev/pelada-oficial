@@ -794,18 +794,50 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   text-align: center;
 }
 
+.paywall {
+  text-align: left;
+}
+
+.paywall-selo {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--verde-campo), var(--verde-vivo));
+}
+
 .paywall-lead {
   margin: 0 0 8px;
-  font-size: 1.05rem;
+  font-family: "Barlow Condensed", "DM Sans", sans-serif;
+  font-size: 1.45rem;
   font-weight: 700;
+  line-height: 1.15;
   color: var(--texto);
 }
 
 .paywall-msg {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font-size: 0.92rem;
   line-height: 1.45;
   color: var(--texto-suave);
+}
+
+.paywall-lista {
+  margin: 0 0 14px;
+  padding: 10px 12px 10px 1.4rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--verde-vivo) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verde-vivo) 28%, transparent);
+  color: var(--texto);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  display: grid;
+  gap: 4px;
 }
 
 .paywall-ofertas {
@@ -815,34 +847,43 @@ html[data-theme="dark"] .config-seg-btn.ativa {
 }
 
 .paywall-oferta {
-  border: 1px solid var(--borda);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--fundo-card, rgba(255, 255, 255, 0.04));
+  border: 1px solid color-mix(in srgb, var(--texto) 14%, transparent);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--texto) 4%, transparent);
 }
 
 .paywall-oferta-destaque {
-  border-color: var(--destaque, #22c55e);
+  border-color: var(--verde-vivo);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--verde-vivo) 16%, transparent),
+    color-mix(in srgb, var(--verde-campo) 8%, transparent)
+  );
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--verde-vivo) 18%, transparent);
 }
 
 .paywall-tag {
   margin: 0 0 4px;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--destaque, #22c55e);
+  color: var(--verde-vivo);
 }
 
 .paywall-oferta strong {
   display: block;
   margin-bottom: 4px;
+  font-size: 1rem;
 }
 
 .paywall-preco {
   margin: 0 0 2px;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-family: "Barlow Condensed", "DM Sans", sans-serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--texto);
 }
 
 .paywall-preco span {
@@ -865,6 +906,19 @@ html[data-theme="dark"] .config-seg-btn.ativa {
 .paywall-ver-planos {
   width: 100%;
   margin-top: 4px;
+}
+
+.modal-paywall .modal-caixa {
+  max-width: 420px;
+  border: 1px solid color-mix(in srgb, var(--verde-vivo) 35%, transparent);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.modal-paywall #modal-titulo {
+  font-family: "Barlow Condensed", "DM Sans", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--verde-vivo);
 }
 
 .plano-lista {
