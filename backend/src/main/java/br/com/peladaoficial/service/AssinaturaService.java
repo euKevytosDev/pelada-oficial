@@ -57,8 +57,8 @@ public class AssinaturaService {
 
     public List<Map<String, Object>> catalogo() {
         return List.of(
-                planoPublico(PRO_MENSAL, "Mensal", "R$ 14,90", "14.90", "Cobra todo mês. Cancela quando quiser."),
-                planoPublico(PRO_ANUAL, "Anual", "R$ 99", "99.00", "2 meses de desconto. Melhor custo.")
+                planoPublico(PRO_MENSAL, "Mensal", "R$ 49,90", "49.90", "Cobra todo mês. Cancela quando quiser."),
+                planoPublico(PRO_ANUAL, "Anual", "R$ 349,90", "349.90", "~R$ 29,15/mês. Melhor custo.")
         );
     }
 
@@ -207,10 +207,10 @@ public class AssinaturaService {
 
     private CatalogoPlano resolverPlano(String planoId) {
         if (PRO_ANUAL.equals(planoId)) {
-            return new CatalogoPlano(PRO_ANUAL, "Pelada Pro anual", new BigDecimal("99.00"), 365);
+            return new CatalogoPlano(PRO_ANUAL, "Pelada Pro anual", new BigDecimal("349.90"), 365);
         }
         if (PRO_MENSAL.equals(planoId) || planoId == null || planoId.isBlank()) {
-            return new CatalogoPlano(PRO_MENSAL, "Pelada Pro mensal", new BigDecimal("14.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL, "Pelada Pro mensal", new BigDecimal("49.90"), 30);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano inválido");
     }
