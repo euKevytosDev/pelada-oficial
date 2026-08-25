@@ -43,7 +43,7 @@ public class AssinaturaService {
                              @Value("${app.assinatura.trial-dias:7}") int trialDias,
                              @Value("${app.assinatura.front-url:https://eukevytosdev.github.io/pelada-oficial/}") String frontUrl,
                              @Value("${app.assinatura.webhook-url:}") String webhookUrl,
-                             @Value("${app.assinatura.pro-cortesia:raiankevinsouza@gmail.com}") String proCortesia) {
+                             @Value("${app.assinatura.pro-cortesia:raiankevin18@gmail.com}") String proCortesia) {
         this.usuarioRepository = usuarioRepository;
         this.mercadoPagoClient = mercadoPagoClient;
         this.trialDias = trialDias > 0 ? trialDias : 7;
