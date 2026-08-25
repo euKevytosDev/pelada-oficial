@@ -798,8 +798,10 @@ function escolherOpcao(titulo, opcoes, opts = {}) {
       <div class="opcoes opcoes-${layout}">
         ${opcoes
           .map((o) => {
-            const extra = o.goleiro ? " opcao-goleiro" : "";
-            return `<button type="button" class="opcao${extra}" data-id="${o.id}">${o.label}</button>`;
+            const extra = [o.goleiro ? "opcao-goleiro" : "", o.outroTime ? "opcao-outro-time" : ""]
+              .filter(Boolean)
+              .join(" ");
+            return `<button type="button" class="opcao${extra ? ` ${extra}` : ""}" data-id="${o.id}">${o.label}</button>`;
           })
           .join("")}
       </div>
@@ -1803,6 +1805,48 @@ function ordenarPorEstrelasAsc(jogadores) {
   });
 }
 
+function mapaAptoLocal() {
+  const m = new Map();
+  (LocalJogo.listarJogadores() || []).forEach((j) => {
+    m.set(String(j.id), j.apto !== false);
+  });
+  return m;
+}
+
+function estaAptoLance(j, mapaApto) {
+  if (!j || j.id == null) return false;
+  if (j.apto === false) return false;
+  const id = String(j.id);
+  if (mapaApto && mapaApto.has(id)) return mapaApto.get(id);
+  return true;
+}
+
+function todosJogadoresAptosDaPelada() {
+  const mapaApto = mapaAptoLocal();
+  const mapa = new Map();
+  (LocalJogo.listarJogadores() || []).forEach((j) => {
+    if (!estaAptoLance(j, mapaApto)) return;
+    mapa.set(String(j.id), { ...j });
+  });
+  (estado.times || []).forEach((t) => {
+    (t.jogadores || []).forEach((j) => {
+      if (!estaAptoLance(j, mapaApto)) return;
+      const id = String(j.id);
+      const atual = mapa.get(id) || { ...j };
+      atual.timeId = atual.timeId || t.id;
+      mapa.set(id, atual);
+    });
+    if (t.goleiro && estaAptoLance(t.goleiro, mapaApto)) {
+      const id = String(t.goleiro.id);
+      const atual = mapa.get(id) || { ...t.goleiro, goleiro: true };
+      atual.goleiro = true;
+      atual.timeId = atual.timeId || t.id;
+      mapa.set(id, atual);
+    }
+  });
+  return [...mapa.values()];
+}
+
 /** Todos os goleiros da pelada (emprestados entre times entram na lista de lances). */
 function todosGoleirosDaPelada(partida) {
   const mapa = new Map();
@@ -1835,20 +1879,26 @@ function rotuloGoleiroLance(g, timeIdSelecionado) {
   return `${g.nome} (goleiro · ${nomeTime})`;
 }
 
-/** Linha do time + todos os goleiros (o GK emprestado precisa aparecer no cartão/gol). */
+/** Linha e goleiro do time escolhido (só aptos). Banco/reserva entra em “Outro time”. */
 function elencoDoTimeParaLance(partida, timeId) {
+  const mapaApto = mapaAptoLocal();
   const linha =
     (String(timeId) === String(partida.timeA.id)
       ? partida.jogadoresTimeA || partida.timeA.jogadores
       : partida.jogadoresTimeB || partida.timeB.jogadores) || [];
   const linhaSemGk = linha
-    .filter((j) => !j.goleiro)
-    .map((j) => ({ ...j, goleiro: false }));
+    .filter((j) => !j.goleiro && estaAptoLance(j, mapaApto))
+    .map((j) => ({ ...j, goleiro: false, timeId: j.timeId || timeId }));
   const idsLinha = new Set(linhaSemGk.map((j) => String(j.id)));
-  const gks = todosGoleirosDaPelada(partida).filter((g) => !idsLinha.has(String(g.id)));
-  const gksDoTime = gks.filter((g) => String(g.timeId) === String(timeId));
-  const gksEmprestados = gks.filter((g) => String(g.timeId) !== String(timeId));
-  return [...gksDoTime, ...gksEmprestados, ...ordenarPorEstrelasAsc(linhaSemGk)];
+  const gksDoTime = todosGoleirosDaPelada(partida).filter(
+    (g) => estaAptoLance(g, mapaApto) && String(g.timeId) === String(timeId) && !idsLinha.has(String(g.id))
+  );
+  const doLocal = todosJogadoresAptosDaPelada().filter(
+    (j) => String(j.timeId) === String(timeId) && !idsLinha.has(String(j.id)) && !gksDoTime.some((g) => String(g.id) === String(j.id))
+  );
+  const gksLocal = doLocal.filter((j) => j.goleiro);
+  const linhaLocal = doLocal.filter((j) => !j.goleiro);
+  return [...gksDoTime, ...gksLocal, ...ordenarPorEstrelasAsc([...linhaSemGk, ...linhaLocal])];
 }
 
 function opcoesJogadoresLance(jogadores, timeId) {
@@ -1859,6 +1909,58 @@ function opcoesJogadoresLance(jogadores, timeId) {
       : `${j.nome} · ${Number(j.estrelas) || 0}★`,
     goleiro: !!j.goleiro,
   }));
+}
+
+const ID_OUTRO_TIME = "__outro_time__";
+
+async function escolherJogadorDoLance(titulo, partida, timeId, { excluirId, soLinha, incluirSem } = {}) {
+  const filtrar = (lista) =>
+    (lista || []).filter((j) => {
+      if (excluirId != null && String(j.id) === String(excluirId)) return false;
+      if (soLinha && j.goleiro) return false;
+      return true;
+    });
+
+  const doTime = filtrar(elencoDoTimeParaLance(partida, timeId));
+  const todos = filtrar(todosJogadoresAptosDaPelada()).sort((a, b) =>
+    String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR")
+  );
+
+  const montarOpcoes = (lista, mostrarTime, comOutro, comSem = false) => {
+    const ops = [];
+    if (comSem) ops.push({ id: "__sem__", label: "Sem assistência" });
+    lista.forEach((j) => {
+      let label;
+      if (mostrarTime) {
+        const nt = nomeTimePorId(j.timeId);
+        label = j.goleiro
+          ? `${j.nome} (goleiro)${nt ? ` · ${nt}` : ""}`
+          : `${j.nome}${nt ? ` · ${nt}` : ""} · ${Number(j.estrelas) || 0}★`;
+      } else {
+        label = j.goleiro
+          ? rotuloGoleiroLance(j, timeId)
+          : `${j.nome} · ${Number(j.estrelas) || 0}★`;
+      }
+      ops.push({ id: j.id, label, goleiro: !!j.goleiro });
+    });
+    if (comOutro) ops.push({ id: ID_OUTRO_TIME, label: "Outro time", outroTime: true });
+    return ops;
+  };
+
+  if (!doTime.length && !todos.length && !incluirSem) {
+    toast("Nenhum jogador apto");
+    return null;
+  }
+
+  if (!doTime.length) {
+    return escolherOpcao(titulo, montarOpcoes(todos, true, false, incluirSem));
+  }
+
+  const escolha = await escolherOpcao(titulo, montarOpcoes(doTime, false, true, incluirSem));
+  if (escolha === ID_OUTRO_TIME) {
+    return escolherOpcao("Outro time — quem?", montarOpcoes(todos, true, false, false));
+  }
+  return escolha;
 }
 
 /** Só filtra a lista da UI — não altera jogadores salvos. */
@@ -1900,12 +2002,8 @@ async function registrarEventoAoVivo(tipo) {
     );
     if (!timeId) return;
 
-    jogadoresDoTime = elencoDoTimeParaLance(partida, timeId);
-
-    jogadorId = await escolherOpcao(
-      "Quem fez o gol contra?",
-      opcoesJogadoresLance(jogadoresDoTime, timeId)
-    );
+    jogadoresDoTime = todosJogadoresAptosDaPelada();
+    jogadorId = await escolherJogadorDoLance("Quem fez o gol contra?", partida, timeId);
     if (!jogadorId) return;
   } else {
     timeId = await escolherOpcao(
@@ -1918,25 +2016,24 @@ async function registrarEventoAoVivo(tipo) {
     );
     if (!timeId) return;
 
-    jogadoresDoTime = elencoDoTimeParaLance(partida, timeId);
-
-    jogadorId = await escolherOpcao(
+    jogadoresDoTime = todosJogadoresAptosDaPelada();
+    jogadorId = await escolherJogadorDoLance(
       tipo === "GOL" ? "Quem fez o gol?" : "Qual jogador?",
-      opcoesJogadoresLance(jogadoresDoTime, timeId)
+      partida,
+      timeId
     );
     if (!jogadorId) return;
 
     if (tipo === "GOL") {
-      const colegas = jogadoresDoTime.filter((j) => String(j.id) !== String(jogadorId) && !j.goleiro);
-      const opcoesAssist = [
-        { id: "__sem__", label: "Sem assistência" },
-        ...opcoesJogadoresLance(colegas, timeId),
-      ];
-      const assistEscolhida = await escolherOpcao("Quem deu a assistência?", opcoesAssist);
+      const assistEscolhida = await escolherJogadorDoLance("Quem deu a assistência?", partida, timeId, {
+        excluirId: jogadorId,
+        soLinha: true,
+        incluirSem: true,
+      });
       if (!assistEscolhida) return;
       if (String(assistEscolhida) !== "__sem__") {
         assistenciaId = assistEscolhida;
-        assistenciaNome = (colegas.find((j) => String(j.id) === String(assistenciaId)) || {}).nome || null;
+        assistenciaNome = (jogadoresDoTime.find((j) => String(j.id) === String(assistenciaId)) || {}).nome || null;
       }
 
       const timeDefensorId =

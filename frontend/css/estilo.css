@@ -1594,6 +1594,13 @@ td.num, th.num {
   border-color: #cfd3d6;
 }
 
+.opcao-outro-time {
+  background: #0b3d2e;
+  color: #f3efe4;
+  border-color: #0b3d2e;
+  text-align: center;
+}
+
 .toast {
   position: fixed;
   left: 50%;
