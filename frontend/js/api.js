@@ -125,9 +125,21 @@ async function lerMensagemErro(resposta) {
   return `Erro HTTP ${resposta.status}`;
 }
 
+function ehRotaPublica(caminho) {
+  const p = String(caminho || "");
+  return (
+    p.startsWith("/auth/") ||
+    p === "/planos" ||
+    p.startsWith("/assinatura/webhook") ||
+    p === "/health" ||
+    p === "/debug-auth"
+  );
+}
+
 async function api(caminho, opcoes = {}) {
   const maxTentativas = opcoes.retry === false ? 1 : 6;
   let ultimoErro = null;
+  const rotaPublica = ehRotaPublica(caminho);
 
   for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
     let resposta;
@@ -137,7 +149,7 @@ async function api(caminho, opcoes = {}) {
         ...(opcoes.headers || {}),
       };
       const token = getToken();
-      if (token) {
+      if (token && !rotaPublica) {
         headers.Authorization = `Bearer ${token}`;
       }
 
@@ -155,17 +167,15 @@ async function api(caminho, opcoes = {}) {
     }
 
     if (resposta.status === 401 || resposta.status === 403) {
-      // Render reiniciando / instável: tenta de novo ANTES de deslogar
-      if (tentativa < maxTentativas) {
-        await sleep(1500 * tentativa);
-        continue;
+      const mensagem = await lerMensagemErro(resposta);
+      if (rotaPublica || !getToken()) {
+        throw new Error(mensagem);
       }
-      // Só desloga se confirmar que o token morreu de verdade
       const valida = await sessaoAindaValida();
       if (!valida) {
         forcarLogout("Sessão expirada. Entre de novo.");
       }
-      throw new Error("Conexão oscilou. Toque de novo em Continuar.");
+      throw new Error(mensagem || "Conexão oscilou. Toque de novo em Continuar.");
     }
 
     if ([502, 503, 504].includes(resposta.status) && tentativa < maxTentativas) {
