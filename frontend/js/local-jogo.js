@@ -237,7 +237,7 @@ const LocalJogo = (() => {
   function sortearTimesLocal() {
     const s = ler();
     if (!s) throw new Error("Nenhuma pelada local");
-    const qtd = Number(s.quantidadeTimes) || 2;
+    const qtd = Math.min(5, Math.max(2, Number(s.quantidadeTimes) || 2));
     const linha = (s.jogadores || []).filter((j) => !j.goleiro && j.apto !== false);
     const goleiros = (s.jogadores || []).filter((j) => j.goleiro && j.apto !== false);
     if (linha.length < qtd) {

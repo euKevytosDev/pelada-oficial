@@ -41,24 +41,28 @@ public class PeladaService {
     private final ElencoJogadorRepository elencoRepository;
     private final ObservacaoPeladaRepository observacaoRepository;
     private final AuthSupport authSupport;
+    private final AssinaturaService assinaturaService;
 
     public PeladaService(PeladaRepository peladaRepository,
                          JogadorRepository jogadorRepository,
                          TimeRepository timeRepository,
                          ElencoJogadorRepository elencoRepository,
                          ObservacaoPeladaRepository observacaoRepository,
-                         AuthSupport authSupport) {
+                         AuthSupport authSupport,
+                         AssinaturaService assinaturaService) {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
         this.elencoRepository = elencoRepository;
         this.observacaoRepository = observacaoRepository;
         this.authSupport = authSupport;
+        this.assinaturaService = assinaturaService;
     }
 
     @Transactional
     public Pelada criar(CriarPeladaRequest request) {
         Usuario dono = authSupport.usuarioAtual();
+        exigirQuantidadeTimes(dono, request.getQuantidadeTimes());
         // Uma ativa por vez — evita fantasma em "Continuar pelada"
         encerrarAtivasDoUsuario(dono);
         Pelada pelada = new Pelada();
@@ -93,6 +97,20 @@ public class PeladaService {
         }
         peladaRepository.saveAll(ativas);
         return ativas.size();
+    }
+
+    private void exigirQuantidadeTimes(Usuario usuario, Integer quantidade) {
+        int qtd = quantidade == null ? 2 : quantidade;
+        if (qtd < 2 || qtd > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Escolha de 2 a 5 times");
+        }
+        if (qtd < 4) return;
+        if (usuario != null) {
+            assinaturaService.garantirTrialEMap(usuario);
+        }
+        if (usuario == null || !assinaturaService.proAtivo(usuario)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "4 e 5 times fazem parte do Pelada Pro");
+        }
     }
 
     private void importarElencoParaPelada(Usuario dono, Pelada pelada) {
@@ -393,6 +411,7 @@ public class PeladaService {
     @Transactional
     public List<Time> sortearTimes(Long peladaId) {
         Pelada pelada = buscar(peladaId);
+        exigirQuantidadeTimes(pelada.getUsuario(), pelada.getQuantidadeTimes());
         List<Jogador> todos = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
 
         List<Jogador> linha = todos.stream()

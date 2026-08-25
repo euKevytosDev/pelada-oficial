@@ -1066,6 +1066,7 @@ function renderTimes(times) {
   const comGoleiro = times.filter((t) => t.goleiro).length;
   const semGoleiro = times.length - comGoleiro;
   const grade = document.getElementById("grade-times");
+  grade.classList.toggle("cinco-times", (times || []).length >= 5);
   grade.innerHTML = `
     <p class="dica-times">
       Arraste um jogador para outro time (ou toque em <strong>Mover</strong>).
@@ -1845,7 +1846,7 @@ async function iniciarPartidaComEscolha() {
     return;
   }
 
-  // Sempre pergunta Time A e Time B (2, 3 ou 4 times)
+  // Sempre pergunta Time A e Time B (2 a 5 times)
   const timeAId = await escolherOpcao(
     "Quem joga? Time A",
     times.map((t) => ({ id: t.id, label: t.nome })),
@@ -3071,6 +3072,7 @@ document.getElementById("btn-voltar-config")?.addEventListener("click", () => {
 document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
   const nome = document.getElementById("cfg-nome-pelada")?.value?.trim();
   const qtd = parseInt(document.getElementById("cfg-qtd-times")?.value, 10);
+  if (!exigirQtdTimesPro(qtd)) return;
   ConfigApp.salvarPrefs({
     nomePelada: nome || "Pelada Oficial",
     qtdTimes: Number.isFinite(qtd) ? qtd : 2,
@@ -3138,14 +3140,23 @@ window.addEventListener("online", () => {
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
 });
+function exigirQtdTimesPro(qtd) {
+  const n = Number(qtd) || 2;
+  if (n <= 3) return true;
+  if (typeof PlanoApp === "undefined") return true;
+  return PlanoApp.exigirPro("4 e 5 times fazem parte do Pelada Pro");
+}
+
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const qtdTimes = Number(document.getElementById("qtd-times").value);
+  if (!exigirQtdTimesPro(qtdTimes)) return;
   try {
     await comLoading(async () => {
       limparOcultarContinuar();
       const pelada = await PeladaAPI.criar({
         nome: document.getElementById("nome-pelada").value.trim(),
-        quantidadeTimes: Number(document.getElementById("qtd-times").value),
+        quantidadeTimes: qtdTimes,
         importarElenco: false,
       });
       estado.peladaId = pelada.id;
@@ -3154,7 +3165,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
       LocalJogo.iniciarPeladaLocal({
         peladaId: pelada.id,
         nome: pelada.nome || document.getElementById("nome-pelada").value.trim(),
-        quantidadeTimes: Number(document.getElementById("qtd-times").value),
+        quantidadeTimes: qtdTimes,
         jogadores,
       });
       const todos = await carregarCadastro();

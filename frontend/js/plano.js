@@ -35,7 +35,7 @@ const PlanoApp = (() => {
         status.textContent = `${tipo} ativo${ate}.`;
       }
     } else {
-      status.textContent = "Plano grátis — sorteio, placar e 1 cronômetro.";
+        status.textContent = "Plano grátis — até 3 times, sorteio, placar e 1 cronômetro.";
     }
   }
 

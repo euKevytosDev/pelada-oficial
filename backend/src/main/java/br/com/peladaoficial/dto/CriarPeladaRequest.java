@@ -14,7 +14,7 @@ public class CriarPeladaRequest {
 
     @NotNull
     @Min(2)
-    @Max(6)
+    @Max(5)
     private Integer quantidadeTimes = 2;
 
     /** Se true (padrão), traz nomes/estrelas salvos da última pelada. */
