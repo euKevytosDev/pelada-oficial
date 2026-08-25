@@ -1660,6 +1660,8 @@ async function carregarCadastro() {
 }
 
 async function sortearTimes() {
+  const qtd = Number(LocalJogo.obter()?.quantidadeTimes) || 2;
+  if (!exigirQtdTimesPro(qtd)) return;
   LocalJogo.sortearTimesLocal();
   const times = LocalJogo.listarTimes();
   estado.goleiros = LocalJogo.listarGoleiros();
@@ -1946,6 +1948,14 @@ function goleirosAptosParaSofrerGol(partida) {
 async function registrarEventoAoVivo(tipo) {
   const partida = estado.partidaAtual;
   if (!partida) return;
+
+  if (
+    (tipo === "CARTAO_AMARELO" || tipo === "CARTAO_VERMELHO") &&
+    typeof PlanoApp !== "undefined" &&
+    !PlanoApp.exigirPro("Cartão amarelo e vermelho fazem parte do Pelada Pro")
+  ) {
+    return;
+  }
 
   let timeId;
   let jogadorId;
@@ -3474,6 +3484,9 @@ document.getElementById("btn-pdf")?.addEventListener("click", async () => {
 document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
   if (!estado.resumoAtual) {
     toast("Abra a súmula primeiro");
+    return;
+  }
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, use o Pelada Pro")) {
     return;
   }
   compartilharWhatsApp(estado.resumoAtual);

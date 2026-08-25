@@ -794,6 +794,79 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   text-align: center;
 }
 
+.paywall-lead {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.paywall-msg {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--texto-suave);
+}
+
+.paywall-ofertas {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.paywall-oferta {
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--fundo-card, rgba(255, 255, 255, 0.04));
+}
+
+.paywall-oferta-destaque {
+  border-color: var(--destaque, #22c55e);
+}
+
+.paywall-tag {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--destaque, #22c55e);
+}
+
+.paywall-oferta strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.paywall-preco {
+  margin: 0 0 2px;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.paywall-preco span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.paywall-equiv {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+}
+
+.paywall-oferta .btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+.paywall-ver-planos {
+  width: 100%;
+  margin-top: 4px;
+}
+
 .plano-lista {
   margin: 0;
   padding-left: 1.15rem;

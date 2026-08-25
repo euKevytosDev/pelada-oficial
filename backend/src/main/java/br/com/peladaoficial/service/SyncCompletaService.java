@@ -27,6 +27,7 @@ public class SyncCompletaService {
     private final PeladaService peladaService;
     private final ResumoService resumoService;
     private final AuthSupport authSupport;
+    private final AssinaturaService assinaturaService;
 
     public SyncCompletaService(PeladaRepository peladaRepository,
                                JogadorRepository jogadorRepository,
@@ -36,7 +37,8 @@ public class SyncCompletaService {
                                ObservacaoPeladaRepository observacaoRepository,
                                PeladaService peladaService,
                                ResumoService resumoService,
-                               AuthSupport authSupport) {
+                               AuthSupport authSupport,
+                               AssinaturaService assinaturaService) {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
@@ -46,6 +48,7 @@ public class SyncCompletaService {
         this.peladaService = peladaService;
         this.resumoService = resumoService;
         this.authSupport = authSupport;
+        this.assinaturaService = assinaturaService;
     }
 
     @Transactional
@@ -196,6 +199,13 @@ public class SyncCompletaService {
                                  Map<String, Jogador> jogadores) {
         if (item.getTipo() == null) {
             throw erro("Tipo do evento é obrigatório");
+        }
+        if (item.getTipo() == TipoEvento.CARTAO_AMARELO || item.getTipo() == TipoEvento.CARTAO_VERMELHO) {
+            Usuario usuario = authSupport.usuarioAtual();
+            assinaturaService.garantirTrialEMap(usuario);
+            if (!assinaturaService.proAtivo(usuario)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Pelada Pro");
+            }
         }
         Time time = buscar(times, item.getTimeClientId(), "time do evento");
         if (!time.getId().equals(partida.getTimeA().getId()) && !time.getId().equals(partida.getTimeB().getId())) {

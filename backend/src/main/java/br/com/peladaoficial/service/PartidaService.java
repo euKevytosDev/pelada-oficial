@@ -28,19 +28,22 @@ public class PartidaService {
     private final JogadorRepository jogadorRepository;
     private final EventoPartidaRepository eventoRepository;
     private final AuthSupport authSupport;
+    private final AssinaturaService assinaturaService;
 
     public PartidaService(PeladaRepository peladaRepository,
             PartidaRepository partidaRepository,
             TimeRepository timeRepository,
             JogadorRepository jogadorRepository,
             EventoPartidaRepository eventoRepository,
-            AuthSupport authSupport) {
+            AuthSupport authSupport,
+            AssinaturaService assinaturaService) {
         this.peladaRepository = peladaRepository;
         this.partidaRepository = partidaRepository;
         this.timeRepository = timeRepository;
         this.jogadorRepository = jogadorRepository;
         this.eventoRepository = eventoRepository;
         this.authSupport = authSupport;
+        this.assinaturaService = assinaturaService;
     }
 
     private Pelada buscarPeladaDoUsuario(Long peladaId) {
@@ -112,6 +115,14 @@ public class PartidaService {
         Partida partida = buscar(partidaId);
         if (partida.getStatus() != StatusPartida.EM_ANDAMENTO) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Partida já finalizada");
+        }
+
+        Usuario usuario = authSupport.usuarioAtual();
+        if (request.getTipo() == TipoEvento.CARTAO_AMARELO || request.getTipo() == TipoEvento.CARTAO_VERMELHO) {
+            assinaturaService.garantirTrialEMap(usuario);
+            if (!assinaturaService.proAtivo(usuario)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Pelada Pro");
+            }
         }
 
         // Idempotência: mesmo lance do celular não conta de novo

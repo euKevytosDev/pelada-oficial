@@ -35,7 +35,7 @@ const PlanoApp = (() => {
         status.textContent = `${tipo} ativo${ate}.`;
       }
     } else {
-        status.textContent = "Plano grátis — até 3 times, sorteio, placar e 1 cronômetro.";
+        status.textContent = "Plano grátis — até 3 times, sorteio, placar, gol e ver a súmula.";
     }
   }
 
@@ -47,10 +47,69 @@ const PlanoApp = (() => {
     mostrarTela("tela-planos");
   }
 
+  function escaparHtml(texto) {
+    return String(texto || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function mostrarPaywallPro(mensagem) {
+    const a = assinatura();
+    if (a.cortesia) {
+      toast("Sua conta já tem o Pelada Pro liberado.");
+      return;
+    }
+
+    const nativo = typeof isAppNativo === "function" && isAppNativo();
+    const msg = mensagem || "Esse recurso faz parte do Pelada Pro.";
+    const corpo = nativo
+      ? `<p class="paywall-lead">Você não é Pro</p>
+         <p class="paywall-msg">${escaparHtml(msg)}</p>
+         <p class="dica">No app Android a assinatura entra pela Play Store. O teste de 7 dias já vale nesta conta.</p>`
+      : `<p class="paywall-lead">Você não é Pro</p>
+         <p class="paywall-msg">${escaparHtml(msg)}</p>
+         <div class="paywall-ofertas">
+           <article class="paywall-oferta paywall-oferta-destaque">
+             <p class="paywall-tag">Mais vantajoso</p>
+             <strong>Anual</strong>
+             <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
+             <p class="paywall-equiv">~R$ 29,15/mês · Pix ou cartão</p>
+             <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
+           </article>
+           <article class="paywall-oferta">
+             <strong>Mensal</strong>
+             <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
+             <p class="paywall-equiv">Pix ou cartão · cancela quando quiser</p>
+             <button type="button" class="btn btn-secundario" id="paywall-btn-mensal">Assinar mensal</button>
+           </article>
+         </div>
+         <button type="button" class="btn btn-secundario paywall-ver-planos" id="paywall-ver-planos">Ver todos os planos</button>`;
+
+    if (typeof abrirModal !== "function") {
+      abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
+      toast(msg);
+      return;
+    }
+
+    abrirModal("Pelada Pro", corpo);
+    document.getElementById("paywall-btn-anual")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      assinar("pro_anual");
+    });
+    document.getElementById("paywall-btn-mensal")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      assinar("pro_mensal");
+    });
+    document.getElementById("paywall-ver-planos")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
+    });
+  }
+
   function exigirPro(mensagem) {
     if (temPro()) return true;
-    abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
-    toast(mensagem || "Isso faz parte do Pelada Pro");
+    mostrarPaywallPro(mensagem);
     return false;
   }
 
@@ -125,5 +184,5 @@ const PlanoApp = (() => {
     pintar();
   }
 
-  return { temPro, exigirPro, pintar, abrir, sincronizar, init };
+  return { temPro, exigirPro, mostrarPaywallPro, pintar, abrir, sincronizar, init };
 })();
