@@ -290,13 +290,13 @@ function montarResumoDeTexto(textoBruto) {
       modoCartao = "V";
       return;
     }
-    if (/^(Partidas|Pontua|Campe|TIME\s*\d+|Bola|Luva)/i.test(t)) {
+    if (/^(Partidas|Pontua|Campe|TIME\s*\d+|Bola|Luva|Observ|Atraso|Gols?\s+contra)/i.test(t)) {
       modoCartao = null;
       return;
     }
     if (!modoCartao) return;
     if (/nenhum/i.test(t)) return;
-    const cm = t.match(/^[*•\-]?\s*(.+?)\s*:\s*(\d+)\s*$/);
+    const cm = t.match(/^[*•\-]?\s*([^:]+):\s*(\d+)\s*$/);
     if (!cm) return;
     const item = { nome: cm[1].trim(), quantidade: Number(cm[2]) };
     if (modoCartao === "A") amarelos.push(item);
