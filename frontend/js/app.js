@@ -1069,7 +1069,7 @@ function renderTimes(times) {
   grade.classList.toggle("cinco-times", (times || []).length >= 5);
   grade.innerHTML = `
     <p class="dica-times">
-      Arraste um jogador para outro time (ou toque em <strong>Mover</strong>).
+      Use <strong>Mover</strong> para passar um jogador de time.
       Pode desequilibrar as estrelas à vontade.
       ${semGoleiro > 0 ? ` · ${semGoleiro} time(s) sem goleiro (emprestam na partida).` : " · Todos têm goleiro."}
     </p>
@@ -1092,11 +1092,9 @@ function renderTimes(times) {
             .sort((a, b) => (a.estrelas || 0) - (b.estrelas || 0) || a.nome.localeCompare(b.nome))
             .map(
               (j) => `
-            <li class="jogador-arrastavel"
-                draggable="true"
+            <li class="jogador-time-item"
                 data-jogador-id="${j.id}"
                 data-time-origem="${t.id}">
-              <span class="jogador-arraste-handle" aria-hidden="true">⠿</span>
               <span class="jogador-nome">${j.nome}</span>
               <span class="meta">${estrelasTexto(j.estrelas)}</span>
               <button type="button" class="btn-mini" data-acao="mover" data-jogador-id="${j.id}" data-time-origem="${t.id}">Mover</button>
@@ -1108,7 +1106,6 @@ function renderTimes(times) {
       })
       .join("")}
   `;
-  ativarArrasteJogadores();
 }
 
 async function moverJogadorParaTime(jogadorId, timeDestinoId) {
@@ -1130,120 +1127,6 @@ async function escolherTimeParaMover(jogadorId, timeOrigemId) {
   );
   if (!timeId) return;
   await moverJogadorParaTime(jogadorId, timeId);
-}
-
-function ativarArrasteJogadores() {
-  const grade = document.getElementById("grade-times");
-  if (!grade) return;
-
-  let arrastandoId = null;
-  let origemId = null;
-  let ghost = null;
-
-  grade.querySelectorAll(".jogador-arrastavel").forEach((li) => {
-    li.addEventListener("dragstart", (e) => {
-      arrastandoId = li.dataset.jogadorId;
-      origemId = li.dataset.timeOrigem;
-      li.classList.add("arrastando");
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", String(arrastandoId));
-    });
-    li.addEventListener("dragend", () => {
-      li.classList.remove("arrastando");
-      grade.querySelectorAll(".time-card").forEach((c) => c.classList.remove("drop-alvo"));
-      arrastandoId = null;
-      origemId = null;
-    });
-
-    // Toque no celular (pointer)
-    li.addEventListener("pointerdown", (e) => {
-      if (e.target.closest("button")) return;
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-
-      const jogadorId = li.dataset.jogadorId;
-      const timeOrigem = li.dataset.timeOrigem;
-      const startX = e.clientX;
-      const startY = e.clientY;
-      let moved = false;
-
-      const onMove = (ev) => {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if (!moved && Math.hypot(dx, dy) < 8) return;
-        if (!moved) {
-          moved = true;
-          arrastandoId = jogadorId;
-          origemId = timeOrigem;
-          li.classList.add("arrastando");
-          ghost = li.cloneNode(true);
-          ghost.classList.add("ghost-arraste");
-          ghost.style.width = `${li.offsetWidth}px`;
-          document.body.appendChild(ghost);
-          try {
-            li.setPointerCapture(ev.pointerId);
-          } catch (_) {
-            /* ignore */
-          }
-        }
-        ghost.style.transform = `translate(${ev.clientX - 40}px, ${ev.clientY - 20}px)`;
-        const el = document.elementFromPoint(ev.clientX, ev.clientY);
-        const card = el && el.closest(".time-card");
-        grade.querySelectorAll(".time-card").forEach((c) => {
-          c.classList.toggle("drop-alvo", card === c && String(c.dataset.timeId) !== String(timeOrigem));
-        });
-      };
-
-      const onUp = async (ev) => {
-        li.removeEventListener("pointermove", onMove);
-        li.removeEventListener("pointerup", onUp);
-        li.removeEventListener("pointercancel", onUp);
-        if (ghost) {
-          ghost.remove();
-          ghost = null;
-        }
-        li.classList.remove("arrastando");
-        grade.querySelectorAll(".time-card").forEach((c) => c.classList.remove("drop-alvo"));
-
-        if (!moved) return;
-        const el = document.elementFromPoint(ev.clientX, ev.clientY);
-        const card = el && el.closest(".time-card");
-        const destinoId = card ? card.dataset.timeId : null;
-        const jId = arrastandoId;
-        arrastandoId = null;
-        origemId = null;
-        if (!destinoId || String(destinoId) === String(timeOrigem)) return;
-        try {
-          await moverJogadorParaTime(jId, destinoId);
-        } catch (err) {
-          toast(err.message);
-        }
-      };
-
-      li.addEventListener("pointermove", onMove);
-      li.addEventListener("pointerup", onUp);
-      li.addEventListener("pointercancel", onUp);
-    });
-  });
-
-  grade.querySelectorAll(".time-card").forEach((card) => {
-    card.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      card.classList.add("drop-alvo");
-    });
-    card.addEventListener("dragleave", () => card.classList.remove("drop-alvo"));
-    card.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      card.classList.remove("drop-alvo");
-      const jogadorId = e.dataTransfer.getData("text/plain") || arrastandoId;
-      const destinoId = card.dataset.timeId;
-      if (!jogadorId || !destinoId || String(destinoId) === String(origemId)) return;
-      try {
-        await moverJogadorParaTime(jogadorId, destinoId);
-      } catch (err) {
-        toast(err.message);
-      }
-    });
-  });
 }
 
 /* ========== Cronômetros da partida — contínuos + persistentes ========== */
