@@ -28,7 +28,8 @@ const PlanoApp = (() => {
     if (!status) return;
     if (a.proAtivo) {
       if (a.cortesia) {
-        status.textContent = "Pelada Pro ativo nesta conta.";
+        status.textContent =
+          "Pelada Pro ativo nesta conta (cortesia). Quem for pagar pelo site usa o e-mail dele, cria conta e assina o mensal.";
       } else {
         const tipo = a.trial ? "Teste Pro" : "Pelada Pro";
         const ate = a.expiraEmTexto ? ` até ${a.expiraEmTexto}` : "";
