@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260825n" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260826a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -306,7 +306,7 @@
               <h3>Mensal</h3>
               <p class="plano-preco">R$ 49,90<span>/mês</span></p>
               <p class="plano-equiv">Pix avulso ou cartão com renovação automática</p>
-              <button type="button" class="btn btn-principal" id="btn-plano-mensal-cartao">Cartão (renova todo mês)</button>
+              <button type="button" class="btn btn-principal" id="btn-plano-mensal-cartao">Cartão de Crédito</button>
               <button type="button" class="btn btn-secundario" id="btn-plano-mensal-pix">Pix (pagamento único)</button>
             </article>
           </div>
@@ -315,6 +315,40 @@
             cobrança (conta de desenvolvimento).</p>
           <p class="plano-rodape-dica">No grátis você vê a súmula no fim. O Pro libera PDF, WhatsApp, cartões, 4 ou 5
             times, caixa e relatório do mês.</p>
+        </div>
+      </section>
+
+      <section class="tela" id="tela-pagamento-ok">
+        <div class="pago-ok-shell">
+          <div class="pago-ok-marca" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="72" height="72">
+              <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="3" />
+              <path d="M18 33.5l9.5 9.5L46 22" fill="none" stroke="currentColor" stroke-width="4"
+                stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <p class="pago-ok-selo">Pelada Pro</p>
+          <h2 class="pago-ok-titulo">Pagamento confirmado</h2>
+          <p class="pago-ok-lead" id="pago-ok-lead">Sua conta já está com o Pro ativo. Aproveite os recursos do
+            organizador.</p>
+          <ul class="pago-ok-lista" aria-label="Recursos liberados">
+            <li>4 e 5 times no sorteio</li>
+            <li>Cartões amarelo e vermelho</li>
+            <li>PDF e WhatsApp da súmula</li>
+            <li>Caixa da pelada e relatório do mês</li>
+          </ul>
+          <button type="button" class="btn btn-principal btn-block" id="btn-pago-ok-continuar">Continuar</button>
+        </div>
+      </section>
+
+      <section class="tela" id="tela-pagamento-falhou">
+        <div class="pago-ok-shell pago-falhou-shell">
+          <p class="pago-ok-selo pago-falhou-selo">Pagamento</p>
+          <h2 class="pago-ok-titulo">Não concluído</h2>
+          <p class="pago-ok-lead">O pagamento não foi finalizado. Você pode tentar de novo quando quiser — o plano grátis
+            continua disponível.</p>
+          <button type="button" class="btn btn-principal btn-block" id="btn-pago-falhou-planos">Ver planos</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-pago-falhou-inicio">Voltar ao início</button>
         </div>
       </section>
 
@@ -628,13 +662,13 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/api.js?v=20260825h"></script>
   <script src="js/config.js?v=20260825e"></script>
-  <script src="js/plano.js?v=20260825n"></script>
+  <script src="js/plano.js?v=20260826a"></script>
   <script src="js/local-jogo.js?v=20260825h"></script>
   <script src="js/resumo.js?v=20260825j"></script>
   <script src="js/relatorio-mensal.js?v=20260825j"></script>
   <script src="js/caixa.js?v=20260825j"></script>
   <script src="js/sumula-manual.js?v=20260825h"></script>
-  <script src="js/app.js?v=20260825m"></script>
+  <script src="js/app.js?v=20260826a"></script>
 </body>
 
 </html>

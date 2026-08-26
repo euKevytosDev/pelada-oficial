@@ -42,6 +42,8 @@ function mostrarTela(id) {
     "tela-inicio": "Controle da pelada no celular",
     "tela-configuracoes": "Configurações",
     "tela-planos": "Pelada Pro",
+    "tela-pagamento-ok": "Pagamento confirmado",
+    "tela-pagamento-falhou": "Pagamento",
     "tela-relatorio-mensal": "Relatório do mês",
     "tela-caixa": "Caixa da pelada",
     "tela-historico": "Histórico de peladas",
@@ -2762,6 +2764,10 @@ async function bootAuth() {
 
   // Já tem login salvo — mantém sessão mesmo se a API estiver acordando
   atualizarUserBar();
+  if (typeof PlanoApp !== "undefined" && PlanoApp.temRetornoPagamento()) {
+    await PlanoApp.aplicarRetornoPagamento();
+    return;
+  }
   if (typeof PlanoApp !== "undefined") PlanoApp.sincronizar().catch(() => {});
   try {
     await PeladaAPI.ativa();

@@ -91,9 +91,9 @@ const PlanoApp = (() => {
              <article class="paywall-oferta">
                <strong>Mensal cartão</strong>
                <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
-               <p class="paywall-equiv">Renova automaticamente no cartão</p>
-               <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Assinar no cartão</button>
-               <button type="button" class="btn btn-secundario paywall-btn-pix" id="paywall-btn-mensal-pix">Pagar no Pix</button>
+               <p class="paywall-equiv">Renova automaticamente · Cartão de Crédito</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Cartão de Crédito</button>
+               <button type="button" class="btn btn-secundario paywall-btn-pix" id="paywall-btn-mensal-pix">Pix</button>
              </article>
            </div>
            <button type="button" class="btn btn-secundario paywall-ver-planos" id="paywall-ver-planos">Ver todos os planos</button>
@@ -182,25 +182,82 @@ const PlanoApp = (() => {
     }
   }
 
+  let retornoPagamentoPendente = null;
+
+  function limparParamsPagamentoUrl() {
+    const url = new URL(location.href);
+    [
+      "pago",
+      "status",
+      "payment_id",
+      "collection_id",
+      "collection_status",
+      "external_reference",
+      "merchant_order_id",
+      "preference_id",
+      "preapproval_id",
+      "site_id",
+      "processing_mode",
+      "merchant_account_id",
+    ].forEach((k) => url.searchParams.delete(k));
+    history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }
+
+  function pintarTelaPagamentoOk() {
+    const a = assinatura();
+    const lead = document.getElementById("pago-ok-lead");
+    if (!lead) return;
+    if (a.proAtivo && a.expiraEmTexto) {
+      lead.textContent = `Pelada Pro ativo até ${a.expiraEmTexto}. Aproveite 4 e 5 times, cartões, PDF, WhatsApp, caixa e relatório.`;
+    } else if (a.proAtivo) {
+      lead.textContent = "Sua conta já está com o Pelada Pro ativo. Aproveite os recursos do organizador.";
+    } else {
+      lead.textContent =
+        "Recebemos o pagamento. Em instantes o Pro libera nesta conta — se ainda não aparecer, entre de novo.";
+    }
+  }
+
+  function mostrarPagamentoOk() {
+    pintar();
+    pintarTelaPagamentoOk();
+    mostrarTela("tela-pagamento-ok");
+  }
+
+  function mostrarPagamentoFalhou() {
+    mostrarTela("tela-pagamento-falhou");
+  }
+
+  function temRetornoPagamento() {
+    return retornoPagamentoPendente === "ok" || retornoPagamentoPendente === "falhou";
+  }
+
+  async function aplicarRetornoPagamento() {
+    const pago = retornoPagamentoPendente;
+    retornoPagamentoPendente = null;
+    if (pago === "ok") {
+      try {
+        await sincronizar();
+      } catch (_) {
+        /* tela de sucesso mesmo assim */
+      }
+      mostrarPagamentoOk();
+      return true;
+    }
+    if (pago === "falhou") {
+      mostrarPagamentoFalhou();
+      return true;
+    }
+    return false;
+  }
+
   function tratarRetornoUrl() {
     const q = new URLSearchParams(location.search);
     const pago = q.get("pago");
     if (!pago) return;
-    if (pago === "ok") toast("Pagamento recebido. Atualizando seu plano...");
-    if (pago === "falhou") toast("Pagamento não concluído");
-    const url = new URL(location.href);
-    url.searchParams.delete("pago");
-    url.searchParams.delete("status");
-    url.searchParams.delete("payment_id");
-    url.searchParams.delete("collection_id");
-    url.searchParams.delete("collection_status");
-    url.searchParams.delete("external_reference");
-    url.searchParams.delete("merchant_order_id");
-    url.searchParams.delete("preference_id");
-    url.searchParams.delete("site_id");
-    url.searchParams.delete("processing_mode");
-    url.searchParams.delete("merchant_account_id");
-    history.replaceState({}, "", url.pathname + url.search + url.hash);
+    limparParamsPagamentoUrl();
+    if (pago === "ok" || pago === "falhou") {
+      retornoPagamentoPendente = pago;
+    }
   }
 
   function init() {
@@ -212,10 +269,29 @@ const PlanoApp = (() => {
     document.getElementById("btn-plano-mensal-cartao")?.addEventListener("click", () => assinar("pro_mensal_recorrente"));
     document.getElementById("btn-plano-mensal-pix")?.addEventListener("click", () => assinar("pro_mensal"));
     document.getElementById("btn-plano-anual")?.addEventListener("click", () => assinar("pro_anual"));
+    document.getElementById("btn-pago-ok-continuar")?.addEventListener("click", () => {
+      if (typeof entrarNaHome === "function") entrarNaHome();
+      else mostrarTela("tela-inicio");
+    });
+    document.getElementById("btn-pago-falhou-planos")?.addEventListener("click", () => abrir("tela-inicio"));
+    document.getElementById("btn-pago-falhou-inicio")?.addEventListener("click", () => {
+      if (typeof entrarNaHome === "function") entrarNaHome();
+      else mostrarTela("tela-inicio");
+    });
     protegerSelectQtdTimes(document.getElementById("qtd-times"));
     protegerSelectQtdTimes(document.getElementById("cfg-qtd-times"));
     pintar();
   }
 
-  return { temPro, exigirPro, mostrarPaywallPro, pintar, abrir, sincronizar, init };
+  return {
+    temPro,
+    exigirPro,
+    mostrarPaywallPro,
+    pintar,
+    abrir,
+    sincronizar,
+    temRetornoPagamento,
+    aplicarRetornoPagamento,
+    init,
+  };
 })();
