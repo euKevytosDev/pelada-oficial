@@ -402,32 +402,29 @@
       <section class="tela" id="tela-caixa">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-caixa">← Voltar</button>
         <h2 class="lista-titulo">Caixa da pelada</h2>
-        <p class="dica">O app sabe quem entrou em campo. Cobra o jogo, acompanha o mês e manda o boletim — só você vê o
-          painel.</p>
+        <p class="dica caixa-intro">1) Defina os valores · 2) Cobre quem jogou · 3) Toque no nome para registrar pagamento</p>
 
         <label>
           Mês
           <select id="caixa-mes" aria-label="Mês da caixa"></select>
         </label>
 
-        <div id="caixa-painel"></div>
+        <form class="card-form caixa-valores" id="form-caixa-valores">
+          <p class="caixa-valores-titulo">Quanto cobrar?</p>
+          <div class="caixa-valores-grid">
+            <label>
+              Mensalidade
+              <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
+            </label>
+            <label>
+              Por jogo
+              <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
+            </label>
+          </div>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-salvar-valores">Salvar valores</button>
+        </form>
 
-        <details class="caixa-config">
-          <summary>Valores mensal e avulso</summary>
-          <form class="card-form caixa-valores" id="form-caixa-valores">
-            <div class="caixa-valores-grid">
-              <label>
-                Mensal fixo
-                <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
-              </label>
-              <label>
-                Avulso por jogo
-                <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
-              </label>
-            </div>
-            <button type="button" class="btn btn-principal" id="btn-caixa-salvar-valores">Salvar valores</button>
-          </form>
-        </details>
+        <div id="caixa-painel"></div>
 
         <div class="acoes-share no-print">
           <button type="button" class="btn btn-principal" id="btn-caixa-pdf">Boletim PDF</button>
@@ -610,8 +607,7 @@
           <button type="button" class="btn btn-principal" id="btn-pdf">Baixar PDF</button>
           <button type="button" class="btn btn-whats" id="btn-whats-resumo">WhatsApp</button>
         </div>
-        <button type="button" class="btn btn-secundario btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem
-          jogou hoje</button>
+        <button type="button" class="btn btn-principal btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem jogou na caixa</button>
 
         <div class="card-form no-print" id="box-atraso-fim">
           <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
@@ -666,7 +662,7 @@
   <script src="js/local-jogo.js?v=20260825h"></script>
   <script src="js/resumo.js?v=20260825j"></script>
   <script src="js/relatorio-mensal.js?v=20260825j"></script>
-  <script src="js/caixa.js?v=20260825j"></script>
+  <script src="js/caixa.js?v=20260828a"></script>
   <script src="js/sumula-manual.js?v=20260825h"></script>
   <script src="js/app.js?v=20260826a"></script>
 </body>

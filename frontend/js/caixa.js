@@ -41,7 +41,13 @@ function reaisParaInput(n) {
 function rotuloModalidade(m) {
   if (m === "MENSAL") return "Mensal";
   if (m === "ISENTO") return "Isento";
-  return "Avulso";
+  return "Por jogo";
+}
+
+function badgeModalidade(m) {
+  const txt = rotuloModalidade(m);
+  const cls = m === "MENSAL" ? "mensal" : m === "ISENTO" ? "isento" : "avulso";
+  return `<span class="caixa-badge caixa-badge-${cls}">${txt}</span>`;
 }
 
 function escHtml(s) {
@@ -54,31 +60,23 @@ function escHtml(s) {
   }[c]));
 }
 
-function pctBarra(pago, cobrado) {
-  const c = Number(cobrado) || 0;
-  const p = Number(pago) || 0;
-  if (c <= 0) return 0;
-  return Math.min(100, Math.round((p / c) * 100));
-}
-
 function textoCaixaWhatsApp(caixa) {
   const t = caixa.totais || {};
   const linhas = [];
   linhas.push(`*Caixa — ${caixa.titulo || "mês"}*`);
-  linhas.push(`${t.peladas || 0} pelada(s) · ${t.percentual || 0}% recebido`);
-  linhas.push(`Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}`);
+  linhas.push(`Recebeu ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}`);
   const lista = caixa.jogadores || [];
   const pend = lista.filter((j) => j.status === "PENDENTE");
   if (pend.length) {
     linhas.push("");
-    linhas.push("*Ainda devem*");
+    linhas.push("*Quem ainda deve*");
     pend.forEach((j) => {
       const jogos = Number(j.jogos) ? ` · ${j.jogos} jogo(s)` : "";
-      linhas.push(`• ${j.nome}: falta ${formatarReais(j.pendente)}${jogos}`);
+      linhas.push(`• ${j.nome}: ${formatarReais(j.pendente)}${jogos}`);
     });
   } else {
     linhas.push("");
-    linhas.push("Ninguém deve neste mês.");
+    linhas.push("Todo mundo em dia neste mês.");
   }
   linhas.push("");
   linhas.push("_Pelada Oficial_");
@@ -97,24 +95,23 @@ function renderBoletimCaixa(caixa) {
         <p class="eyebrow">Caixa da pelada</p>
         <h2>${escHtml(caixa.titulo || "Mês")}</h2>
       </div>
-      <p class="resumo-data">${t.percentual || 0}% recebido</p>
     </header>
-    <p class="dica" style="margin-top:0">Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)} · ${t.peladas || 0} pelada(s)</p>
+    <p class="dica" style="margin-top:0">Recebeu ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)} · ${t.peladas || 0} pelada(s)</p>
     <section class="resumo-bloco">
-      <h3>Ainda devem <span class="badge-qtd">${pend.length}</span></h3>
+      <h3>Quem ainda deve <span class="badge-qtd">${pend.length}</span></h3>
       ${
         pend.length
           ? `<ul class="lista-resumo">${pend
               .map(
                 (j) =>
-                  `<li><span>${escHtml(j.nome)}${j.jogos ? ` · ${j.jogos} jogo(s)` : ""}</span><strong>${formatarReais(j.pendente)}</strong></li>`
+                  `<li><span>${escHtml(j.nome)} · ${rotuloModalidade(j.modalidade)}${j.jogos ? ` · ${j.jogos} jogo(s)` : ""}</span><strong>${formatarReais(j.pendente)}</strong></li>`
               )
               .join("")}</ul>`
           : `<p class="dica">Ninguém deve.</p>`
       }
     </section>
     <section class="resumo-bloco">
-      <h3>Quitados <span class="badge-qtd">${ok.length}</span></h3>
+      <h3>Em dia <span class="badge-qtd">${ok.length}</span></h3>
       ${
         ok.length
           ? `<ul class="lista-resumo">${ok.map((j) => `<li><span>${escHtml(j.nome)}</span><strong>ok</strong></li>`).join("")}</ul>`
@@ -125,48 +122,28 @@ function renderBoletimCaixa(caixa) {
   `;
 }
 
-function itemJogadorCaixa(j, caixa) {
-  const pct = pctBarra(j.pago, j.cobrado);
-  const statusCls = String(j.status || "").toLowerCase().replace("_", "-");
-  const jogos = Number(j.jogos)
-    ? `${j.jogos} jogo${Number(j.jogos) === 1 ? "" : "s"}`
-    : "não jogou neste mês";
-  const falta =
-    j.status === "PENDENTE"
-      ? `Falta ${formatarReais(j.pendente)}`
-      : j.status === "QUITADO"
-        ? "Quitado"
-        : "Sem cobrança";
-  const mensalAtivo = j.modalidade === "MENSAL";
-  const avulsoAtivo = j.modalidade !== "MENSAL" && j.modalidade !== "ISENTO";
-  const valorRef =
-    j.modalidade === "MENSAL"
-      ? `mensal ${formatarReais(caixa?.valorMensal || 0)}`
-      : j.modalidade === "ISENTO"
-        ? "isento"
-        : `avulso ${formatarReais(caixa?.valorAvulso || 0)}`;
+function itemJogadorCaixa(j) {
+  const jogos = Number(j.jogos) ? `${j.jogos} jogo${Number(j.jogos) === 1 ? "" : "s"}` : "";
+  let direita = "";
+  if (j.status === "PENDENTE") {
+    direita = `<strong class="caixa-valor-deve">${formatarReais(j.pendente)}</strong>`;
+  } else if (j.status === "QUITADO") {
+    direita = `<span class="caixa-valor-ok">Em dia</span>`;
+  } else {
+    direita = `<span class="caixa-valor-neutro">—</span>`;
+  }
+  const extra = [jogos, j.modalidade === "MENSAL" ? null : j.modalidade === "ISENTO" ? null : jogos ? null : "não jogou"]
+    .filter(Boolean)
+    .join(" · ");
   return `
     <li>
-      <div class="caixa-jogador">
-        <div class="caixa-jogador-topo">
-          <strong>${escHtml(j.nome)}${j.goleiro ? " <span class=\"meta\">GK</span>" : ""}</strong>
-          <span class="caixa-mod" role="group" aria-label="Tipo de cobrança">
-            <button type="button" class="caixa-mod-btn${mensalAtivo ? " ativo" : ""}"
-              data-caixa-mod="MENSAL" data-caixa-id="${j.id}">Mensal</button>
-            <button type="button" class="caixa-mod-btn${avulsoAtivo ? " ativo" : ""}"
-              data-caixa-mod="AVULSO" data-caixa-id="${j.id}">Avulso</button>
-          </span>
-        </div>
-        <button type="button" class="caixa-jogador-corpo" data-caixa-acao="${j.id}">
-          <span class="caixa-jogador-base">
-            <span class="caixa-status ${statusCls}">${falta}</span>
-          </span>
-          <span class="caixa-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>
-          <span class="caixa-jogador-base">
-            <span class="caixa-detalhe">${jogos} · ${valorRef} · pago ${formatarReais(j.pago)}</span>
-          </span>
-        </button>
-      </div>
+      <button type="button" class="caixa-linha" data-caixa-acao="${j.id}">
+        <span class="caixa-linha-esq">
+          <span class="caixa-linha-nome">${escHtml(j.nome)}${j.goleiro ? " <span class=\"meta\">GK</span>" : ""}</span>
+          <span class="caixa-linha-meta">${badgeModalidade(j.modalidade)}${extra ? ` · ${extra}` : ""}</span>
+        </span>
+        <span class="caixa-linha-dir">${direita}<span class="caixa-seta" aria-hidden="true">›</span></span>
+      </button>
     </li>`;
 }
 
@@ -175,51 +152,59 @@ function renderCaixa(caixa) {
   const ultima = caixa.ultimaPelada || {};
   const lista = caixa.jogadores || [];
   const pend = lista.filter((j) => j.status === "PENDENTE");
-  const resto = lista.filter((j) => j.status !== "PENDENTE");
-  const pct = Math.min(100, Number(t.percentual) || 0);
+  const ok = lista.filter((j) => j.status === "QUITADO");
+  const resto = lista.filter((j) => j.status !== "PENDENTE" && j.status !== "QUITADO");
 
   const mensal = document.getElementById("caixa-valor-mensal");
   const avulso = document.getElementById("caixa-valor-avulso");
   if (mensal && document.activeElement !== mensal) mensal.value = reaisParaInput(caixa.valorMensal);
   if (avulso && document.activeElement !== avulso) avulso.value = reaisParaInput(caixa.valorAvulso);
 
-  const nomesUltima = (ultima.avulsosParaCobrar || []).map((j) => j.nome).slice(0, 4);
-  const extraUltima = (ultima.avulsosParaCobrar || []).length - nomesUltima.length;
+  const nomesUltima = (ultima.avulsosParaCobrar || []).map((j) => j.nome).slice(0, 3);
+  const qtdUltima = (ultima.avulsosParaCobrar || []).length;
   const ctaUltima = ultima.podeCobrar
-    ? `<button type="button" class="btn btn-principal" id="btn-caixa-cobrar-ultima">
-         Cobrar quem jogou em ${escHtml(ultima.quandoTexto || "último jogo")}
-       </button>
-       <p class="dica">${nomesUltima.map(escHtml).join(", ")}${extraUltima > 0 ? ` e mais ${extraUltima}` : ""} · ${formatarReais(caixa.valorAvulso)} cada · inaptos fora</p>`
-    : ultima.podeCancelar
-      ? `<button type="button" class="btn btn-secundario" id="btn-caixa-cancelar-ultima">
-           Cancelar cobrança de ${escHtml(ultima.quandoTexto || "último jogo")}
+    ? `<div class="caixa-cta">
+         <button type="button" class="btn btn-principal" id="btn-caixa-cobrar-ultima">
+           Cobrar quem jogou${ultima.quandoTexto ? ` · ${escHtml(ultima.quandoTexto)}` : ""}
          </button>
-         <p class="dica">Apaga o lançamento automático deste jogo. Pagamentos já anotados continuam.</p>`
+         <p class="dica">${qtdUltima} avulso(s) · ${formatarReais(caixa.valorAvulso)} cada${nomesUltima.length ? ` · ${nomesUltima.map(escHtml).join(", ")}${qtdUltima > nomesUltima.length ? "…" : ""}` : ""}</p>
+       </div>`
+    : ultima.podeCancelar
+      ? `<div class="caixa-cta">
+           <button type="button" class="btn btn-secundario" id="btn-caixa-cancelar-ultima">
+             Desfazer cobrança do último jogo
+           </button>
+           <p class="dica">Só apaga a cobrança automática. Pagamentos já anotados ficam.</p>
+         </div>`
       : ultima.tem
-        ? `<p class="dica">Última pelada (${escHtml(ultima.quandoTexto || "")}): nada a cobrar nos avulsos aptos.</p>`
-        : `<p class="dica">Encerre uma pelada neste mês para cobrar automaticamente quem entrou em campo.</p>`;
+        ? `<p class="dica caixa-cta-texto">Último jogo (${escHtml(ultima.quandoTexto || "")}): nada a cobrar nos avulsos.</p>`
+        : `<p class="dica caixa-cta-texto">Encerre uma pelada neste mês para cobrar quem entrou em campo.</p>`;
 
   const painel = document.getElementById("caixa-painel");
   if (painel) {
     painel.innerHTML = `
-      <div class="caixa-meter">
-        <p class="caixa-meter-kicker">${escHtml(caixa.titulo || "")} · ${t.peladas || 0} pelada(s)</p>
-        <p class="caixa-meter-valor">${pct}<span>%</span></p>
-        <p class="caixa-meter-legenda">da caixa recebida</p>
-        <span class="caixa-barra caixa-barra-lg" aria-hidden="true"><span style="width:${pct}%"></span></span>
-        <p class="caixa-meter-numeros">Entrou ${formatarReais(t.pago)} · falta ${formatarReais(t.pendente)}</p>
+      <div class="caixa-resumo">
+        <div class="caixa-resumo-item">
+          <span class="caixa-resumo-label">Recebeu</span>
+          <strong class="caixa-resumo-valor ok">${formatarReais(t.pago)}</strong>
+        </div>
+        <div class="caixa-resumo-item">
+          <span class="caixa-resumo-label">Ainda falta</span>
+          <strong class="caixa-resumo-valor${Number(t.pendente) > 0 ? " deve" : ""}">${formatarReais(t.pendente)}</strong>
+        </div>
       </div>
-      <div class="caixa-cta">${ctaUltima}</div>
-      <h3 class="lista-titulo">Ainda devem <span class="caixa-conta">${pend.length}</span></h3>
+      <p class="dica caixa-resumo-meta">${pend.length} devem · ${ok.length} em dia · ${t.peladas || 0} pelada(s) no mês</p>
+      ${ctaUltima}
+      <h3 class="lista-titulo caixa-secao-titulo">Quem deve <span class="caixa-conta">${pend.length}</span></h3>
       <ul class="lista caixa-lista">${
         pend.length
-          ? pend.map((j) => itemJogadorCaixa(j, caixa)).join("")
-          : `<li class="caixa-vazio"><span>Ninguém deve neste mês.</span></li>`
+          ? pend.map((j) => itemJogadorCaixa(j)).join("")
+          : `<li class="caixa-vazio"><span>Todo mundo em dia neste mês.</span></li>`
       }</ul>
       ${
-        resto.length
-          ? `<details class="caixa-mais"><summary>Quitados e sem cobrança (${resto.length})</summary>
-             <ul class="lista caixa-lista">${resto.map((j) => itemJogadorCaixa(j, caixa)).join("")}</ul></details>`
+        ok.length || resto.length
+          ? `<details class="caixa-mais"><summary>Em dia e isentos (${ok.length + resto.length})</summary>
+             <ul class="lista caixa-lista">${[...ok, ...resto].map((j) => itemJogadorCaixa(j)).join("")}</ul></details>`
           : ""
       }
     `;
@@ -243,8 +228,8 @@ function pintarFaixaCaixaHome(caixa) {
   }
   faixa.classList.remove("oculto");
   faixa.textContent = pend
-    ? `Caixa: ${pend} ainda devem · ${formatarReais(falta)}`
-    : `Caixa do mês quitada · ${formatarReais(t.pago)}`;
+    ? `Caixa: ${pend} devem · falta ${formatarReais(falta)}`
+    : `Caixa em dia · ${formatarReais(t.pago)} recebidos`;
 }
 
 async function atualizarFaixaCaixaHome() {
@@ -346,17 +331,31 @@ async function abrirAcoesJogadorCaixa(id) {
   const j = (estado.caixaAtual?.jogadores || []).find((x) => String(x.id) === String(id));
   if (!j) return;
   const avulso = formatarReais(estado.caixaAtual?.valorAvulso || 0);
-  const opcoes = [{ id: "pagar", label: "Registrar pagamento" }];
+  const mensal = formatarReais(estado.caixaAtual?.valorMensal || 0);
+  const opcoes = [];
+
   if (j.status === "PENDENTE") {
-    opcoes.push({ id: "quitar", label: `Quitou · ${formatarReais(j.pendente)}` });
+    opcoes.push({ id: "quitar", label: `Recebeu tudo · ${formatarReais(j.pendente)}` });
   }
-  opcoes.push({ id: "cobrar", label: `+1 jogo avulso (${avulso})` });
-  opcoes.push({ id: "mod-isento", label: "Marcar como isento" });
+  opcoes.push({ id: "pagar", label: "Recebeu parte do valor" });
+
+  if (j.modalidade !== "MENSAL") {
+    opcoes.push({ id: "mod-mensal", label: `Virar mensalista (${mensal})` });
+  }
+  if (j.modalidade !== "AVULSO") {
+    opcoes.push({ id: "mod-avulso", label: `Virar por jogo (${avulso})` });
+  }
+  if (j.modalidade !== "ISENTO") {
+    opcoes.push({ id: "mod-isento", label: "Marcar como isento" });
+  }
+  if (j.modalidade === "AVULSO") {
+    opcoes.push({ id: "cobrar", label: `Cobrar +1 jogo (${avulso})` });
+  }
   if (Number(j.pago) > 0) {
     opcoes.push({ id: "desfazer", label: "Desfazer último pagamento" });
   }
   if (Number(j.cobrado) > 0 && j.modalidade !== "MENSAL") {
-    opcoes.push({ id: "desfazer-cobranca", label: "Cancelar última cobrança" });
+    opcoes.push({ id: "desfazer-cobranca", label: "Desfazer última cobrança" });
   }
 
   const escolha = await escolherOpcao(j.nome, opcoes);
@@ -367,7 +366,7 @@ async function abrirAcoesJogadorCaixa(id) {
     const valor = await pedirNumero(
       `Quanto ${j.nome} pagou?`,
       sugerido,
-      "Se pagar só uma parte, o resto fica pendente."
+      "Pode ser pagamento parcial — o resto continua pendente."
     );
     if (valor == null) return;
     if (valor <= 0) {
@@ -379,8 +378,8 @@ async function abrirAcoesJogadorCaixa(id) {
     return;
   }
   if (escolha === "quitar") {
-    await caixaAcao((ano, mes) => PeladaAPI.caixaQuitar(id, ano, mes), "Quitando...");
-    toast("Quitado");
+    await caixaAcao((ano, mes) => PeladaAPI.caixaQuitar(id, ano, mes), "Registrando...");
+    toast(`${j.nome} em dia`);
     return;
   }
   if (escolha === "cobrar") {
@@ -394,30 +393,24 @@ async function abrirAcoesJogadorCaixa(id) {
     return;
   }
   if (escolha === "desfazer-cobranca") {
-    await caixaAcao((ano, mes) => PeladaAPI.caixaDesfazerCobranca(id, ano, mes), "Cancelando cobrança...");
+    await caixaAcao((ano, mes) => PeladaAPI.caixaDesfazerCobranca(id, ano, mes), "Cancelando...");
     toast("Última cobrança cancelada");
+    return;
+  }
+  if (escolha === "mod-mensal") {
+    await caixaAcao((ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, "MENSAL"), "Salvando...");
+    toast(`${j.nome} · mensalista`);
+    return;
+  }
+  if (escolha === "mod-avulso") {
+    await caixaAcao((ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, "AVULSO"), "Salvando...");
+    toast(`${j.nome} · por jogo`);
     return;
   }
   if (escolha === "mod-isento") {
     await caixaAcao((ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, "ISENTO"), "Salvando...");
     toast(`${j.nome} · isento`);
   }
-}
-
-async function mudarModalidadeCaixa(id, modalidade) {
-  const j = (estado.caixaAtual?.jogadores || []).find((x) => String(x.id) === String(id));
-  if (!j || j.modalidade === modalidade) return;
-  const r = await caixaAcao(
-    (ano, mes) => PeladaAPI.caixaModalidade(id, ano, mes, modalidade),
-    "Salvando tipo..."
-  );
-  if (!r) return;
-  const nome = j.nome || "Jogador";
-  toast(
-    modalidade === "MENSAL"
-      ? `${nome} · mensal (${formatarReais(estado.caixaAtual?.valorMensal || 0)})`
-      : `${nome} · avulso (${formatarReais(estado.caixaAtual?.valorAvulso || 0)})`
-  );
 }
 
 function guardarPresencaCaixa(local, peladaId) {
@@ -447,12 +440,6 @@ function initCaixaPelada() {
   });
   document.getElementById("caixa-mes")?.addEventListener("change", () => carregarCaixaNaTela());
   document.getElementById("caixa-painel")?.addEventListener("click", (e) => {
-    const mod = e.target.closest("[data-caixa-mod]");
-    if (mod) {
-      e.preventDefault();
-      mudarModalidadeCaixa(mod.dataset.caixaId, mod.dataset.caixaMod);
-      return;
-    }
     const acao = e.target.closest("[data-caixa-acao]");
     if (!acao) return;
     abrirAcoesJogadorCaixa(acao.dataset.caixaAcao);
