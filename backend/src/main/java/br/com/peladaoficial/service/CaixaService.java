@@ -126,6 +126,8 @@ public class CaixaService {
             row.put("pendente", dinheiro(pendente));
             row.put("status", status);
             row.put("jogos", mesDados.jogos.getOrDefault(j.getChave(), 0));
+            row.put("mesCoberto", CaixaJogador.MENSAL.equals(j.getModalidade()) && "QUITADO".equals(status));
+            row.put("resumo", resumoJogador(j, status, config, mesDados.jogos.getOrDefault(j.getChave(), 0)));
             lista.add(row);
         }
 
@@ -224,7 +226,7 @@ public class CaixaService {
         if (pendente.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esse jogador não tem pendência");
         }
-        lancar(usuario, jogador, ym.toString(), CaixaLancamento.PAGAMENTO, pendente, "quitado");
+        lancar(usuario, jogador, ym.toString(), CaixaLancamento.PAGAMENTO, pendente, notaQuitar(jogador));
         return montar(ano, mes);
     }
 
@@ -442,6 +444,34 @@ public class CaixaService {
         // Mensalista: só o valor fixo do mês — não soma pelada avulsa em cima.
         if (CaixaJogador.MENSAL.equals(mod)) return nvl(config.getValorMensal());
         return extras;
+    }
+
+    private static String notaQuitar(CaixaJogador j) {
+        return CaixaJogador.MENSAL.equals(j.getModalidade()) ? "mensal" : "quitado";
+    }
+
+    private static String resumoJogador(CaixaJogador j, String status, CaixaConfig config, int jogos) {
+        String mod = j.getModalidade() == null ? CaixaJogador.AVULSO : j.getModalidade();
+        String jogosTxt = jogos > 0 ? jogos + " jogo(s) no mês" : "não jogou neste mês";
+        if (CaixaJogador.ISENTO.equals(mod)) {
+            return "Não paga · " + jogosTxt;
+        }
+        if (CaixaJogador.MENSAL.equals(mod)) {
+            if ("QUITADO".equals(status)) {
+                return "Mês pago · " + jogosTxt + " — liberado";
+            }
+            if ("PENDENTE".equals(status)) {
+                return "Deve mensalidade · " + jogosTxt;
+            }
+            return "Mensalista · " + jogosTxt;
+        }
+        if ("PENDENTE".equals(status)) {
+            return jogos > 0 ? jogosTxt + " · deve por jogo" : "Deve por jogo";
+        }
+        if ("QUITADO".equals(status)) {
+            return jogosTxt + " · em dia";
+        }
+        return jogosTxt;
     }
 
     private static String statusDe(BigDecimal cobrado, BigDecimal pendente) {
