@@ -1673,6 +1673,7 @@ async function sortearTimes() {
   mostrarTela("tela-times");
   // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
+  sincronizarJogoEmBackground();
   const todos = LocalJogo.listarJogadores();
   const inaptos = todos.filter((j) => j.apto === false).length;
   const comGk = times.filter((t) => t.goleiro).length;
@@ -2121,8 +2122,9 @@ function aplicarLanceLocal(partidaId, contexto) {
 let sincronizandoJogo = false;
 let syncJogoTimer = null;
 
-/** Salva rodadas e classificação no servidor sem encerrar a pelada (backup na conta). */
+/** Backup no servidor durante o jogo — só no app nativo (WebView pode perder localStorage). Na web, localStorage basta até encerrar. */
 async function sincronizarJogoEmBackground() {
+  if (typeof isAppNativo === "function" && !isAppNativo()) return;
   if (!getToken()) return;
   const local = LocalJogo.obter();
   const peladaId = estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
