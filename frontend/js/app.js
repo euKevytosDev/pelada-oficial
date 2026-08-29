@@ -2122,9 +2122,8 @@ function aplicarLanceLocal(partidaId, contexto) {
 let sincronizandoJogo = false;
 let syncJogoTimer = null;
 
-/** Backup no servidor durante o jogo — só no app nativo (WebView pode perder localStorage). Na web, localStorage basta até encerrar. */
+/** Backup no servidor durante o jogo (web e app) — sorteio, rodada finalizada e ao sair da aba. */
 async function sincronizarJogoEmBackground() {
-  if (typeof isAppNativo === "function" && !isAppNativo()) return;
   if (!getToken()) return;
   const local = LocalJogo.obter();
   const peladaId = estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
@@ -2140,7 +2139,7 @@ async function sincronizarJogoEmBackground() {
       if (!(payload.partidas || []).length && !(payload.times || []).length) return;
       await PeladaAPI.sincronizarCompleta(peladaId, payload);
     } catch (_) {
-      /* jogo continua no celular; tenta de novo na próxima rodada */
+      /* jogo continua local; tenta de novo na próxima rodada */
     } finally {
       sincronizandoJogo = false;
     }
