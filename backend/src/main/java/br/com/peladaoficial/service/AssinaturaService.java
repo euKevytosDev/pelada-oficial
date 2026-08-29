@@ -281,13 +281,13 @@ public class AssinaturaService {
 
     private CatalogoPlano resolverPlano(String planoId) {
         if (PRO_ANUAL.equals(planoId)) {
-            return new CatalogoPlano(PRO_ANUAL, "Pelada Pro anual", new BigDecimal("349.90"), 365);
+            return new CatalogoPlano(PRO_ANUAL, "Rei da Pelada Pro anual", new BigDecimal("349.90"), 365);
         }
         if (PRO_MENSAL_RECORRENTE.equals(planoId)) {
-            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Pelada Pro mensal (cartão)", new BigDecimal("49.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Rei da Pelada Pro mensal (cartão)", new BigDecimal("49.90"), 30);
         }
         if (PRO_MENSAL.equals(planoId) || planoId == null || planoId.isBlank()) {
-            return new CatalogoPlano(PRO_MENSAL, "Pelada Pro mensal (Pix)", new BigDecimal("49.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL, "Rei da Pelada Pro mensal (Pix)", new BigDecimal("49.90"), 30);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano inválido");
     }

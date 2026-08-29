@@ -1,5 +1,5 @@
 /**
- * Relatório da pelada (Pelada Pro) — mês, ano ou período.
+ * Relatório da pelada (Rei da Pelada Pro) — mês, ano ou período.
  * Vitória = jogador no time que fechou em 1º na tabela da pelada.
  */
 function mesesRelatorioOpcoes() {
@@ -131,7 +131,7 @@ function textoRelatorioMensalWhatsApp(rel) {
   top(rel.amarelos, "Amarelos", "quantidade");
   top(rel.vermelhos, "Vermelhos", "quantidade");
   linhas.push("");
-  linhas.push("_Pelada Oficial — relatório_");
+  linhas.push("_Rei da Pelada — relatório_");
   return linhas.join("\n");
 }
 
@@ -222,7 +222,7 @@ function renderRelatorioMensal(rel) {
           : `<p class="vazio">Nenhuma pelada neste período.</p>`
       }
     </section>
-    <footer class="resumo-rodape">Gerado por Pelada Oficial</footer>
+    <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
   `;
 }
 
@@ -233,7 +233,7 @@ function escHtmlRel(s) {
 }
 
 async function abrirRelatorioMensal() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("O relatório do mês faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("O relatório do mês faz parte do Rei da Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   estado.telaAntesRelatorio = document.querySelector(".tela.ativa")?.id || "tela-inicio";
@@ -297,7 +297,7 @@ function initRelatorioMensal() {
     if (!rel) return;
     if (
       typeof PlanoApp !== "undefined" &&
-      !PlanoApp.exigirPro("Para compartilhar o relatório no WhatsApp, faça o upgrade para o Pelada Pro")
+      !PlanoApp.exigirPro("Para compartilhar o relatório no WhatsApp, faça o upgrade para o Rei da Pelada Pro")
     ) {
       return;
     }

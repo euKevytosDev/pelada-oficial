@@ -7,7 +7,7 @@ const ConfigApp = (() => {
   const PREFS_KEY = "pelada_prefs";
 
   const prefsPadrao = {
-    nomePelada: "Pelada Oficial",
+    nomePelada: "Minha pelada",
     qtdTimes: 2,
     crono1Minutos: 7,
     cartaoAmareloMinutos: 2,

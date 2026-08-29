@@ -121,7 +121,7 @@ public class PartidaService {
         if (request.getTipo() == TipoEvento.CARTAO_AMARELO || request.getTipo() == TipoEvento.CARTAO_VERMELHO) {
             assinaturaService.garantirTrialEMap(usuario);
             if (!assinaturaService.proAtivo(usuario)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Pelada Pro");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Rei da Pelada Pro");
             }
         }
 

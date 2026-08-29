@@ -358,7 +358,7 @@ public class CaixaService {
         Usuario usuario = authSupport.usuarioAtual();
         assinaturaService.garantirTrialEMap(usuario);
         if (!assinaturaService.proAtivo(usuario)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A caixa da pelada faz parte do Pelada Pro");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A caixa da pelada faz parte do Rei da Pelada Pro");
         }
         return usuario;
     }

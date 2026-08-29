@@ -1,4 +1,4 @@
-# Pelada Oficial
+# Rei da Pelada
 
 App web mobile-first pra organizar pelada entre amigos: cadastra jogadores, sorteia times equilibrados, marca gol/cartão ao vivo e fecha a classificação no fim.
 

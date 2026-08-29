@@ -197,7 +197,7 @@ function montarResumoDeTexto(textoBruto) {
   if (!texto) throw new Error("Cole o texto da pelada antes de gerar.");
 
   const dataIso = parseDataBrParaIso(texto);
-  let nomePelada = "Pelada Oficial";
+  let nomePelada = "Minha pelada";
   for (const linha of texto.split("\n").slice(0, 8)) {
     const t = linha.trim();
     if (!t || /^FUTEBOL/i.test(t) || /^Data:/i.test(t) || /^TIME\s*\d+/i.test(t)) continue;
@@ -557,7 +557,7 @@ function baixarPlanilhaCsv(resumo) {
   const row = (...cols) => linhas.push(cols.map(esc).join(";"));
 
   row("FUTEBOL ENTRE AMIGOS");
-  row("Pelada", resumo.pelada?.nome || "Pelada Oficial");
+  row("Pelada", resumo.pelada?.nome || "Minha pelada");
   row("Data", formatarDataBr(resumo.pelada?.encerradaEm || resumo.pelada?.criadaEm));
   row("");
   row("CLASSIFICAÇÃO");

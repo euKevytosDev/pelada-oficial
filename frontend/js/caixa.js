@@ -1,5 +1,5 @@
 /**
- * Caixa da pelada (Pelada Pro) — painel do mês + cobrança de quem jogou.
+ * Caixa da pelada (Rei da Pelada Pro) — painel do mês + cobrança de quem jogou.
  */
 function preencherSelectMesCaixa() {
   const sel = document.getElementById("caixa-mes");
@@ -118,7 +118,7 @@ function textoCaixaWhatsApp(caixa) {
     linhas.push("Todo mundo em dia neste mês.");
   }
   linhas.push("");
-  linhas.push("_Pelada Oficial_");
+  linhas.push("_Rei da Pelada_");
   return linhas.join("\n");
 }
 
@@ -169,7 +169,7 @@ function renderBoletimCaixa(caixa) {
            </section>`
         : ""
     }
-    <footer class="resumo-rodape">Pelada Oficial — boletim da caixa</footer>
+    <footer class="resumo-rodape">Rei da Pelada — boletim da caixa</footer>
   `;
 }
 
@@ -316,7 +316,7 @@ async function carregarCaixaNaTela() {
 }
 
 async function abrirCaixaPelada() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Rei da Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   estado.telaAntesCaixa = document.querySelector(".tela.ativa")?.id || "tela-inicio";
@@ -367,7 +367,7 @@ async function cancelarUltimaPeladaCaixa() {
 }
 
 async function cobrarQuemJogouHoje() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Pelada Pro. Faça o upgrade para liberar.")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("A caixa da pelada faz parte do Rei da Pelada Pro. Faça o upgrade para liberar.")) {
     return;
   }
   const peladaId = estado.caixaPeladaIdPendente || estado.peladaId;

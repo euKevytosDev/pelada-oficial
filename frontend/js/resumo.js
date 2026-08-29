@@ -222,7 +222,7 @@ function renderResumoOficial(resumo) {
     <header class="resumo-topo">
       <div>
         <p class="eyebrow">Futebol entre amigos</p>
-        <h2>${p.nome || "Pelada Oficial"}</h2>
+        <h2>${p.nome || "Minha pelada"}</h2>
       </div>
       <p class="resumo-data">${formatarDataBr(p.encerradaEm || p.criadaEm)}</p>
     </header>
@@ -284,14 +284,14 @@ function renderResumoOficial(resumo) {
       ${partidasHtml}
     </section>
 
-    <footer class="resumo-rodape">Gerado por Pelada Oficial</footer>
+    <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
   `;
 }
 
 function textoResumoWhatsApp(resumo) {
   const p = resumo.pelada || {};
   const linhas = [];
-  linhas.push(`*${p.nome || "Pelada Oficial"}*`);
+  linhas.push(`*${p.nome || "Minha pelada"}*`);
   linhas.push(`📅 ${formatarDataBr(p.encerradaEm || p.criadaEm)}`);
   linhas.push("");
   linhas.push("*Classificação*");
@@ -368,7 +368,7 @@ function textoResumoWhatsApp(resumo) {
   }
 
   linhas.push("");
-  linhas.push("_Pelada Oficial_");
+  linhas.push("_Rei da Pelada_");
   return linhas.join("\n");
 }
 
@@ -382,7 +382,7 @@ async function compartilharNativo(resumo) {
   const texto = textoResumoWhatsApp(resumo);
   if (navigator.share) {
     await navigator.share({
-      title: resumo.pelada?.nome || "Pelada Oficial",
+      title: resumo.pelada?.nome || "Minha pelada",
       text: texto,
     });
     return;
@@ -392,7 +392,7 @@ async function compartilharNativo(resumo) {
 }
 
 async function baixarPdfResumo() {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Pelada Pro")) return;
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Rei da Pelada Pro")) return;
   const el = document.getElementById("resumo-oficial");
   if (!el) return;
   if (typeof html2pdf === "undefined") {
@@ -415,7 +415,7 @@ async function baixarPdfResumo() {
 }
 
 async function baixarPdfElemento(elId, filename) {
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Pelada Pro")) return;
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para baixar o PDF, faça o upgrade para o Rei da Pelada Pro")) return;
   const el = document.getElementById(elId);
   if (!el) return;
   if (typeof html2pdf === "undefined") {

@@ -1,5 +1,5 @@
 /**
- * Pelada Oficial — telas no celular
+ * Rei da Pelada — telas no celular
  *
  * - Estrelas 1 a 10
  * - Goleiros fixos (emprestáveis entre times)
@@ -41,7 +41,7 @@ function mostrarTela(id) {
     "tela-auth": "Entre para salvar sua pelada",
     "tela-inicio": "Controle da pelada no celular",
     "tela-configuracoes": "Configurações",
-    "tela-planos": "Pelada Pro",
+    "tela-planos": "Rei da Pelada Pro",
     "tela-pagamento-ok": "Pagamento confirmado",
     "tela-pagamento-falhou": "Pagamento",
     "tela-relatorio-mensal": "Relatório do mês",
@@ -159,7 +159,7 @@ function htmlItemHistorico(pelada, opcoes = {}) {
     <li data-pelada-id="${pelada.id}">
       <div class="historico-linha">
         <div>
-          <strong>${pelada.nome || "Pelada Oficial"}</strong>
+          <strong>${pelada.nome || "Minha pelada"}</strong>
           <p class="historico-meta">${meta}</p>
         </div>
         <span class="badge-status ${badge.cls}">${badge.txt}</span>
@@ -534,7 +534,7 @@ async function sincronizarEncerrarPendente() {
     if (!peladaId) {
       // criar() já encerra ativas anteriores sem mexer no elenco da conta
       const criada = await PeladaAPI.criar({
-        nome: item.nome || "Pelada Oficial",
+        nome: item.nome || "Minha pelada",
         quantidadeTimes: item.quantidadeTimes || 2,
         importarElenco: false,
       });
@@ -555,7 +555,7 @@ async function sincronizarEncerrarPendente() {
     await encerrarResiduosAtivosNoServidor().catch(() => {});
     estado.ultimaPelada = {
       id: peladaId,
-      nome: resumo?.pelada?.nome || item.nome || "Pelada Oficial",
+      nome: resumo?.pelada?.nome || item.nome || "Minha pelada",
       status: "ENCERRADA",
       encerradaEm: resumo?.pelada?.encerradaEm,
     };
@@ -1956,7 +1956,7 @@ async function registrarEventoAoVivo(tipo) {
   if (
     (tipo === "CARTAO_AMARELO" || tipo === "CARTAO_VERMELHO") &&
     typeof PlanoApp !== "undefined" &&
-    !PlanoApp.exigirPro("Cartão amarelo e vermelho fazem parte do Pelada Pro. Faça o upgrade para liberar.")
+    !PlanoApp.exigirPro("Cartão amarelo e vermelho fazem parte do Rei da Pelada Pro. Faça o upgrade para liberar.")
   ) {
     return;
   }
@@ -2404,7 +2404,7 @@ async function encerrarPelada() {
 
   salvarSyncEncerrarPendente({
     peladaId,
-    nome: local?.nome || resumo?.pelada?.nome || "Pelada Oficial",
+    nome: local?.nome || resumo?.pelada?.nome || "Minha pelada",
     quantidadeTimes: local?.quantidadeTimes || 2,
     payload,
     ts: Date.now(),
@@ -2421,7 +2421,7 @@ async function encerrarPelada() {
   estado.sumulaManual = false;
   estado.ultimaPelada = {
     id: peladaId,
-    nome: resumo?.pelada?.nome || "Pelada Oficial",
+    nome: resumo?.pelada?.nome || "Minha pelada",
     status: "ENCERRADA",
     encerradaEm: resumo?.pelada?.encerradaEm,
   };
@@ -2987,7 +2987,7 @@ document.getElementById("btn-salvar-prefs")?.addEventListener("click", () => {
   const qtd = parseInt(document.getElementById("cfg-qtd-times")?.value, 10);
   if (!exigirQtdTimesPro(qtd)) return;
   ConfigApp.salvarPrefs({
-    nomePelada: nome || "Pelada Oficial",
+    nomePelada: nome || "Minha pelada",
     qtdTimes: Number.isFinite(qtd) ? qtd : 2,
   });
   toast("Padrões salvos");
@@ -3057,7 +3057,7 @@ function exigirQtdTimesPro(qtd) {
   const n = Number(qtd) || 2;
   if (n <= 3) return true;
   if (typeof PlanoApp === "undefined") return true;
-  return PlanoApp.exigirPro("4 e 5 times fazem parte do Pelada Pro. Faça o upgrade para liberar.");
+  return PlanoApp.exigirPro("4 e 5 times fazem parte do Rei da Pelada Pro. Faça o upgrade para liberar.");
 }
 
 document.getElementById("form-nova-pelada").addEventListener("submit", async (e) => {
@@ -3494,7 +3494,7 @@ document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
     toast("Abra a súmula primeiro");
     return;
   }
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, faça o upgrade para o Pelada Pro")) {
+  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, faça o upgrade para o Rei da Pelada Pro")) {
     return;
   }
   compartilharWhatsApp(estado.resumoAtual);

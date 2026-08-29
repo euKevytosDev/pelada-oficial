@@ -73,7 +73,7 @@ public class RelatorioMensalService {
         Usuario usuario = authSupport.usuarioAtual();
         assinaturaService.garantirTrialEMap(usuario);
         if (!assinaturaService.proAtivo(usuario)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Relatório do mês faz parte do Pelada Pro");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Relatório do mês faz parte do Rei da Pelada Pro");
         }
 
         Periodo periodo = resolverPeriodo(modo, ano, mes, de, ate);

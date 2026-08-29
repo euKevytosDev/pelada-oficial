@@ -1,5 +1,5 @@
 /**
- * Pelada Pro — status na conta + paywall na web.
+ * Rei da Pelada Pro — status na conta + paywall na web.
  * No app nativo (Play) não abre checkout (regra da loja).
  */
 const PlanoApp = (() => {
@@ -28,9 +28,9 @@ const PlanoApp = (() => {
     if (!status) return;
     if (a.proAtivo) {
       if (a.cortesia) {
-        status.textContent = "Pelada Pro ativo nesta conta (desenvolvimento, sem cobrança).";
+        status.textContent = "Rei da Pelada Pro ativo nesta conta (desenvolvimento, sem cobrança).";
       } else {
-        const tipo = a.trial ? "Teste Pro" : "Pelada Pro";
+        const tipo = a.trial ? "Teste Pro" : "Rei da Pelada Pro";
         const ate = a.expiraEmTexto ? ` até ${a.expiraEmTexto}` : "";
         status.textContent = `${tipo} ativo${ate}.`;
       }
@@ -57,21 +57,21 @@ const PlanoApp = (() => {
   function mostrarPaywallPro(mensagem) {
     const a = assinatura();
     if (a.cortesia) {
-      toast("Sua conta já tem o Pelada Pro liberado.");
+      toast("Sua conta já tem o Rei da Pelada Pro liberado.");
       return;
     }
 
     const nativo = typeof isAppNativo === "function" && isAppNativo();
-    const msg = mensagem || "Esse recurso faz parte do Pelada Pro.";
+    const msg = mensagem || "Esse recurso faz parte do Rei da Pelada Pro.";
     const corpo = nativo
       ? `<div class="paywall">
-           <p class="paywall-selo">Pelada Pro</p>
+           <p class="paywall-selo">Rei da Pelada Pro</p>
            <p class="paywall-lead">Faça o upgrade da conta</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
            <p class="dica">No app Android a assinatura entra pela Play Store. O teste de 7 dias já vale nesta conta.</p>
          </div>`
       : `<div class="paywall">
-           <p class="paywall-selo">Pelada Pro</p>
+           <p class="paywall-selo">Rei da Pelada Pro</p>
            <p class="paywall-lead">Faça o upgrade da conta</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
            <ul class="paywall-lista">
@@ -139,7 +139,7 @@ const PlanoApp = (() => {
       if (n <= 3) return;
       if (temPro()) return;
       selectEl.value = "3";
-      mostrarPaywallPro("4 e 5 times fazem parte do Pelada Pro. Faça o upgrade para liberar.");
+      mostrarPaywallPro("4 e 5 times fazem parte do Rei da Pelada Pro. Faça o upgrade para liberar.");
     });
   }
 
@@ -208,9 +208,9 @@ const PlanoApp = (() => {
     const lead = document.getElementById("pago-ok-lead");
     if (!lead) return;
     if (a.proAtivo && a.expiraEmTexto) {
-      lead.textContent = `Pelada Pro ativo até ${a.expiraEmTexto}. Aproveite 4 e 5 times, cartões, PDF, WhatsApp, caixa e relatório.`;
+      lead.textContent = `Rei da Pelada Pro ativo até ${a.expiraEmTexto}. Aproveite 4 e 5 times, cartões, PDF, WhatsApp, caixa e relatório.`;
     } else if (a.proAtivo) {
-      lead.textContent = "Sua conta já está com o Pelada Pro ativo. Aproveite os recursos do organizador.";
+      lead.textContent = "Sua conta já está com o Rei da Pelada Pro ativo. Aproveite os recursos do organizador.";
     } else {
       lead.textContent =
         "Recebemos o pagamento. Em instantes o Pro libera nesta conta — se ainda não aparecer, entre de novo.";

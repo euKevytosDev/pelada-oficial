@@ -24,7 +24,7 @@ public class Pelada {
     private Long id;
 
     @Column(nullable = false, length = 100)
-    private String nome = "Pelada Oficial";
+    private String nome = "Minha pelada";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

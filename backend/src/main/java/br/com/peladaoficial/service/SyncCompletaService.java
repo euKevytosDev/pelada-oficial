@@ -204,7 +204,7 @@ public class SyncCompletaService {
             Usuario usuario = authSupport.usuarioAtual();
             assinaturaService.garantirTrialEMap(usuario);
             if (!assinaturaService.proAtivo(usuario)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Pelada Pro");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cartões fazem parte do Rei da Pelada Pro");
             }
         }
         Time time = buscar(times, item.getTimeClientId(), "time do evento");

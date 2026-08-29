@@ -10,7 +10,7 @@ public class CriarPeladaRequest {
 
     @NotBlank
     @Size(max = 100)
-    private String nome = "Pelada Oficial";
+    private String nome = "Minha pelada";
 
     @NotNull
     @Min(2)

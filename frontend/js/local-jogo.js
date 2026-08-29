@@ -19,7 +19,7 @@ const LocalJogo = (() => {
       versao: 4,
       modoOffline: true,
       peladaId: null,
-      nome: "Pelada Oficial",
+      nome: "Minha pelada",
       quantidadeTimes: 2,
       status: "AGUARDANDO",
       jogadores: [],
@@ -90,7 +90,7 @@ const LocalJogo = (() => {
   function iniciarPeladaLocal({ peladaId, nome, quantidadeTimes, jogadores }) {
     const snap = snapshotVazio({
       peladaId: peladaId || null,
-      nome: nome || "Pelada Oficial",
+      nome: nome || "Minha pelada",
       quantidadeTimes: quantidadeTimes || 2,
       status: "AGUARDANDO",
       jogadores: (jogadores || []).map((j, i) => ({
@@ -979,7 +979,7 @@ const LocalJogo = (() => {
     return {
       pelada: {
         id: s.peladaId || null,
-        nome: s.nome || "Pelada Oficial",
+        nome: s.nome || "Minha pelada",
         status: "ENCERRADA",
         criadaEm: s.criadaEm || agora,
         encerradaEm: agora,

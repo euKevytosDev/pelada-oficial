@@ -109,7 +109,7 @@ public class PeladaService {
             assinaturaService.garantirTrialEMap(usuario);
         }
         if (usuario == null || !assinaturaService.proAtivo(usuario)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "4 e 5 times fazem parte do Pelada Pro");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "4 e 5 times fazem parte do Rei da Pelada Pro");
         }
     }
 
