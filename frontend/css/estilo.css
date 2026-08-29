@@ -322,11 +322,11 @@ body:has(#tela-partida.ativa) .topo {
 }
 
 .marca-bola {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   display: block;
-  /* Logo preto → branco no topo verde */
+  /* SVG preto → branco no topo verde, sem círculo de fundo */
   filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 

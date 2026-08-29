@@ -5,15 +5,13 @@
   "description": "Rei da Pelada — app Android (Capacitor) + site",
   "scripts": {
     "cap:sync": "npx cap sync",
-    "cap:android": "npx cap open android",
-    "icons:generate": "node scripts/generate-brand-icons.mjs"
+    "cap:android": "npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
     "@capacitor/core": "^7.4.3"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.4.3",
-    "sharp": "^0.34.3"
+    "@capacitor/cli": "^7.4.3"
   }
 }
