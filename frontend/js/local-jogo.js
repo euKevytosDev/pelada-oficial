@@ -646,7 +646,7 @@ const LocalJogo = (() => {
     });
   }
 
-  function montarPayloadSync() {
+  function montarPayloadSync({ encerrar = true } = {}) {
     const s = ler();
     if (!s) throw new Error("Nada para sincronizar");
     const partidas = [...(s.rodadasFinalizadas || [])];
@@ -654,7 +654,7 @@ const LocalJogo = (() => {
       // não inclui partida aberta sem finalizar
     }
     return {
-      encerrar: true,
+      encerrar: !!encerrar,
       jogadores: (s.jogadores || []).map((j) => ({
         clientId: String(j.id),
         nome: j.nome,

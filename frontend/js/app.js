@@ -2119,9 +2119,30 @@ function aplicarLanceLocal(partidaId, contexto) {
 }
 
 let sincronizandoJogo = false;
+let syncJogoTimer = null;
 
+/** Salva rodadas e classificação no servidor sem encerrar a pelada (backup na conta). */
 async function sincronizarJogoEmBackground() {
-  return;
+  if (!getToken()) return;
+  const local = LocalJogo.obter();
+  const peladaId = estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
+  if (!peladaId || !LocalJogo.temJogoLocal()) return;
+  if (sincronizandoJogo) return;
+
+  clearTimeout(syncJogoTimer);
+  syncJogoTimer = setTimeout(async () => {
+    if (sincronizandoJogo) return;
+    sincronizandoJogo = true;
+    try {
+      const payload = LocalJogo.montarPayloadSync({ encerrar: false });
+      if (!(payload.partidas || []).length && !(payload.times || []).length) return;
+      await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    } catch (_) {
+      /* jogo continua no celular; tenta de novo na próxima rodada */
+    } finally {
+      sincronizandoJogo = false;
+    }
+  }, 900);
 }
 
 function somaJogosTimes(times) {
@@ -2145,6 +2166,7 @@ async function finalizarPartidaAtual() {
     renderClassificacao(timesLocais, "tabela-classificacao");
   }
   LocalJogo.finalizarPartidaLocal(partida, timesLocais);
+  sincronizarJogoEmBackground();
 
   mostrarTela("tela-classificacao");
   toast("Rodada finalizada");
@@ -3052,6 +3074,13 @@ setTimeout(() => {
 window.addEventListener("online", () => {
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
+  sincronizarJogoEmBackground();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    sincronizarJogoEmBackground();
+  }
 });
 function exigirQtdTimesPro(qtd) {
   const n = Number(qtd) || 2;
