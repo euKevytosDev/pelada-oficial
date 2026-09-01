@@ -904,6 +904,19 @@ const LocalJogo = (() => {
       return g * 2 + a * 1 - am - v * 2;
     };
 
+    const detalheCraqueJogador = (j, pts) => {
+      const g = golsPorJogador.get(String(j.id))?.quantidade || 0;
+      const a = assistPorJogador.get(String(j.id))?.quantidade || 0;
+      const am = amareloPorJogador.get(String(j.id))?.quantidade || 0;
+      const v = vermelhoPorJogador.get(String(j.id))?.quantidade || 0;
+      const parts = [`${pts} pts`];
+      if (g > 0) parts.push(`gol ${g}`);
+      if (a > 0) parts.push(`ass ${a}`);
+      if (am > 0) parts.push(`A ${am}`);
+      if (v > 0) parts.push(`V ${v}`);
+      return parts.join(" · ");
+    };
+
     const premios = {
       campeao: classificacao[0]
         ? premioDeNomes([{ nome: classificacao[0].nome }], `${classificacao[0].pontos} pts`)
@@ -918,17 +931,17 @@ const LocalJogo = (() => {
 
     if (artilharia.length) {
       const max = artilharia[0].gols;
-      premios.artilheiro = premioDeNomes(artilharia, `${max} gol${max === 1 ? "" : "s"}`);
+      premios.artilheiro = premioDeNomes(artilharia, `gol ${max}`);
       premios.bolaDeOuro = premios.artilheiro;
     }
 
-    const scores = linha.map((j) => ({ nome: j.nome, pts: pontuacaoCraque(j) }));
+    const scores = linha.map((j) => ({ jogador: j, nome: j.nome, pts: pontuacaoCraque(j) }));
     if (scores.length) {
       const maxCraque = Math.max(...scores.map((x) => x.pts));
       const tops = scores.filter((x) => x.pts === maxCraque);
       premios.craque = premioDeNomes(
         tops,
-        `${maxCraque} pt${maxCraque === 1 ? "" : "s"} (gol 2 · assistência 1 · A -1 · V -2)`
+        detalheCraqueJogador(tops[0].jogador, maxCraque)
       );
     }
 
@@ -936,13 +949,13 @@ const LocalJogo = (() => {
     if (assists.length) {
       const maxA = Math.max(...assists.map((a) => a.quantidade));
       const tops = assists.filter((a) => a.quantidade === maxA);
-      premios.garcom = premioDeNomes(tops, `${maxA} assistência${maxA === 1 ? "" : "s"}`);
+      premios.garcom = premioDeNomes(tops, `ass ${maxA}`);
     }
 
     if (golsSofridos.length) {
       const min = golsSofridos[0].quantidade;
       const tops = golsSofridos.filter((g) => g.quantidade === min);
-      premios.luvaDeOuro = premioDeNomes(tops, `${min} sofrido${min === 1 ? "" : "s"}`);
+      premios.luvaDeOuro = premioDeNomes(tops, `sofr ${min}`);
     }
 
     const partidasResumo = partidas.map((p) => ({

@@ -171,7 +171,69 @@ function nomeTimeCampeaoResumo(resumo) {
   return lider?.nome ? String(lider.nome).trim() : null;
 }
 
-function premiosGridHtml(premios) {
+function statsJogadorNoResumo(resumo, nome) {
+  if (!nome || !resumo) return null;
+  let gols = 0;
+  let ass = 0;
+  (resumo.times || []).forEach((t) => {
+    (t.jogadores || []).forEach((j) => {
+      if (String(j.nome).trim() === String(nome).trim()) {
+        gols = Number(j.gols) || 0;
+        ass = Number(j.assistencias) || 0;
+      }
+    });
+  });
+  const am =
+    (resumo.cartoesAmarelos || []).find((c) => String(c.nome).trim() === String(nome).trim())?.quantidade || 0;
+  const ver =
+    (resumo.cartoesVermelhos || []).find((c) => String(c.nome).trim() === String(nome).trim())?.quantidade || 0;
+  const pts = gols * 2 + ass - am - ver * 2;
+  return { gols, ass, am, ver, pts };
+}
+
+function montarDetalheCraqueCompacto(stats, ptsFallback) {
+  const pts = stats?.pts ?? ptsFallback;
+  if (pts == null || Number.isNaN(pts)) return "";
+  const parts = [`${pts} pts`];
+  if (stats?.gols) parts.push(`gol ${stats.gols}`);
+  if (stats?.ass) parts.push(`ass ${stats.ass}`);
+  if (stats?.am) parts.push(`A ${stats.am}`);
+  if (stats?.ver) parts.push(`V ${stats.ver}`);
+  return parts.join(" · ");
+}
+
+function montarDetalhePremioCompacto(titulo, premio, resumo) {
+  if (!premio) return "";
+  const raw = String(premio.detalhe || "").trim();
+  const num = (re) => {
+    const m = raw.match(re);
+    return m ? Number(m[1]) : null;
+  };
+
+  if (titulo === "Artilheiro") {
+    const n = num(/(\d+)\s*gol/i) ?? num(/^gol\s*(\d+)/i);
+    return n != null ? `gol ${n}` : raw;
+  }
+  if (titulo === "Garçom") {
+    const n = num(/(\d+)\s*assist/i) ?? num(/^ass\s*(\d+)/i);
+    return n != null ? `ass ${n}` : raw;
+  }
+  if (titulo === "Luva de Ouro") {
+    const n = num(/(\d+)\s*sofr/i) ?? num(/^sofr\s*(\d+)/i);
+    return n != null ? `sofr ${n}` : raw;
+  }
+  if (titulo === "Craque") {
+    if (/pts\s·/.test(raw) && !/\(/.test(raw)) return raw;
+    const ptsFallback = num(/^(-?\d+)\s*pt/i);
+    const nome = (premio.nomes && premio.nomes[0]) || premio.nome;
+    const stats = statsJogadorNoResumo(resumo, nome);
+    if (stats) return montarDetalheCraqueCompacto(stats, ptsFallback ?? stats.pts);
+    return ptsFallback != null ? `${ptsFallback} pts` : raw.replace(/\s*\([^)]*\)\s*/g, "").trim();
+  }
+  return raw;
+}
+
+function premiosGridHtml(premios, resumo) {
   const slots = [
     { titulo: "Artilheiro", premio: premios.artilheiro || premios.bolaDeOuro, key: "artilheiro" },
     { titulo: "Craque", premio: premios.craque, key: "craque" },
@@ -182,26 +244,27 @@ function premiosGridHtml(premios) {
   for (let i = 0; i < slots.length; i += 2) {
     const par = slots
       .slice(i, i + 2)
-      .map((s) => premioCard(s.titulo, s.premio, s.key))
+      .map((s) => premioCard(s.titulo, s.premio, s.key, resumo))
       .join("");
     linhas.push(`<div class="premios-par">${par}</div>`);
   }
   return `<div class="premios">${linhas.join("")}</div>`;
 }
 
-function premioTituloCardHtml(titulo, premio, nomesHtml) {
+function premioTituloCardHtml(titulo, premio, nomesHtml, resumo) {
   const icone = PREMIO_ICONE[titulo] || "";
+  const detalhe = montarDetalhePremioCompacto(titulo, premio, resumo);
   return `<header class="premio-titulo-card">
     <div class="premio-titulo-cat">
       ${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}
       <span class="premio-categoria">${titulo}</span>
     </div>
     <div class="premio-titulo-nome">${nomesHtml}</div>
-    <p class="premio-detalhe">${premio.detalhe || ""}</p>
+    <p class="premio-detalhe">${detalhe}</p>
   </header>`;
 }
 
-function premioCard(titulo, premio, fotoKey) {
+function premioCard(titulo, premio, fotoKey, resumo) {
   const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
     return `<article class="premio premio-compacto"><h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4><p class="vazio">—</p></article>`;
@@ -210,7 +273,7 @@ function premioCard(titulo, premio, fotoKey) {
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
   const foto =
     fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
-  const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml);
+  const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml, resumo);
   if (foto) {
     return `<article class="premio premio-destaque premio-com-foto">
       ${tituloHeader}
@@ -300,7 +363,7 @@ function renderResumoOficial(resumo) {
 
       <section class="resumo-bloco premios-grid">
         <h3>Premiação</h3>
-        ${premiosGridHtml(premios)}
+        ${premiosGridHtml(premios, resumo)}
       </section>
     </div>
 

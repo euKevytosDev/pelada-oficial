@@ -433,7 +433,7 @@ function montarResumoDeTexto(textoBruto) {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
       empate: tops.length > 1,
-      detalhe: `${max} gol${max === 1 ? "" : "s"}`,
+      detalhe: `gol ${max}`,
     };
     premios.artilheiro = premio;
     premios.bolaDeOuro = premio;
@@ -445,7 +445,7 @@ function montarResumoDeTexto(textoBruto) {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
       empate: tops.length > 1,
-      detalhe: `${min} sofrido${min === 1 ? "" : "s"}`,
+      detalhe: `sofr ${min}`,
     };
   }
   if (rankingAssist.length) {
@@ -455,12 +455,24 @@ function montarResumoDeTexto(textoBruto) {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
       empate: tops.length > 1,
-      detalhe: `${maxA} assistência${maxA === 1 ? "" : "s"}`,
+      detalhe: `ass ${maxA}`,
     };
   }
 
   const qtdCartao = (lista, nome) =>
     (lista || []).find((c) => String(c.nome).toLowerCase() === String(nome).toLowerCase())?.quantidade || 0;
+  const detalheCraqueManual = (j, pts) => {
+    const g = j.gols || 0;
+    const a = j.assistencias || 0;
+    const am = qtdCartao(amarelos, j.nome);
+    const v = qtdCartao(vermelhos, j.nome);
+    const parts = [`${pts} pts`];
+    if (g > 0) parts.push(`gol ${g}`);
+    if (a > 0) parts.push(`ass ${a}`);
+    if (am > 0) parts.push(`A ${am}`);
+    if (v > 0) parts.push(`V ${v}`);
+    return parts.join(" · ");
+  };
   const scoresCraque = [];
   timesOrdem.forEach((nomeTime) => {
     (timesMap[nomeTime].jogadores || []).forEach((j) => {
@@ -469,7 +481,7 @@ function montarResumoDeTexto(textoBruto) {
         (j.assistencias || 0) -
         qtdCartao(amarelos, j.nome) -
         qtdCartao(vermelhos, j.nome) * 2;
-      scoresCraque.push({ nome: j.nome, pts });
+      scoresCraque.push({ nome: j.nome, pts, jogador: j });
     });
   });
   if (scoresCraque.length) {
@@ -479,7 +491,7 @@ function montarResumoDeTexto(textoBruto) {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
       empate: tops.length > 1,
-      detalhe: `${maxC} pt${maxC === 1 ? "" : "s"} (gol 2 · assistência 1 · A -1 · V -2)`,
+      detalhe: detalheCraqueManual(tops[0].jogador, maxC),
     };
   }
 

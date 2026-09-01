@@ -2228,8 +2228,9 @@ td.num, th.num {
 }
 
 .pdf-export .premio-titulo-card .premio-detalhe {
-  font-size: 0.56rem;
-  line-height: 1.1;
+  font-size: 0.52rem;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
 .pdf-export .premio-ico {
