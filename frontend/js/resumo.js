@@ -407,10 +407,11 @@ async function baixarPdfResumo() {
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
+  const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
-    await comLoading(() => html2pdf().set(opt).from(el).save(), "Gerando PDF...");
+    await comLoading(baixar, "Gerando PDF...");
   } else {
-    await html2pdf().set(opt).from(el).save();
+    await baixar();
   }
 }
 
@@ -429,9 +430,10 @@ async function baixarPdfElemento(elId, filename) {
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
   };
+  const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
-    await comLoading(() => html2pdf().set(opt).from(el).save(), "Gerando PDF...");
+    await comLoading(baixar, "Gerando PDF...");
   } else {
-    await html2pdf().set(opt).from(el).save();
+    await baixar();
   }
 }
