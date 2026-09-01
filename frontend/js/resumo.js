@@ -233,7 +233,7 @@ function montarDetalhePremioCompacto(titulo, premio, resumo) {
   return raw;
 }
 
-function premiosGridHtml(premios, resumo) {
+function premiosGridHtml(premios, resumo, modoGridFotos) {
   const slots = [
     { titulo: "Artilheiro", premio: premios.artilheiro || premios.bolaDeOuro, key: "artilheiro" },
     { titulo: "Craque", premio: premios.craque, key: "craque" },
@@ -244,7 +244,7 @@ function premiosGridHtml(premios, resumo) {
   for (let i = 0; i < slots.length; i += 2) {
     const par = slots
       .slice(i, i + 2)
-      .map((s) => premioCard(s.titulo, s.premio, s.key, resumo))
+      .map((s) => premioCard(s.titulo, s.premio, s.key, resumo, modoGridFotos))
       .join("");
     linhas.push(`<div class="premios-par">${par}</div>`);
   }
@@ -264,9 +264,24 @@ function premioTituloCardHtml(titulo, premio, nomesHtml, resumo) {
   </header>`;
 }
 
-function premioCard(titulo, premio, fotoKey, resumo) {
+function premioCard(titulo, premio, fotoKey, resumo, modoGridFotos) {
   const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
+    if (modoGridFotos) {
+      return `<article class="premio premio-destaque premio-com-foto">
+        <header class="premio-titulo-card">
+          <div class="premio-titulo-cat">
+            ${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}
+            <span class="premio-categoria">${titulo}</span>
+          </div>
+          <div class="premio-titulo-nome"><p class="premio-nome vazio">—</p></div>
+          <p class="premio-detalhe"></p>
+        </header>
+        <div class="premio-foto-wrap">
+          <p class="premio-sem-foto">Sem foto</p>
+        </div>
+      </article>`;
+    }
     return `<article class="premio premio-compacto"><h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4><p class="vazio">—</p></article>`;
   }
   const nomes = premio.nomes && premio.nomes.length ? premio.nomes : [premio.nome];
@@ -274,11 +289,15 @@ function premioCard(titulo, premio, fotoKey, resumo) {
   const foto =
     fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
   const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml, resumo);
-  if (foto) {
+  if (modoGridFotos || foto) {
     return `<article class="premio premio-destaque premio-com-foto">
       ${tituloHeader}
       <div class="premio-foto-wrap">
-        <img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />
+        ${
+          foto
+            ? `<img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />`
+            : `<p class="premio-sem-foto">Sem foto</p>`
+        }
       </div>
     </article>`;
   }
@@ -360,8 +379,33 @@ function renderResumoOficial(resumo) {
         .join("")}</ul>`
     : `<p class="vazio">Nenhuma partida registrada.</p>`;
 
+  const exibirPremiosComFoto =
+    typeof FotosPremios !== "undefined" && FotosPremios.temAlgumaFotoPremiacao();
+  const temFotoCampeao = typeof FotosPremios !== "undefined" && !!FotosPremios.get("campeao");
+  const capaClass = exibirPremiosComFoto ? "resumo-capa-pdf" : "resumo-capa-pdf resumo-capa-pdf--sem-fotos";
+
+  const secaoPremios = exibirPremiosComFoto
+    ? `<section class="resumo-bloco premios-grid">
+        <h3>Premiação</h3>
+        ${premiosGridHtml(premios, resumo, true)}
+      </section>`
+    : "";
+
+  const secaoTimes = `<section class="resumo-bloco resumo-times">
+      <h3>Times e goleiros</h3>
+      <div class="times-resumo-grid">${timesHtml || '<p class="vazio">Sem times</p>'}</div>
+    </section>`;
+
+  const paginaCampeaoConteudo =
+    (temFotoCampeao ? campeaoHeroHtml(resumo, campeaoNome) : "") +
+    (exibirPremiosComFoto ? secaoTimes : "");
+
+  const paginaCampeaoHtml = paginaCampeaoConteudo
+    ? `<div class="resumo-pagina-campeao-pdf${exibirPremiosComFoto ? "" : " resumo-pagina-campeao-pdf--so-hero"}">${paginaCampeaoConteudo}</div>`
+    : "";
+
   el.innerHTML = `
-    <div class="resumo-capa-pdf">
+    <div class="${capaClass}">
       <header class="resumo-topo">
         <div>
           <p class="eyebrow">Futebol entre amigos</p>
@@ -375,19 +419,11 @@ function renderResumoOficial(resumo) {
         ${tabelaBrasileirao(resumo.classificacao)}
       </section>
 
-      <section class="resumo-bloco premios-grid">
-        <h3>Premiação</h3>
-        ${premiosGridHtml(premios, resumo)}
-      </section>
+      ${secaoPremios}
+      ${exibirPremiosComFoto ? "" : secaoTimes}
     </div>
 
-    <div class="resumo-pagina-campeao-pdf">
-      ${campeaoHeroHtml(resumo, campeaoNome)}
-      <section class="resumo-bloco resumo-times">
-        <h3>Times e goleiros</h3>
-        <div class="times-resumo-grid">${timesHtml || '<p class="vazio">Sem times</p>'}</div>
-      </section>
-    </div>
+    ${paginaCampeaoHtml}
 
     <div class="resumo-pagina-stats-pdf">
     <section class="resumo-bloco">

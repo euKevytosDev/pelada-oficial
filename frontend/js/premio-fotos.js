@@ -123,6 +123,10 @@ const FotosPremios = (() => {
     delete fotos[chave];
   }
 
+  function temAlgumaFotoPremiacao() {
+    return SLOTS.some((s) => !!fotos[s.key]);
+  }
+
   function slotsAtivos(premios) {
     const slots = [];
     if (premios?.campeao?.nome) slots.push(SLOT_CAMPEAO);
@@ -239,6 +243,7 @@ const FotosPremios = (() => {
     SLOT_CAMPEAO,
     get,
     limpar,
+    temAlgumaFotoPremiacao,
     syncPainel,
     aguardarImagensResumo,
     init,
