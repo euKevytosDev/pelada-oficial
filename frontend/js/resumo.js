@@ -189,6 +189,18 @@ function premiosGridHtml(premios) {
   return `<div class="premios">${linhas.join("")}</div>`;
 }
 
+function premioTituloCardHtml(titulo, premio, nomesHtml) {
+  const icone = PREMIO_ICONE[titulo] || "";
+  return `<header class="premio-titulo-card">
+    <div class="premio-titulo-cat">
+      ${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}
+      <span class="premio-categoria">${titulo}</span>
+    </div>
+    <div class="premio-titulo-nome">${nomesHtml}</div>
+    <p class="premio-detalhe">${premio.detalhe || ""}</p>
+  </header>`;
+}
+
 function premioCard(titulo, premio, fotoKey) {
   const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
@@ -198,23 +210,17 @@ function premioCard(titulo, premio, fotoKey) {
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
   const foto =
     fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
-  const badge = `<h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4>`;
+  const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml);
   if (foto) {
     return `<article class="premio premio-destaque premio-com-foto">
-      <header class="premio-titulo-card">
-        ${badge}
-        ${nomesHtml}
-        <p class="premio-detalhe">${premio.detalhe || ""}</p>
-      </header>
+      ${tituloHeader}
       <div class="premio-foto-wrap">
         <img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />
       </div>
     </article>`;
   }
   return `<article class="premio premio-compacto">
-    ${badge}
-    ${nomesHtml}
-    <p class="premio-detalhe">${premio.detalhe || ""}</p>
+    ${tituloHeader}
   </article>`;
 }
 
