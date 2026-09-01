@@ -311,11 +311,13 @@ function campeaoHeroHtml(resumo, campeaoNome) {
   if (!foto || !campeaoNome) return "";
   const detalhe = resumo?.premios?.campeao?.detalhe || "";
   return `<div class="campeao-foto-hero">
-    <img class="campeao-foto-img" src="${foto}" alt="Time campeão ${campeaoNome}" decoding="async" />
-    <div class="campeao-foto-overlay">
+    <div class="campeao-foto-titulo">
       <p class="campeao-foto-eyebrow">Time campeão</p>
       <h3 class="campeao-foto-nome">${campeaoNome}</h3>
       ${detalhe ? `<p class="campeao-foto-detalhe">${detalhe}</p>` : ""}
+    </div>
+    <div class="campeao-foto-wrap">
+      <img class="campeao-foto-img" src="${foto}" alt="Time campeão ${campeaoNome}" decoding="async" />
     </div>
   </div>`;
 }
