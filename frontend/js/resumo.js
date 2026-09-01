@@ -171,6 +171,24 @@ function nomeTimeCampeaoResumo(resumo) {
   return lider?.nome ? String(lider.nome).trim() : null;
 }
 
+function premiosGridHtml(premios) {
+  const slots = [
+    { titulo: "Artilheiro", premio: premios.artilheiro || premios.bolaDeOuro, key: "artilheiro" },
+    { titulo: "Craque", premio: premios.craque, key: "craque" },
+    { titulo: "Garçom", premio: premios.garcom, key: "garcom" },
+    { titulo: "Luva de Ouro", premio: premios.luvaDeOuro, key: "luvaDeOuro" },
+  ];
+  const linhas = [];
+  for (let i = 0; i < slots.length; i += 2) {
+    const par = slots
+      .slice(i, i + 2)
+      .map((s) => premioCard(s.titulo, s.premio, s.key))
+      .join("");
+    linhas.push(`<div class="premios-par">${par}</div>`);
+  }
+  return `<div class="premios">${linhas.join("")}</div>`;
+}
+
 function premioCard(titulo, premio, fotoKey) {
   const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
@@ -275,12 +293,7 @@ function renderResumoOficial(resumo) {
 
     <section class="resumo-bloco premios-grid">
       <h3>Premiação</h3>
-      <div class="premios">
-        ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro, "artilheiro")}
-        ${premioCard("Craque", premios.craque, "craque")}
-        ${premioCard("Garçom", premios.garcom, "garcom")}
-        ${premioCard("Luva de Ouro", premios.luvaDeOuro, "luvaDeOuro")}
-      </div>
+      ${premiosGridHtml(premios)}
     </section>
 
     <section class="resumo-bloco">
@@ -447,13 +460,7 @@ async function baixarPdfResumo() {
     await FotosPremios.aguardarImagensResumo(el);
   }
   const nome = (estado.resumoAtual?.pelada?.nome || "pelada").replace(/\s+/g, "-").toLowerCase();
-  const opt = {
-    margin: 8,
-    filename: `resumo-${nome}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-  };
+  const opt = opcoesPdfPadrao(`resumo-${nome}.pdf`);
   const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
     await comLoading(baixar, "Gerando PDF...");
@@ -470,13 +477,7 @@ async function baixarPdfElemento(elId, filename) {
     window.print();
     return;
   }
-  const opt = {
-    margin: 8,
-    filename: filename || "relatorio.pdf",
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-  };
+  const opt = opcoesPdfPadrao(filename || "relatorio.pdf");
   const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
     await comLoading(baixar, "Gerando PDF...");

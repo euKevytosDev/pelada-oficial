@@ -2026,9 +2026,18 @@ td.num, th.num {
 }
 
 .premios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.premios-par {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
 }
 
 .premio {
@@ -2037,6 +2046,9 @@ td.num, th.num {
   border-radius: 14px;
   padding: 12px 14px;
   box-shadow: 0 2px 10px rgba(7, 26, 20, 0.05);
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
 }
 
 .premio-compacto {
@@ -2050,12 +2062,17 @@ td.num, th.num {
   overflow: hidden;
   border: 1px solid rgba(11, 61, 46, 0.18);
   box-shadow: 0 6px 20px rgba(7, 26, 20, 0.1);
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
 }
 
 .premio-titulo-card {
   padding: 10px 12px 8px;
   border-bottom: 1px solid rgba(11, 61, 46, 0.08);
   background: linear-gradient(135deg, #ffffff 0%, #f7fcf9 100%);
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .premio-titulo-card .premio-nome {
@@ -2074,6 +2091,18 @@ td.num, th.num {
   background: linear-gradient(180deg, #0b3d2e 0%, #146b4a 100%);
   min-height: 168px;
   overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pdf-export .premio-foto-wrap,
+.pdf-export .premio-foto {
+  min-height: 152px;
+}
+
+.pdf-export .premios-grid {
+  break-inside: avoid-page;
+  page-break-inside: avoid;
 }
 
 .premio-foto {
@@ -2513,15 +2542,22 @@ html[data-theme="dark"] .partida-lances {
     border: none;
   }
 
-  .premio-destaque.premio-com-foto {
+  .premio-destaque.premio-com-foto,
+  .premios-par,
+  .premio,
+  .premio-titulo-card,
+  .premio-foto-wrap {
     break-inside: avoid;
     page-break-inside: avoid;
-    min-height: 150px;
+  }
+
+  .premio-destaque.premio-com-foto {
+    min-height: 0;
   }
 
   .premio-foto-wrap,
   .premio-foto {
-    min-height: 150px;
+    min-height: 152px;
   }
 
   .time-resumo-campeao {
