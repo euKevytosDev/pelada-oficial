@@ -183,13 +183,13 @@ function premioCard(titulo, premio, fotoKey) {
   const badge = `<h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4>`;
   if (foto) {
     return `<article class="premio premio-destaque premio-com-foto">
-      <div class="premio-foto-wrap">
-        <img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />
-      </div>
-      <div class="premio-corpo">
+      <header class="premio-titulo-card">
         ${badge}
         ${nomesHtml}
         <p class="premio-detalhe">${premio.detalhe || ""}</p>
+      </header>
+      <div class="premio-foto-wrap">
+        <img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />
       </div>
     </article>`;
   }

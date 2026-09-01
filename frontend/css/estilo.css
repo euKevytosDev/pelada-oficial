@@ -2028,12 +2028,6 @@ td.num, th.num {
 .premios {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.premios {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -2050,30 +2044,36 @@ td.num, th.num {
 }
 
 .premio-destaque.premio-com-foto {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(112px, 34%) 1fr;
-  gap: 0;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   overflow: hidden;
-  min-height: 168px;
   border: 1px solid rgba(11, 61, 46, 0.18);
   box-shadow: 0 6px 20px rgba(7, 26, 20, 0.1);
 }
 
+.premio-titulo-card {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(11, 61, 46, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #f7fcf9 100%);
+}
+
+.premio-titulo-card .premio-nome {
+  margin-top: 2px;
+  font-size: 1.35rem;
+}
+
+.premio-titulo-card .premio-detalhe {
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
 .premio-foto-wrap {
   position: relative;
+  flex: 1;
   background: linear-gradient(180deg, #0b3d2e 0%, #146b4a 100%);
   min-height: 168px;
   overflow: hidden;
-}
-
-.premio-foto-wrap::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(11, 61, 46, 0.35) 0%, transparent 45%);
-  pointer-events: none;
 }
 
 .premio-foto {
@@ -2085,16 +2085,6 @@ td.num, th.num {
   display: block;
   border: none;
   border-radius: 0;
-}
-
-.premio-corpo {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 16px 18px;
-  border-left: 4px solid var(--verde-vivo);
-  background: linear-gradient(135deg, #ffffff 0%, #f7fcf9 100%);
 }
 
 .premio-badge {
@@ -2225,10 +2215,6 @@ td.num, th.num {
   color: var(--texto);
 }
 
-.premio-destaque .premio-nome {
-  font-size: 1.85rem;
-}
-
 .premio-empate {
   margin: 4px 0 0;
   font-size: 0.72rem;
@@ -2250,22 +2236,13 @@ td.num, th.num {
 }
 
 @media (max-width: 520px) {
-  .premio-destaque.premio-com-foto {
-    grid-template-columns: 108px 1fr;
-    min-height: 152px;
+  .premio-titulo-card .premio-nome {
+    font-size: 1.15rem;
   }
 
   .premio-foto-wrap,
   .premio-foto {
-    min-height: 152px;
-  }
-
-  .premio-destaque .premio-nome {
-    font-size: 1.45rem;
-  }
-
-  .premio-corpo {
-    padding: 12px 14px;
+    min-height: 150px;
   }
 }
 
