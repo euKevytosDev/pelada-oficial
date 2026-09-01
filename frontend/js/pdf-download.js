@@ -85,6 +85,7 @@ function opcoesPdfPadrao(filename) {
         ".premio-com-foto",
         ".time-resumo",
         ".time-resumo-campeao",
+        ".partida-resumo-item",
       ],
     },
   };

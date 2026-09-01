@@ -2544,6 +2544,13 @@ td.num, th.num {
   font-size: 0.86rem;
 }
 
+.lista-partidas li,
+.partida-resumo-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
 .lista-partidas .rod {
   font-weight: 700;
   color: var(--texto-suave);
@@ -2665,6 +2672,11 @@ html[data-theme="dark"] .partida-lances {
   }
 
   .time-resumo-campeao {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .partida-resumo-item {
     break-inside: avoid;
     page-break-inside: avoid;
   }

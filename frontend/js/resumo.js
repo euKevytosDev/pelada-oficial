@@ -260,7 +260,7 @@ function renderResumoOficial(resumo) {
             ? `<ul class="partida-lances">${linhas.map((l) => `<li>${l}</li>`).join("")}</ul>`
             : "";
           return `
-        <li>
+        <li class="partida-resumo-item">
           <span class="rod">${String(m.numero).padStart(2, "0")}ª</span>
           <div class="partida-linha">
             <span class="placar-mini">
@@ -301,11 +301,6 @@ function renderResumoOficial(resumo) {
     <section class="resumo-bloco">
       <h3>Times e goleiros</h3>
       <div class="times-resumo-grid">${timesHtml || '<p class="vazio">Sem times</p>'}</div>
-    </section>
-
-    <section class="resumo-bloco">
-      <h3>Artilharia</h3>
-      ${listaSimples(artilheirosLideres(resumo.artilharia), "Nenhum gol marcado.")}
     </section>
 
     <section class="resumo-bloco">
