@@ -2095,14 +2095,62 @@ td.num, th.num {
   page-break-inside: avoid;
 }
 
-.pdf-export .premio-foto-wrap,
-.pdf-export .premio-foto {
-  min-height: 152px;
+.pdf-export.resumo-oficial {
+  padding: 10px 12px 12px;
 }
 
-.pdf-export .premios-grid {
-  break-inside: avoid-page;
-  page-break-inside: avoid;
+.pdf-export .resumo-capa-pdf {
+  break-after: page;
+  page-break-after: always;
+}
+
+.pdf-export .resumo-capa-pdf .resumo-topo {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.pdf-export .resumo-capa-pdf .resumo-bloco {
+  margin-top: 10px;
+}
+
+.pdf-export .resumo-capa-pdf .resumo-bloco h3 {
+  margin-bottom: 6px;
+  font-size: 1rem;
+}
+
+.pdf-export .resumo-capa-pdf .tabela-bra {
+  font-size: 0.72rem;
+}
+
+.pdf-export .resumo-capa-pdf .tabela-bra th,
+.pdf-export .resumo-capa-pdf .tabela-bra td {
+  padding: 5px 3px;
+}
+
+.pdf-export .premios {
+  gap: 8px;
+}
+
+.pdf-export .premios-par {
+  gap: 8px;
+}
+
+.pdf-export .premio-titulo-card {
+  padding: 7px 10px 5px;
+}
+
+.pdf-export .premio-titulo-card .premio-nome {
+  font-size: 1.1rem;
+}
+
+.pdf-export .premio-titulo-card .premio-detalhe {
+  font-size: 0.72rem;
+}
+
+.pdf-export .premio-foto-wrap,
+.pdf-export .premio-foto {
+  min-height: 228px;
+  height: 228px;
 }
 
 .premio-foto {

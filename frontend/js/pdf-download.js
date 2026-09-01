@@ -79,15 +79,12 @@ function opcoesPdfPadrao(filename) {
     html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: {
-      mode: ["avoid-all", "css", "legacy"],
+      mode: ["css", "legacy"],
       avoid: [
         ".premios-par",
         ".premio-com-foto",
-        ".premio",
         ".time-resumo",
         ".time-resumo-campeao",
-        ".resumo-topo",
-        ".tabela-scroll",
       ],
     },
   };

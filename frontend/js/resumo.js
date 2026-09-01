@@ -278,23 +278,25 @@ function renderResumoOficial(resumo) {
     : `<p class="vazio">Nenhuma partida registrada.</p>`;
 
   el.innerHTML = `
-    <header class="resumo-topo">
-      <div>
-        <p class="eyebrow">Futebol entre amigos</p>
-        <h2>${p.nome || "Minha pelada"}</h2>
-      </div>
-      <p class="resumo-data">${formatarDataBr(p.encerradaEm || p.criadaEm)}</p>
-    </header>
+    <div class="resumo-capa-pdf">
+      <header class="resumo-topo">
+        <div>
+          <p class="eyebrow">Futebol entre amigos</p>
+          <h2>${p.nome || "Minha pelada"}</h2>
+        </div>
+        <p class="resumo-data">${formatarDataBr(p.encerradaEm || p.criadaEm)}</p>
+      </header>
 
-    <section class="resumo-bloco">
-      <h3>Classificação</h3>
-      ${tabelaBrasileirao(resumo.classificacao)}
-    </section>
+      <section class="resumo-bloco resumo-classificacao">
+        <h3>Classificação</h3>
+        ${tabelaBrasileirao(resumo.classificacao)}
+      </section>
 
-    <section class="resumo-bloco premios-grid">
-      <h3>Premiação</h3>
-      ${premiosGridHtml(premios)}
-    </section>
+      <section class="resumo-bloco premios-grid">
+        <h3>Premiação</h3>
+        ${premiosGridHtml(premios)}
+      </section>
+    </div>
 
     <section class="resumo-bloco">
       <h3>Times e goleiros</h3>
