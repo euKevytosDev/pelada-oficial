@@ -27,22 +27,36 @@ const FotosPremios = (() => {
     if (novoPeladaId != null) peladaId = novoPeladaId;
   }
 
-  function comprimirImagem(file, maxPx = 480, quality = 0.82) {
+  function comprimirImagem(file, maxPx = 560, quality = 0.88) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         URL.revokeObjectURL(url);
-        let w = img.width;
-        let h = img.height;
-        const scale = Math.min(1, maxPx / Math.max(w, h));
-        w = Math.round(w * scale);
-        h = Math.round(h * scale);
+        const targetRatio = 4 / 5;
+        let sx = 0;
+        let sy = 0;
+        let sWidth = img.width;
+        let sHeight = img.height;
+        const imgRatio = sWidth / sHeight;
+
+        if (imgRatio > targetRatio) {
+          sWidth = sHeight * targetRatio;
+          sx = (img.width - sWidth) / 2;
+        } else {
+          sHeight = sWidth / targetRatio;
+          sy = Math.max(0, Math.min(img.height * 0.06, img.height - sHeight));
+        }
+
+        const outW = Math.min(maxPx, Math.round(sWidth));
+        const outH = Math.round(outW / targetRatio);
         const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = outW;
+        canvas.height = outH;
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, w, h);
+        ctx.fillStyle = "#0b3d2e";
+        ctx.fillRect(0, 0, outW, outH);
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH);
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.onerror = () => {

@@ -150,24 +150,40 @@ function listaObservacoes(itens) {
     .join("")}</ul>`;
 }
 
+const PREMIO_ICONE = {
+  "Time Campeão": "🏆",
+  Artilheiro: "⚽",
+  Craque: "⭐",
+  Garçom: "🎯",
+  "Luva de Ouro": "🧤",
+};
+
 function premioCard(titulo, premio, fotoKey) {
+  const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
-    return `<article class="premio"><h4>${titulo}</h4><p class="vazio">—</p></article>`;
+    return `<article class="premio premio-compacto"><h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4><p class="vazio">—</p></article>`;
   }
   const nomes = premio.nomes && premio.nomes.length ? premio.nomes : [premio.nome];
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
   const foto =
     fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
-  const fotoHtml = foto
-    ? `<img class="premio-foto" src="${foto}" alt="${titulo}" width="72" height="72" />`
-    : "";
-  return `<article class="premio${foto ? " premio-com-foto" : ""}">
-    ${fotoHtml}
-    <div class="premio-corpo">
-      <h4>${titulo}</h4>
-      ${nomesHtml}
-      <p class="premio-detalhe">${premio.detalhe || ""}</p>
-    </div>
+  const badge = `<h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4>`;
+  if (foto) {
+    return `<article class="premio premio-destaque premio-com-foto">
+      <div class="premio-foto-wrap">
+        <img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />
+      </div>
+      <div class="premio-corpo">
+        ${badge}
+        ${nomesHtml}
+        <p class="premio-detalhe">${premio.detalhe || ""}</p>
+      </div>
+    </article>`;
+  }
+  return `<article class="premio premio-compacto">
+    ${badge}
+    ${nomesHtml}
+    <p class="premio-detalhe">${premio.detalhe || ""}</p>
   </article>`;
 }
 
