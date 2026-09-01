@@ -83,6 +83,7 @@ function opcoesPdfPadrao(filename) {
       avoid: [
         ".premios-par",
         ".premio-com-foto",
+        ".campeao-foto-hero",
         ".time-resumo",
         ".time-resumo-campeao",
         ".partida-resumo-item",

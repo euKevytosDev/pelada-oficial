@@ -2254,6 +2254,48 @@ td.num, th.num {
   object-position: center 28%;
 }
 
+.pdf-export .campeao-foto-hero {
+  width: calc(100% + 20px);
+  margin-left: -10px;
+  margin-right: -10px;
+  margin-bottom: 8px;
+  border-radius: 0;
+  aspect-ratio: 16 / 9;
+}
+
+.pdf-export .campeao-foto-overlay {
+  top: 8px;
+  min-width: min(90%, 280px);
+  padding: 5px 14px 4px;
+}
+
+.pdf-export .campeao-foto-eyebrow {
+  font-size: 0.48rem;
+  letter-spacing: 0.16em;
+}
+
+.pdf-export .campeao-foto-nome {
+  font-size: 1.05rem;
+}
+
+.pdf-export .campeao-foto-detalhe {
+  font-size: 0.58rem;
+}
+
+.pdf-export .resumo-pagina-stats-pdf {
+  break-before: page;
+  page-break-before: always;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .resumo-times {
+  margin-top: 0;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .resumo-times h3 {
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+}
+
 .premio-foto {
   width: 100%;
   height: 100%;
@@ -2411,6 +2453,102 @@ td.num, th.num {
 
 .premios-grid .premios {
   margin-top: 4px;
+}
+
+.resumo-pagina-stats-pdf {
+  break-before: page;
+  page-break-before: always;
+}
+
+.campeao-foto-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 14px;
+  margin: 0 0 12px;
+  background: linear-gradient(180deg, #0b3d2e 0%, #146b4a 100%);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.campeao-foto-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
+
+.campeao-foto-overlay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-width: min(88%, 320px);
+  padding: 8px 18px 7px;
+  text-align: center;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #9a7209 0%, #f0d060 28%, #ffe9a8 50%, #f0d060 72%, #9a7209 100%);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(154, 114, 9, 0.45);
+}
+
+.campeao-foto-eyebrow {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #3a2a00;
+}
+
+.campeao-foto-nome {
+  margin: 1px 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a1200;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.campeao-foto-detalhe {
+  margin: 2px 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #4a3600;
+  line-height: 1.1;
+}
+
+.foto-premio-thumb-horizontal {
+  width: 72px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.foto-premio-vazio-horizontal {
+  width: 72px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.foto-premio-formato {
+  font-size: 0.68rem;
+  color: var(--texto-suave);
+  line-height: 1.2;
+}
+
+.foto-premio-item-horizontal {
+  grid-template-columns: 72px 1fr auto;
 }
 
 @media (max-width: 520px) {
@@ -2735,6 +2873,11 @@ html[data-theme="dark"] .partida-lances {
   }
 
   .partida-resumo-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .campeao-foto-hero {
     break-inside: avoid;
     page-break-inside: avoid;
   }

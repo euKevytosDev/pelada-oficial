@@ -287,6 +287,20 @@ function premioCard(titulo, premio, fotoKey, resumo) {
   </article>`;
 }
 
+function campeaoHeroHtml(resumo, campeaoNome) {
+  const foto = typeof FotosPremios !== "undefined" ? FotosPremios.get("campeao") : null;
+  if (!foto || !campeaoNome) return "";
+  const detalhe = resumo?.premios?.campeao?.detalhe || "";
+  return `<div class="campeao-foto-hero">
+    <img class="campeao-foto-img" src="${foto}" alt="Time campeão ${campeaoNome}" decoding="async" />
+    <div class="campeao-foto-overlay">
+      <p class="campeao-foto-eyebrow">Time campeão</p>
+      <h3 class="campeao-foto-nome">${campeaoNome}</h3>
+      ${detalhe ? `<p class="campeao-foto-detalhe">${detalhe}</p>` : ""}
+    </div>
+  </div>`;
+}
+
 function renderResumoOficial(resumo) {
   const el = document.getElementById("resumo-oficial");
   if (!el || !resumo) return;
@@ -367,11 +381,15 @@ function renderResumoOficial(resumo) {
       </section>
     </div>
 
-    <section class="resumo-bloco">
-      <h3>Times e goleiros</h3>
-      <div class="times-resumo-grid">${timesHtml || '<p class="vazio">Sem times</p>'}</div>
-    </section>
+    <div class="resumo-pagina-campeao-pdf">
+      ${campeaoHeroHtml(resumo, campeaoNome)}
+      <section class="resumo-bloco resumo-times">
+        <h3>Times e goleiros</h3>
+        <div class="times-resumo-grid">${timesHtml || '<p class="vazio">Sem times</p>'}</div>
+      </section>
+    </div>
 
+    <div class="resumo-pagina-stats-pdf">
     <section class="resumo-bloco">
       <h3>Gols sofridos (goleiros)</h3>
       ${listaSimples(resumo.golsSofridos, "Nenhum goleiro cadastrado.")}
@@ -402,6 +420,7 @@ function renderResumoOficial(resumo) {
       <h3>Partidas</h3>
       ${partidasHtml}
     </section>
+    </div>
 
     <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
   `;

@@ -78,7 +78,7 @@ const PlanoApp = (() => {
              <li>4 e 5 times no sorteio</li>
              <li>Cartões amarelo e vermelho</li>
              <li>PDF e WhatsApp da súmula</li>
-             <li>Fotos dos destaques no PDF (artilheiro, craque, garçom, luva de ouro)</li>
+             <li>Fotos no PDF: premiação (pág. 1) e time campeão horizontal (pág. 2)</li>
              <li>Caixa da pelada e relatório do mês</li>
            </ul>
            <div class="paywall-ofertas">

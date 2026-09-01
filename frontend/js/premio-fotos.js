@@ -9,6 +9,13 @@ const FotosPremios = (() => {
     { key: "luvaDeOuro", titulo: "Luva de Ouro", get: (p) => p.luvaDeOuro },
   ];
 
+  const SLOT_CAMPEAO = {
+    key: "campeao",
+    titulo: "Time campeão",
+    get: (p) => p.campeao,
+    horizontal: true,
+  };
+
   let fotos = {};
   let peladaId = null;
 
@@ -27,13 +34,12 @@ const FotosPremios = (() => {
     if (novoPeladaId != null) peladaId = novoPeladaId;
   }
 
-  function comprimirImagem(file, maxPx = 560, quality = 0.88) {
+  function comprimirImagem(file, maxPx = 560, quality = 0.88, targetRatio = 4 / 5) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         URL.revokeObjectURL(url);
-        const targetRatio = 4 / 5;
         let sx = 0;
         let sy = 0;
         let sWidth = img.width;
@@ -45,7 +51,10 @@ const FotosPremios = (() => {
           sx = (img.width - sWidth) / 2;
         } else {
           sHeight = sWidth / targetRatio;
-          sy = Math.max(0, Math.min(img.height * 0.06, img.height - sHeight));
+          sy =
+            targetRatio >= 1
+              ? (img.height - sHeight) / 2
+              : Math.max(0, Math.min(img.height * 0.06, img.height - sHeight));
         }
 
         const outW = Math.min(maxPx, Math.round(sWidth));
@@ -96,7 +105,13 @@ const FotosPremios = (() => {
       return false;
     }
     try {
-      fotos[chave] = await comprimirImagem(file);
+      const horizontal = chave === "campeao";
+      fotos[chave] = await comprimirImagem(
+        file,
+        horizontal ? 960 : 560,
+        0.88,
+        horizontal ? 16 / 9 : 4 / 5
+      );
       return true;
     } catch (err) {
       toast(err.message || "Erro ao processar foto");
@@ -109,7 +124,12 @@ const FotosPremios = (() => {
   }
 
   function slotsAtivos(premios) {
-    return SLOTS.filter((s) => s.get(premios || {}));
+    const slots = [];
+    if (premios?.campeao?.nome) slots.push(SLOT_CAMPEAO);
+    SLOTS.forEach((s) => {
+      if (s.get(premios || {})) slots.push(s);
+    });
+    return slots;
   }
 
   function renderPainel(premios) {
@@ -137,14 +157,16 @@ const FotosPremios = (() => {
         const nome = premio?.nome || (premio?.nomes || [])[0] || "—";
         const foto = get(s.key);
         const preview = foto
-          ? `<img class="foto-premio-thumb" src="${foto}" alt="" />`
-          : `<span class="foto-premio-vazio" aria-hidden="true">📷</span>`;
+          ? `<img class="foto-premio-thumb${s.horizontal ? " foto-premio-thumb-horizontal" : ""}" src="${foto}" alt="" />`
+          : `<span class="foto-premio-vazio${s.horizontal ? " foto-premio-vazio-horizontal" : ""}" aria-hidden="true">📷</span>`;
+        const dica = s.horizontal ? '<span class="foto-premio-formato">Horizontal · página 2 do PDF</span>' : "";
         return `
-        <div class="foto-premio-item" data-foto-key="${s.key}">
+        <div class="foto-premio-item${s.horizontal ? " foto-premio-item-horizontal" : ""}" data-foto-key="${s.key}">
           ${preview}
           <div class="foto-premio-info">
             <strong>${s.titulo}</strong>
             <span>${nome}</span>
+            ${dica}
           </div>
           <div class="foto-premio-acoes">
             <button type="button" class="btn-mini" data-foto-acao="galeria" data-foto-key="${s.key}">Galeria</button>
@@ -164,7 +186,7 @@ const FotosPremios = (() => {
 
   async function aguardarImagensResumo(el) {
     if (!el) return;
-    const imgs = [...el.querySelectorAll("img.premio-foto")];
+    const imgs = [...el.querySelectorAll("img.premio-foto, img.campeao-foto-img")];
     await Promise.all(
       imgs.map(
         (img) =>
@@ -214,6 +236,7 @@ const FotosPremios = (() => {
 
   return {
     SLOTS,
+    SLOT_CAMPEAO,
     get,
     limpar,
     syncPainel,
