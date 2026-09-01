@@ -2283,11 +2283,10 @@ td.num, th.num {
 }
 
 .time-resumo-campeao {
-  grid-column: 1 / -1;
   border: 2px solid #c9a227;
   border-left: 5px solid #e8c547;
   border-radius: 12px;
-  padding: 0 10px 8px;
+  padding: 0 8px 6px;
   background: linear-gradient(165deg, #fffef9 0%, #fff6dc 48%, #fffef9 100%);
   box-shadow:
     0 0 0 1px rgba(201, 162, 39, 0.35),
@@ -2295,7 +2294,7 @@ td.num, th.num {
 }
 
 .time-campeao-faixa {
-  margin: 0 -10px 8px;
+  margin: 0 -8px 6px;
   padding: 7px 12px;
   background: linear-gradient(90deg, #9a7209 0%, #f0d060 35%, #ffe9a8 50%, #f0d060 65%, #9a7209 100%);
   color: #2a1f00;
