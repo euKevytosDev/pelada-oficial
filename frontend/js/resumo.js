@@ -251,6 +251,19 @@ function premiosGridHtml(premios, resumo, modoGridFotos) {
   return `<div class="premios">${linhas.join("")}</div>`;
 }
 
+function premioOverlayHtml(titulo, premio, nomesHtml, resumo) {
+  const icone = PREMIO_ICONE[titulo] || "";
+  const detalhe = premio ? montarDetalhePremioCompacto(titulo, premio, resumo) : "";
+  return `<div class="premio-foto-overlay">
+    <div class="premio-foto-overlay-linha">
+      ${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}
+      <span class="premio-categoria">${titulo}</span>
+      ${detalhe ? `<span class="premio-detalhe">${detalhe}</span>` : ""}
+    </div>
+    <div class="premio-foto-overlay-nome">${nomesHtml}</div>
+  </div>`;
+}
+
 function premioTituloCardHtml(titulo, premio, nomesHtml, resumo) {
   const icone = PREMIO_ICONE[titulo] || "";
   const detalhe = montarDetalhePremioCompacto(titulo, premio, resumo);
@@ -264,22 +277,21 @@ function premioTituloCardHtml(titulo, premio, nomesHtml, resumo) {
   </header>`;
 }
 
+function premioFotoWrapHtml(titulo, premio, nomesHtml, resumo, foto) {
+  const overlay = premioOverlayHtml(titulo, premio, nomesHtml, resumo);
+  const corpo = foto
+    ? `<img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />`
+    : `<p class="premio-sem-foto">Sem foto</p>`;
+  return `<div class="premio-foto-wrap">${overlay}${corpo}</div>`;
+}
+
 function premioCard(titulo, premio, fotoKey, resumo, modoGridFotos) {
   const icone = PREMIO_ICONE[titulo] || "";
   if (!premio) {
     if (modoGridFotos) {
+      const nomesHtml = `<p class="premio-nome vazio">—</p>`;
       return `<article class="premio premio-destaque premio-com-foto">
-        <header class="premio-titulo-card">
-          <div class="premio-titulo-cat">
-            ${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}
-            <span class="premio-categoria">${titulo}</span>
-          </div>
-          <div class="premio-titulo-nome"><p class="premio-nome vazio">—</p></div>
-          <p class="premio-detalhe"></p>
-        </header>
-        <div class="premio-foto-wrap">
-          <p class="premio-sem-foto">Sem foto</p>
-        </div>
+        ${premioFotoWrapHtml(titulo, null, nomesHtml, resumo, null)}
       </article>`;
     }
     return `<article class="premio premio-compacto"><h4 class="premio-badge">${icone ? `<span class="premio-ico" aria-hidden="true">${icone}</span>` : ""}${titulo}</h4><p class="vazio">—</p></article>`;
@@ -288,19 +300,12 @@ function premioCard(titulo, premio, fotoKey, resumo, modoGridFotos) {
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
   const foto =
     fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
-  const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml, resumo);
   if (modoGridFotos || foto) {
     return `<article class="premio premio-destaque premio-com-foto">
-      ${tituloHeader}
-      <div class="premio-foto-wrap">
-        ${
-          foto
-            ? `<img class="premio-foto" src="${foto}" alt="${titulo}" decoding="async" />`
-            : `<p class="premio-sem-foto">Sem foto</p>`
-        }
-      </div>
+      ${premioFotoWrapHtml(titulo, premio, nomesHtml, resumo, foto)}
     </article>`;
   }
+  const tituloHeader = premioTituloCardHtml(titulo, premio, nomesHtml, resumo);
   return `<article class="premio premio-compacto">
     ${tituloHeader}
   </article>`;
