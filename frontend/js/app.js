@@ -3064,6 +3064,7 @@ ConfigApp.init();
 if (typeof PlanoApp !== "undefined") PlanoApp.init();
 if (typeof initRelatorioMensal === "function") initRelatorioMensal();
 if (typeof initCaixaPelada === "function") initCaixaPelada();
+if (typeof FotosPremios !== "undefined") FotosPremios.init();
 aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();

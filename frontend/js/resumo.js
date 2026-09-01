@@ -150,16 +150,24 @@ function listaObservacoes(itens) {
     .join("")}</ul>`;
 }
 
-function premioCard(titulo, premio) {
+function premioCard(titulo, premio, fotoKey) {
   if (!premio) {
     return `<article class="premio"><h4>${titulo}</h4><p class="vazio">—</p></article>`;
   }
   const nomes = premio.nomes && premio.nomes.length ? premio.nomes : [premio.nome];
   const nomesHtml = nomes.map((n) => `<p class="premio-nome">${n}</p>`).join("");
-  return `<article class="premio">
-    <h4>${titulo}</h4>
-    ${nomesHtml}
-    <p class="premio-detalhe">${premio.detalhe || ""}</p>
+  const foto =
+    fotoKey && typeof FotosPremios !== "undefined" ? FotosPremios.get(fotoKey) : null;
+  const fotoHtml = foto
+    ? `<img class="premio-foto" src="${foto}" alt="${titulo}" width="72" height="72" />`
+    : "";
+  return `<article class="premio${foto ? " premio-com-foto" : ""}">
+    ${fotoHtml}
+    <div class="premio-corpo">
+      <h4>${titulo}</h4>
+      ${nomesHtml}
+      <p class="premio-detalhe">${premio.detalhe || ""}</p>
+    </div>
   </article>`;
 }
 
@@ -236,10 +244,10 @@ function renderResumoOficial(resumo) {
       <h3>Premiação</h3>
       <div class="premios">
         ${premioCard("Time Campeão", premios.campeao)}
-        ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro)}
-        ${premioCard("Craque", premios.craque)}
-        ${premioCard("Garçom", premios.garcom)}
-        ${premioCard("Luva de Ouro", premios.luvaDeOuro)}
+        ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro, "artilheiro")}
+        ${premioCard("Craque", premios.craque, "craque")}
+        ${premioCard("Garçom", premios.garcom, "garcom")}
+        ${premioCard("Luva de Ouro", premios.luvaDeOuro, "luvaDeOuro")}
       </div>
     </section>
 
@@ -286,6 +294,10 @@ function renderResumoOficial(resumo) {
 
     <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
   `;
+
+  if (typeof FotosPremios !== "undefined") {
+    FotosPremios.syncPainel(resumo);
+  }
 }
 
 function textoResumoWhatsApp(resumo) {
@@ -398,6 +410,9 @@ async function baixarPdfResumo() {
   if (typeof html2pdf === "undefined") {
     window.print();
     return;
+  }
+  if (typeof FotosPremios !== "undefined") {
+    await FotosPremios.aguardarImagensResumo(el);
   }
   const nome = (estado.resumoAtual?.pelada?.nome || "pelada").replace(/\s+/g, "-").toLowerCase();
   const opt = {
