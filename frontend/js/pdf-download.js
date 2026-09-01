@@ -80,7 +80,6 @@ function opcoesPdfPadrao(filename) {
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: {
       mode: ["css", "legacy"],
-      before: [".resumo-pagina-campeao-pdf", ".resumo-pagina-stats-pdf"],
       avoid: [
         ".premios-par",
         ".premio-com-foto",
