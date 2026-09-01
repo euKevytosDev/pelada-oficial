@@ -2282,6 +2282,37 @@ td.num, th.num {
   padding: 6px 8px;
 }
 
+.time-resumo-campeao {
+  grid-column: 1 / -1;
+  border: 2px solid #c9a227;
+  border-left: 5px solid #e8c547;
+  border-radius: 12px;
+  padding: 0 10px 8px;
+  background: linear-gradient(165deg, #fffef9 0%, #fff6dc 48%, #fffef9 100%);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.35),
+    0 8px 22px rgba(184, 134, 11, 0.18);
+}
+
+.time-campeao-faixa {
+  margin: 0 -10px 8px;
+  padding: 7px 12px;
+  background: linear-gradient(90deg, #9a7209 0%, #f0d060 35%, #ffe9a8 50%, #f0d060 65%, #9a7209 100%);
+  color: #2a1f00;
+  font-family: var(--fonte-titulo);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+  border-radius: 10px 10px 0 0;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.time-resumo-campeao h3 {
+  color: #6b4e00;
+}
+
 .time-resumo h3 {
   margin: 0 0 2px;
   font-family: var(--fonte-titulo);
@@ -2515,6 +2546,11 @@ html[data-theme="dark"] .partida-lances {
   .premio-foto-wrap,
   .premio-foto {
     min-height: 150px;
+  }
+
+  .time-resumo-campeao {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 

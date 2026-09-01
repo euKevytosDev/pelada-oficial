@@ -151,12 +151,25 @@ function listaObservacoes(itens) {
 }
 
 const PREMIO_ICONE = {
-  "Time Campeão": "🏆",
   Artilheiro: "⚽",
   Craque: "⭐",
   Garçom: "🎯",
   "Luva de Ouro": "🧤",
 };
+
+function normalizarNomeTime(n) {
+  return String(n || "")
+    .trim()
+    .toLowerCase();
+}
+
+function nomeTimeCampeaoResumo(resumo) {
+  const campeao = resumo?.premios?.campeao;
+  if (campeao?.nome) return String(campeao.nome).trim();
+  const lider =
+    (resumo?.classificacao || []).find((t) => Number(t.posicao) === 1) || resumo?.classificacao?.[0];
+  return lider?.nome ? String(lider.nome).trim() : null;
+}
 
 function premioCard(titulo, premio, fotoKey) {
   const icone = PREMIO_ICONE[titulo] || "";
@@ -193,9 +206,12 @@ function renderResumoOficial(resumo) {
 
   const p = resumo.pelada || {};
   const premios = resumo.premios || {};
+  const campeaoNome = nomeTimeCampeaoResumo(resumo);
 
   const timesHtml = (resumo.times || [])
     .map((t) => {
+      const isCampeao =
+        campeaoNome && normalizarNomeTime(t.nome) === normalizarNomeTime(campeaoNome);
       const gk = t.goleiro
         ? `${t.goleiro.nome} <span class="meta">(${t.goleiro.golsSofridos ?? 0} sofridos)</span>`
         : "sem goleiro";
@@ -209,7 +225,8 @@ function renderResumoOficial(resumo) {
         })
         .join("");
       return `
-        <article class="time-resumo" style="border-left-color:${t.cor}">
+        <article class="time-resumo${isCampeao ? " time-resumo-campeao" : ""}" style="border-left-color:${t.cor}">
+          ${isCampeao ? '<p class="time-campeao-faixa">Campeão</p>' : ""}
           <h3>${t.nome}</h3>
           <p class="gk-linha">Goleiro: <strong>${gk}</strong></p>
           <ul class="lista-resumo">${jogadores || "<li class='vazio'>Sem jogadores</li>"}</ul>
@@ -259,7 +276,6 @@ function renderResumoOficial(resumo) {
     <section class="resumo-bloco premios-grid">
       <h3>Premiação</h3>
       <div class="premios">
-        ${premioCard("Time Campeão", premios.campeao)}
         ${premioCard("Artilheiro", premios.artilheiro || premios.bolaDeOuro, "artilheiro")}
         ${premioCard("Craque", premios.craque, "craque")}
         ${premioCard("Garçom", premios.garcom, "garcom")}
