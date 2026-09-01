@@ -1,6 +1,6 @@
 /**
  * Pelada offline-first: elenco, times e rodadas ficam locais;
- * backup na conta ao sortear, finalizar rodada ou sair da aba (web e app).
+ * backup na conta ao sortear, finalizar rodada (imediato no app) ou sair da aba.
  */
 const LocalJogo = (() => {
   const STORE_KEY = "pelada_jogo_local_v4";

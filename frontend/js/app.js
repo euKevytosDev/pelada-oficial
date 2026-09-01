@@ -1673,7 +1673,11 @@ async function sortearTimes() {
   mostrarTela("tela-times");
   // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
-  sincronizarJogoEmBackground();
+  if (typeof isAppNativo === "function" && isAppNativo()) {
+    sincronizarJogoAgora().catch(() => {});
+  } else {
+    sincronizarJogoEmBackground();
+  }
   const todos = LocalJogo.listarJogadores();
   const inaptos = todos.filter((j) => j.apto === false).length;
   const comGk = times.filter((t) => t.goleiro).length;
@@ -2122,28 +2126,37 @@ function aplicarLanceLocal(partidaId, contexto) {
 let sincronizandoJogo = false;
 let syncJogoTimer = null;
 
-/** Backup no servidor durante o jogo (web e app) — sorteio, rodada finalizada e ao sair da aba. */
-async function sincronizarJogoEmBackground() {
-  if (!getToken()) return;
+/** Backup no servidor durante o jogo — sorteio, rodada finalizada e ao sair da aba. */
+async function executarSyncJogo() {
+  if (!getToken()) return false;
   const local = LocalJogo.obter();
   const peladaId = estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
-  if (!peladaId || !LocalJogo.temJogoLocal()) return;
-  if (sincronizandoJogo) return;
+  if (!peladaId || !LocalJogo.temJogoLocal()) return false;
+  if (sincronizandoJogo) return false;
 
+  sincronizandoJogo = true;
+  try {
+    const payload = LocalJogo.montarPayloadSync({ encerrar: false });
+    if (!(payload.partidas || []).length && !(payload.times || []).length) return false;
+    await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    sincronizandoJogo = false;
+  }
+}
+
+function sincronizarJogoEmBackground() {
   clearTimeout(syncJogoTimer);
-  syncJogoTimer = setTimeout(async () => {
-    if (sincronizandoJogo) return;
-    sincronizandoJogo = true;
-    try {
-      const payload = LocalJogo.montarPayloadSync({ encerrar: false });
-      if (!(payload.partidas || []).length && !(payload.times || []).length) return;
-      await PeladaAPI.sincronizarCompleta(peladaId, payload);
-    } catch (_) {
-      /* jogo continua local; tenta de novo na próxima rodada */
-    } finally {
-      sincronizandoJogo = false;
-    }
+  syncJogoTimer = setTimeout(() => {
+    executarSyncJogo();
   }, 900);
+}
+
+async function sincronizarJogoAgora() {
+  clearTimeout(syncJogoTimer);
+  return executarSyncJogo();
 }
 
 function somaJogosTimes(times) {
@@ -2167,7 +2180,11 @@ async function finalizarPartidaAtual() {
     renderClassificacao(timesLocais, "tabela-classificacao");
   }
   LocalJogo.finalizarPartidaLocal(partida, timesLocais);
-  sincronizarJogoEmBackground();
+  if (typeof isAppNativo === "function" && isAppNativo()) {
+    sincronizarJogoAgora().catch(() => {});
+  } else {
+    sincronizarJogoEmBackground();
+  }
 
   mostrarTela("tela-classificacao");
   toast("Rodada finalizada");
@@ -3081,7 +3098,11 @@ window.addEventListener("online", () => {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
-    sincronizarJogoEmBackground();
+    if (typeof isAppNativo === "function" && isAppNativo()) {
+      sincronizarJogoAgora().catch(() => {});
+    } else {
+      sincronizarJogoEmBackground();
+    }
   }
 });
 function exigirQtdTimesPro(qtd) {
