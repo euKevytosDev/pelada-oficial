@@ -372,6 +372,59 @@ async function sincronizarElencoNoSorteio() {
     /* backup local já ficou; sobe no encerrar / quando a rede voltar */
   }
 }
+
+/** Sobe o cadastro para a conta (outro celular em Continuar pega da nuvem). */
+let _timerSyncElencoCadastro = null;
+function agendarSyncElencoCadastro() {
+  if (!getToken()) return;
+  const lista = LocalJogo.listarJogadores();
+  if (!lista.length) return;
+  salvarElencoLocalBackup(lista);
+  clearTimeout(_timerSyncElencoCadastro);
+  _timerSyncElencoCadastro = setTimeout(() => {
+    enviarElencoConta(LocalJogo.listarJogadores()).catch(() => {});
+  }, 800);
+}
+
+/**
+ * No 2º aparelho o LocalJogo vem vazio (cadastro era só local).
+ * Hidrata com jogadores do retomar, da pelada ou do elenco da conta.
+ */
+async function hidratarCadastroAoRetomar(pelada, payload) {
+  const local = LocalJogo.obter();
+  const mesmoId = local && String(local.peladaId) === String(pelada.id);
+  if (mesmoId && (local.jogadores || []).length) return local.jogadores;
+
+  let jogadores = [];
+  const doPayload = Array.isArray(payload?.jogadores) ? payload.jogadores : [];
+  if (doPayload.length) {
+    jogadores = doPayload;
+  } else {
+    try {
+      const daPelada = await PeladaAPI.listarJogadores(pelada.id);
+      if (Array.isArray(daPelada) && daPelada.length) jogadores = daPelada;
+    } catch (_) {
+      /* segue para elenco da conta */
+    }
+  }
+  if (!jogadores.length) {
+    jogadores = await carregarElencoParaNovaPelada();
+  }
+
+  LocalJogo.iniciarPeladaLocal({
+    peladaId: pelada.id,
+    nome: pelada.nome || "Pelada Oficial",
+    quantidadeTimes: Number(pelada.quantidadeTimes) || 2,
+    jogadores: (jogadores || []).map((j) => ({
+      id: j.id || j.clientId || undefined,
+      nome: j.nome,
+      estrelas: j.goleiro ? 0 : Number(j.estrelas) || 3,
+      goleiro: !!j.goleiro,
+      apto: j.apto !== false && j.apto !== "false",
+    })),
+  });
+  return LocalJogo.listarJogadores();
+}
 function lerApagarPendentes() {
   try {
     const raw = localStorage.getItem(APAGAR_PENDENTE_KEY);
@@ -970,6 +1023,7 @@ function renderListasCadastro(todos) {
 async function alternarApto(jogadorId, aptoAtual) {
   LocalJogo.atualizarJogador(jogadorId, { apto: !aptoAtual });
   await carregarCadastro();
+  agendarSyncElencoCadastro();
   toast(!aptoAtual ? "Marcado como apto" : "Marcado como inapto (fora do sorteio)");
 }
 
@@ -978,6 +1032,7 @@ async function apagarJogador(jogadorId) {
   if (!ok) return;
   LocalJogo.removerJogador(jogadorId);
   await carregarCadastro();
+  agendarSyncElencoCadastro();
   toast("Removido da lista");
 }
 
@@ -1062,6 +1117,7 @@ async function editarJogador(jogadorId) {
 
   LocalJogo.atualizarJogador(jogadorId, dados);
   await carregarCadastro();
+  agendarSyncElencoCadastro();
   toast("Atualizado");
 }
 
@@ -2518,6 +2574,16 @@ async function entrarNaHome() {
   if (typeof atualizarFaixaCaixaHome === "function") atualizarFaixaCaixaHome();
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
+  // Cadastro local em andamento: sobe o elenco para outro celular poder Continuar
+  const localCadastro = LocalJogo.obter();
+  if (
+    getToken() &&
+    localCadastro?.peladaId &&
+    (localCadastro.status === "AGUARDANDO" || !(localCadastro.times || []).length) &&
+    (localCadastro.jogadores || []).length
+  ) {
+    agendarSyncElencoCadastro();
+  }
   // Tenta restaurar elenco se foi zerado por encerrar fantasma
   if (getToken()) {
     PeladaAPI.recuperarElenco()
@@ -2595,9 +2661,14 @@ async function retomarPelada(pelada) {
   }
 
   if (pelada.status === "AGUARDANDO") {
+    const lista = await hidratarCadastroAoRetomar(pelada, null);
     await carregarCadastro();
     mostrarTela("tela-jogadores");
-    toast("Pelada retomada — cadastro");
+    toast(
+      lista.length
+        ? `Pelada retomada — ${lista.length} no cadastro`
+        : "Pelada retomada — cadastro vazio"
+    );
     return;
   }
 
@@ -2687,9 +2758,14 @@ async function aplicarRetomada(payload) {
   }
 
   if (pelada.status === "AGUARDANDO") {
+    const lista = await hidratarCadastroAoRetomar(pelada, payload);
     await carregarCadastro();
     mostrarTela("tela-jogadores");
-    toast("Pelada retomada — cadastro");
+    toast(
+      lista.length
+        ? `Pelada retomada — ${lista.length} no cadastro`
+        : "Pelada retomada — cadastro vazio"
+    );
     return;
   }
 
@@ -3134,6 +3210,7 @@ document.getElementById("form-nova-pelada").addEventListener("submit", async (e)
         jogadores,
       });
       const todos = await carregarCadastro();
+      agendarSyncElencoCadastro();
       mostrarTela("tela-jogadores");
       const inaptos = todos.filter((j) => j.apto === false).length;
       if (todos.length) {
@@ -3161,6 +3238,7 @@ document.getElementById("form-jogador").addEventListener("submit", async (e) => 
     });
     document.getElementById("nome-jogador").value = "";
     await carregarCadastro();
+    agendarSyncElencoCadastro();
     toast("Jogador adicionado");
   } catch (err) {
     toast(err.message);
@@ -3176,6 +3254,7 @@ document.getElementById("form-goleiro").addEventListener("submit", async (e) => 
     });
     document.getElementById("nome-goleiro").value = "";
     await carregarCadastro();
+    agendarSyncElencoCadastro();
     toast("Goleiro adicionado");
   } catch (err) {
     toast(err.message);
