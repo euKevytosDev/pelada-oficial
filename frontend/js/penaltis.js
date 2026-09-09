@@ -2,6 +2,7 @@
  * Desempate 1º x 2º nos pênaltis — altera só o prêmio de campeão (tabela fica igual).
  * Lista de batedores é 100% editável (goleiro emprestado, lesão, etc.).
  * Placar visual: 5 cobranças (bolinhas), com sudden death se empatar.
+ * Ao confirmar: escolhe o goleiro campeão dos pênaltis (Luva de Ouro permanece).
  */
 const PenaltisApp = (() => {
   const COBRANCAS_INICIAIS = 5;
@@ -36,6 +37,35 @@ const PenaltisApp = (() => {
         id: j.id || uid(`sug-${nomeTime}-${i}`),
         nome: String(j.nome).trim(),
       }));
+  }
+
+  function listarGoleirosAptos(resumo) {
+    const mapa = new Map();
+    const add = (nome, extra = {}) => {
+      const n = String(nome || "").trim();
+      if (!n) return;
+      const key = n.toLowerCase();
+      if (!mapa.has(key)) mapa.set(key, { id: extra.id || key, nome: n, time: extra.time || "" });
+    };
+
+    (resumo?.times || []).forEach((t) => {
+      if (t.goleiro?.nome) add(t.goleiro.nome, { id: t.goleiro.id, time: t.nome });
+    });
+    (resumo?.golsSofridos || []).forEach((g) => {
+      add(g.nome, { time: g.time || "" });
+    });
+
+    try {
+      if (typeof LocalJogo !== "undefined") {
+        (LocalJogo.listarJogadores() || [])
+          .filter((j) => j.goleiro && j.apto !== false)
+          .forEach((j) => add(j.nome, { id: j.id }));
+      }
+    } catch (_) {
+      /* ignore */
+    }
+
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }
 
   function montarLado(resumo, timeClassif) {
@@ -267,7 +297,25 @@ const PenaltisApp = (() => {
     lado.batedores[index].nome = String(nome || "").trim() || `Batedor ${index + 1}`;
   }
 
-  function aplicarCampeao(vencedorNome) {
+  async function escolherGoleiroCampeao(resumo, timeVencedor) {
+    const gks = listarGoleirosAptos(resumo);
+    if (!gks.length) {
+      toast("Nenhum goleiro apto encontrado — só o time fica campeão");
+      return null;
+    }
+    if (typeof escolherOpcao !== "function") return gks[0]?.nome || null;
+
+    const opcoes = gks.map((g) => ({
+      id: String(g.id),
+      label: g.time ? `${g.nome} (${g.time})` : g.nome,
+      goleiro: true,
+    }));
+    const id = await escolherOpcao(`Goleiro campeão — pênaltis (${timeVencedor})`, opcoes);
+    if (!id) return null;
+    return gks.find((g) => String(g.id) === String(id))?.nome || null;
+  }
+
+  function aplicarCampeao(vencedorNome, goleiroCampeaoNome) {
     const resumo = estado.resumoAtual;
     if (!resumo) return;
     const pts =
@@ -282,6 +330,16 @@ const PenaltisApp = (() => {
       empate: false,
       detalhe,
     };
+    // Não mexe na Luva de Ouro (menos vazado). Prêmio à parte.
+    if (goleiroCampeaoNome) {
+      resumo.premios.goleiroCampeaoPenaltis = {
+        nome: goleiroCampeaoNome,
+        nomes: [goleiroCampeaoNome],
+        empate: false,
+        detalhe: "campeão nos pênaltis",
+      };
+    }
+
     const mapBatidas = (lado) =>
       (lado.cobrancas || []).map((r, i) => ({
         nome: lado.batedores[i]?.nome || `Batedor ${i + 1}`,
@@ -293,6 +351,7 @@ const PenaltisApp = (() => {
       golsA: golsDe(sessao.timeA),
       golsB: golsDe(sessao.timeB),
       campeao: vencedorNome,
+      goleiroCampeao: goleiroCampeaoNome || null,
       batidasA: mapBatidas(sessao.timeA),
       batidasB: mapBatidas(sessao.timeB),
     };
@@ -300,10 +359,14 @@ const PenaltisApp = (() => {
     renderResumoOficial(resumo);
     atualizarBotaoDesempate(resumo);
     mostrarTela("tela-fim");
-    toast(`${vencedorNome} campeão nos pênaltis`);
+    toast(
+      goleiroCampeaoNome
+        ? `${vencedorNome} campeão · GK ${goleiroCampeaoNome}`
+        : `${vencedorNome} campeão nos pênaltis`
+    );
   }
 
-  function confirmar() {
+  async function confirmar() {
     if (!sessao) return;
     const a = golsDe(sessao.timeA);
     const b = golsDe(sessao.timeB);
@@ -318,8 +381,9 @@ const PenaltisApp = (() => {
       return;
     }
     const vencedor = a > b ? sessao.timeA.nome : sessao.timeB.nome;
+    const goleiro = await escolherGoleiroCampeao(estado.resumoAtual, vencedor);
     sessao.finalizado = true;
-    aplicarCampeao(vencedor);
+    aplicarCampeao(vencedor, goleiro);
   }
 
   function atualizarBotaoDesempate(resumo) {
@@ -347,7 +411,9 @@ const PenaltisApp = (() => {
       mostrarTela("tela-fim");
     });
 
-    document.getElementById("btn-penaltis-confirmar")?.addEventListener("click", confirmar);
+    document.getElementById("btn-penaltis-confirmar")?.addEventListener("click", () => {
+      confirmar().catch((err) => toast(err.message || "Não deu para definir o campeão"));
+    });
 
     const root = document.getElementById("penaltis-conteudo");
     if (!root) return;
@@ -375,7 +441,6 @@ const PenaltisApp = (() => {
       const tipo = input.dataset.penInput;
       if (tipo === "nome-cobranca") {
         sincronizarNomeCobrancaComLista(lado, idx, input.value);
-        // Atualiza só a lista sem recriar o input (evita perder foco se digitar)
         const listaInput = root.querySelector(
           `input[data-pen-input="nome-lista"][data-lado="${lado}"][data-idx="${idx}"]`
         );
@@ -392,7 +457,6 @@ const PenaltisApp = (() => {
     root.addEventListener("input", (e) => {
       const input = e.target.closest("[data-pen-input]");
       if (!input || !sessao) return;
-      // Mantém estado enquanto digita, sem re-render
       const lado = input.dataset.lado;
       const idx = Number(input.dataset.idx);
       if (input.dataset.penInput === "nome-lista" || input.dataset.penInput === "nome-cobranca") {

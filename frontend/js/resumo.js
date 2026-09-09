@@ -155,6 +155,7 @@ const PREMIO_ICONE = {
   Craque: "⭐",
   Garçom: "🎯",
   "Luva de Ouro": "🧤",
+  "Goleiro dos pênaltis": "🧤",
 };
 
 function normalizarNomeTime(n) {
@@ -240,6 +241,13 @@ function premiosGridHtml(premios, resumo, modoGridFotos) {
     { titulo: "Garçom", premio: premios.garcom, key: "garcom" },
     { titulo: "Luva de Ouro", premio: premios.luvaDeOuro, key: "luvaDeOuro" },
   ];
+  if (premios.goleiroCampeaoPenaltis) {
+    slots.push({
+      titulo: "Goleiro dos pênaltis",
+      premio: premios.goleiroCampeaoPenaltis,
+      key: null,
+    });
+  }
   const linhas = [];
   for (let i = 0; i < slots.length; i += 2) {
     const par = slots
@@ -309,6 +317,42 @@ function premioCard(titulo, premio, fotoKey, resumo, modoGridFotos) {
   return `<article class="premio premio-compacto">
     ${tituloHeader}
   </article>`;
+}
+
+function listaBatidasPenaltis(batidas, vazio) {
+  const itens = (batidas || []).filter((b) => b && (b.resultado === "gol" || b.resultado === "erro"));
+  if (!itens.length) return `<p class="vazio">${vazio}</p>`;
+  return `<ul class="lista-resumo pen-batidas-lista">${itens
+    .map((b, i) => {
+      const ok = b.resultado === "gol";
+      const marca = ok ? "●" : "✕";
+      const cls = ok ? "pen-ok" : "pen-erro";
+      return `<li><span>${i + 1}º ${b.nome || "—"}</span><strong class="${cls}">${marca}</strong></li>`;
+    })
+    .join("")}</ul>`;
+}
+
+function quadroPenaltisHtml(pen) {
+  if (!pen?.campeao) return "";
+  const gk = pen.goleiroCampeao
+    ? `<p class="penaltis-resumo-linha">Goleiro campeão: <strong>${pen.goleiroCampeao}</strong></p>`
+    : "";
+  return `
+    <div class="penaltis-sumula-box">
+      <p class="penaltis-resumo-linha"><strong>${pen.timeA}</strong> ${pen.golsA} x ${pen.golsB} <strong>${pen.timeB}</strong></p>
+      <p class="penaltis-resumo-linha">Time campeão: <strong>${pen.campeao}</strong></p>
+      ${gk}
+      <div class="penaltis-batidas-cols">
+        <div>
+          <h4 class="pen-batidas-titulo">${pen.timeA}</h4>
+          ${listaBatidasPenaltis(pen.batidasA, "Sem cobranças")}
+        </div>
+        <div>
+          <h4 class="pen-batidas-titulo">${pen.timeB}</h4>
+          ${listaBatidasPenaltis(pen.batidasB, "Sem cobranças")}
+        </div>
+      </div>
+    </div>`;
 }
 
 function campeaoHeroHtml(resumo, campeaoNome) {
@@ -430,7 +474,11 @@ function renderResumoOficial(resumo) {
         resumo.penaltis?.campeao
           ? `<section class="resumo-bloco">
         <h3>Desempate nos pênaltis</h3>
-        <p class="penaltis-resumo-linha"><strong>${resumo.penaltis.timeA}</strong> ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} <strong>${resumo.penaltis.timeB}</strong> — campeão: <strong>${resumo.penaltis.campeao}</strong></p>
+        <p class="penaltis-resumo-linha"><strong>${resumo.penaltis.timeA}</strong> ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} <strong>${resumo.penaltis.timeB}</strong> — campeão: <strong>${resumo.penaltis.campeao}</strong>${
+              resumo.penaltis.goleiroCampeao
+                ? ` · GK: <strong>${resumo.penaltis.goleiroCampeao}</strong>`
+                : ""
+            }</p>
       </section>`
           : ""
       }
@@ -468,9 +516,22 @@ function renderResumoOficial(resumo) {
       ${listaObservacoes(resumo.observacoes)}
     </section>
 
-    <section class="resumo-bloco">
-      <h3>Partidas</h3>
-      ${partidasHtml}
+    <section class="resumo-bloco ${resumo.penaltis?.campeao ? "partidas-com-penaltis" : ""}">
+      ${
+        resumo.penaltis?.campeao
+          ? `<div class="duas-cols partidas-penaltis-grid">
+        <div>
+          <h3>Partidas</h3>
+          ${partidasHtml}
+        </div>
+        <div>
+          <h3>Pênaltis</h3>
+          ${quadroPenaltisHtml(resumo.penaltis)}
+        </div>
+      </div>`
+          : `<h3>Partidas</h3>
+      ${partidasHtml}`
+      }
     </section>
     </div>
 
@@ -504,6 +565,9 @@ function textoResumoWhatsApp(resumo) {
     linhas.push(
       `⚽ Pênaltis: ${resumo.penaltis.timeA} ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} ${resumo.penaltis.timeB}`
     );
+    if (resumo.penaltis.goleiroCampeao) {
+      linhas.push(`🧤 Goleiro dos pênaltis: ${resumo.penaltis.goleiroCampeao}`);
+    }
   }
   const artilheiro = premios.artilheiro || premios.bolaDeOuro;
   if (artilheiro) {
@@ -517,6 +581,9 @@ function textoResumoWhatsApp(resumo) {
   }
   if (premios.luvaDeOuro) {
     linhas.push(`🧤 Luva de Ouro: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
+  }
+  if (premios.goleiroCampeaoPenaltis) {
+    linhas.push(`🧤 Goleiro dos pênaltis: ${premios.goleiroCampeaoPenaltis.nome}`);
   }
 
   const artilheiros = artilheirosLideres(resumo.artilharia);
