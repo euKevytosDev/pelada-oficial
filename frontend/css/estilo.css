@@ -3406,3 +3406,147 @@ html[data-theme="dark"] .partida-lances {
 #btn-caixa-cobrar-fim {
   margin: 0 0 14px;
 }
+
+
+/* ---------- Pênaltis (desempate) ---------- */
+#box-desempatar-penaltis {
+  margin: 0 0 14px;
+}
+
+.penaltis-placar-topo {
+  margin: 0 0 14px;
+  text-align: center;
+  font-family: var(--fonte-titulo);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--verde-campo);
+  letter-spacing: 0.06em;
+}
+
+.penaltis-grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.pen-time {
+  background: var(--bg-card);
+  border-radius: var(--raio);
+  border: 1px solid var(--linha);
+  border-top: 4px solid var(--verde-campo);
+  padding: 12px;
+  box-shadow: var(--sombra);
+}
+
+.pen-time-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.pen-time-topo h3 {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.35rem;
+  text-transform: uppercase;
+}
+
+.pen-gols {
+  font-family: var(--fonte-titulo);
+  font-size: 1.8rem;
+  color: var(--verde-campo);
+  line-height: 1;
+}
+
+.pen-lista {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pen-jogador {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--linha);
+}
+
+.pen-jogador-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pen-mover {
+  min-width: 28px;
+  padding: 2px 6px;
+  line-height: 1.1;
+}
+
+.pen-ordem {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--texto-suave);
+  min-width: 1.6rem;
+}
+
+.pen-nome {
+  font-size: 0.92rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pen-marca {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--linha);
+  background: #fff;
+  font-family: var(--fonte-titulo);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pen-marca.pen-ok {
+  background: #e8f8ee;
+  border-color: #1faa6c;
+  color: #146b4a;
+}
+
+.pen-marca.pen-erro {
+  background: #fdecea;
+  border-color: #d62828;
+  color: #d62828;
+}
+
+.pen-marca.pen-vazio {
+  color: #b0beb8;
+}
+
+.pen-ok { color: #146b4a; }
+.pen-erro { color: #d62828; }
+
+.penaltis-resumo-linha {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 720px) {
+  .penaltis-grade {
+    grid-template-columns: 1fr 1fr;
+  }
+}

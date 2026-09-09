@@ -53,6 +53,7 @@ function mostrarTela(id) {
     "tela-partida": "Partida ao vivo",
     "tela-classificacao": "Classificação",
     "tela-fim": "Súmula oficial",
+    "tela-penaltis": "Pênaltis — desempate",
   };
   document.getElementById("subtitulo-tela").textContent = titulos[id] || "";
 }
@@ -3158,6 +3159,7 @@ if (typeof PlanoApp !== "undefined") PlanoApp.init();
 if (typeof initRelatorioMensal === "function") initRelatorioMensal();
 if (typeof initCaixaPelada === "function") initCaixaPelada();
 if (typeof FotosPremios !== "undefined") FotosPremios.init();
+if (typeof PenaltisApp !== "undefined") PenaltisApp.init();
 aplicarVisibilidadeCronos();
 bootAuth();
 iniciarGoogleLogin();

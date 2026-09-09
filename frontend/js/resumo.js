@@ -426,6 +426,15 @@ function renderResumoOficial(resumo) {
         ${tabelaBrasileirao(resumo.classificacao)}
       </section>
 
+      ${
+        resumo.penaltis?.campeao
+          ? `<section class="resumo-bloco">
+        <h3>Desempate nos pênaltis</h3>
+        <p class="penaltis-resumo-linha"><strong>${resumo.penaltis.timeA}</strong> ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} <strong>${resumo.penaltis.timeB}</strong> — campeão: <strong>${resumo.penaltis.campeao}</strong></p>
+      </section>`
+          : ""
+      }
+
       ${secaoPremios}
       ${exibirPremiosComFoto ? "" : secaoTimes}
     </div>
@@ -471,6 +480,9 @@ function renderResumoOficial(resumo) {
   if (typeof FotosPremios !== "undefined") {
     FotosPremios.syncPainel(resumo);
   }
+  if (typeof PenaltisApp !== "undefined") {
+    PenaltisApp.atualizarBotaoDesempate(resumo);
+  }
 }
 
 function textoResumoWhatsApp(resumo) {
@@ -488,6 +500,11 @@ function textoResumoWhatsApp(resumo) {
   linhas.push("");
   linhas.push("*Premiação*");
   if (premios.campeao) linhas.push(`🏆 Time Campeão: ${premios.campeao.nome}`);
+  if (resumo.penaltis?.campeao) {
+    linhas.push(
+      `⚽ Pênaltis: ${resumo.penaltis.timeA} ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} ${resumo.penaltis.timeB}`
+    );
+  }
   const artilheiro = premios.artilheiro || premios.bolaDeOuro;
   if (artilheiro) {
     linhas.push(`⚽ Artilheiro: ${artilheiro.nome} (${artilheiro.detalhe})`);
