@@ -1,8 +1,17 @@
 /**
  * Desempate 1º x 2º nos pênaltis — altera só o prêmio de campeão (tabela fica igual).
+ * Lista de batedores é 100% editável (goleiro emprestado, lesão, etc.).
+ * Placar visual: 5 cobranças (bolinhas), com sudden death se empatar.
  */
 const PenaltisApp = (() => {
+  const COBRANCAS_INICIAIS = 5;
   let sessao = null;
+  let seqId = 0;
+
+  function uid(prefix) {
+    seqId += 1;
+    return `${prefix}-${Date.now()}-${seqId}`;
+  }
 
   function timesEmpatadosNoTopo(classificacao) {
     const lista = Array.isArray(classificacao) ? classificacao : [];
@@ -15,35 +24,40 @@ const PenaltisApp = (() => {
     return timesEmpatadosNoTopo(resumo?.classificacao).length >= 2;
   }
 
-  function jogadoresDoTime(resumo, nomeTime) {
+  /** Só linha do time — goleiro não entra automático (costuma ser emprestado). */
+  function jogadoresSugestao(resumo, nomeTime) {
     const time = (resumo?.times || []).find(
       (t) => String(t.nome).trim().toLowerCase() === String(nomeTime).trim().toLowerCase()
     );
     if (!time) return [];
-    const linha = (time.jogadores || [])
+    return (time.jogadores || [])
       .filter((j) => j?.nome)
       .map((j, i) => ({
-        id: j.id || `j-${nomeTime}-${i}`,
+        id: j.id || uid(`sug-${nomeTime}-${i}`),
         nome: String(j.nome).trim(),
-        goleiro: false,
       }));
-    const gk = time.goleiro?.nome
-      ? [{ id: time.goleiro.id || `gk-${nomeTime}`, nome: String(time.goleiro.nome).trim(), goleiro: true }]
-      : [];
-    return [...linha, ...gk];
   }
 
   function montarLado(resumo, timeClassif) {
     const timeFull = (resumo?.times || []).find(
       (t) => String(t.nome).trim().toLowerCase() === String(timeClassif.nome).trim().toLowerCase()
     );
-    const batedores = jogadoresDoTime(resumo, timeClassif.nome);
+    const sugestao = jogadoresSugestao(resumo, timeClassif.nome);
+    const batedores = sugestao.length
+      ? sugestao.slice(0, COBRANCAS_INICIAIS).map((j) => ({ ...j }))
+      : Array.from({ length: COBRANCAS_INICIAIS }, (_, i) => ({
+          id: uid(`vazio-${timeClassif.nome}`),
+          nome: `Batedor ${i + 1}`,
+        }));
+    while (batedores.length < COBRANCAS_INICIAIS) {
+      batedores.push({ id: uid("extra"), nome: `Batedor ${batedores.length + 1}` });
+    }
     return {
       nome: timeClassif.nome,
       cor: timeClassif.cor || timeFull?.cor || "#0B3D2E",
       pontos: timeClassif.pontos,
       batedores,
-      resultados: batedores.map(() => null),
+      cobrancas: Array.from({ length: COBRANCAS_INICIAIS }, () => null),
     };
   }
 
@@ -53,37 +67,13 @@ const PenaltisApp = (() => {
       toast("Não há empate em pontos no topo da tabela");
       return;
     }
-    const a = montarLado(resumo, empatados[0]);
-    const b = montarLado(resumo, empatados[1]);
-    if (!a.batedores.length || !b.batedores.length) {
-      toast("Faltam jogadores nos times empatados");
-      return;
-    }
-    sessao = { timeA: a, timeB: b, finalizado: false };
+    sessao = {
+      timeA: montarLado(resumo, empatados[0]),
+      timeB: montarLado(resumo, empatados[1]),
+      finalizado: false,
+    };
     render();
     mostrarTela("tela-penaltis");
-  }
-
-  function moverBatedor(ladoKey, index, direcao) {
-    const lado = sessao?.[ladoKey];
-    if (!lado) return;
-    const novo = index + direcao;
-    if (novo < 0 || novo >= lado.batedores.length) return;
-    const bats = [...lado.batedores];
-    const ress = [...lado.resultados];
-    [bats[index], bats[novo]] = [bats[novo], bats[index]];
-    [ress[index], ress[novo]] = [ress[novo], ress[index]];
-    lado.batedores = bats;
-    lado.resultados = ress;
-    render();
-  }
-
-  function inverterOrdem(ladoKey) {
-    const lado = sessao?.[ladoKey];
-    if (!lado) return;
-    lado.batedores = [...lado.batedores].reverse();
-    lado.resultados = [...lado.resultados].reverse();
-    render();
   }
 
   function cicloResultado(atual) {
@@ -92,19 +82,84 @@ const PenaltisApp = (() => {
     return null;
   }
 
-  function marcarBatida(ladoKey, index) {
+  function marcarCobranca(ladoKey, index) {
     const lado = sessao?.[ladoKey];
     if (!lado || sessao.finalizado) return;
-    lado.resultados[index] = cicloResultado(lado.resultados[index]);
+    lado.cobrancas[index] = cicloResultado(lado.cobrancas[index]);
     render();
   }
 
+  function garantirBatedorParaIndice(lado, index) {
+    while (lado.batedores.length <= index) {
+      lado.batedores.push({
+        id: uid("bat"),
+        nome: `Batedor ${lado.batedores.length + 1}`,
+      });
+    }
+  }
+
+  function editarNome(ladoKey, index, nome) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    garantirBatedorParaIndice(lado, index);
+    lado.batedores[index].nome = String(nome || "").trim();
+  }
+
+  function adicionarBatedor(ladoKey) {
+    const lado = sessao?.[ladoKey];
+    if (!lado || sessao.finalizado) return;
+    lado.batedores.push({
+      id: uid("bat"),
+      nome: `Batedor ${lado.batedores.length + 1}`,
+    });
+    render();
+  }
+
+  function removerBatedor(ladoKey, index) {
+    const lado = sessao?.[ladoKey];
+    if (!lado || sessao.finalizado) return;
+    if (lado.batedores.length <= 1) {
+      toast("Deixe pelo menos 1 batedor");
+      return;
+    }
+    lado.batedores.splice(index, 1);
+    render();
+  }
+
+  function moverBatedor(ladoKey, index, direcao) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    const novo = index + direcao;
+    if (novo < 0 || novo >= lado.batedores.length) return;
+    const bats = [...lado.batedores];
+    [bats[index], bats[novo]] = [bats[novo], bats[index]];
+    lado.batedores = bats;
+    render();
+  }
+
+  function inverterOrdem(ladoKey) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    lado.batedores = [...lado.batedores].reverse();
+    render();
+  }
+
+  function adicionarCobrancaSuddenDeath() {
+    if (!sessao || sessao.finalizado) return;
+    sessao.timeA.cobrancas.push(null);
+    sessao.timeB.cobrancas.push(null);
+    garantirBatedorParaIndice(sessao.timeA, sessao.timeA.cobrancas.length - 1);
+    garantirBatedorParaIndice(sessao.timeB, sessao.timeB.cobrancas.length - 1);
+    render();
+    toast("Cobrança extra (morte súbita)");
+  }
+
   function golsDe(lado) {
-    return (lado.resultados || []).filter((r) => r === "gol").length;
+    return (lado.cobrancas || []).filter((r) => r === "gol").length;
   }
 
   function batidasFeitas(lado) {
-    return (lado.resultados || []).filter((r) => r === "gol" || r === "erro").length;
+    return (lado.cobrancas || []).filter((r) => r === "gol" || r === "erro").length;
   }
 
   function placarTexto() {
@@ -113,9 +168,9 @@ const PenaltisApp = (() => {
   }
 
   function simbolo(r) {
-    if (r === "gol") return "O";
-    if (r === "erro") return "X";
-    return "·";
+    if (r === "gol") return "●";
+    if (r === "erro") return "✕";
+    return "";
   }
 
   function classeSimbolo(r) {
@@ -124,22 +179,49 @@ const PenaltisApp = (() => {
     return "pen-vazio";
   }
 
-  function renderLado(ladoKey, lado) {
+  function escAttr(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+  }
+
+  function renderQuadro(ladoKey, lado) {
+    const bolas = (lado.cobrancas || [])
+      .map((r, i) => {
+        const nome = lado.batedores[i]?.nome || `Batedor ${i + 1}`;
+        return `
+        <div class="pen-bola-item">
+          <button type="button" class="pen-bola ${classeSimbolo(r)}" data-pen-acao="marca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Cobrança ${i + 1}">
+            ${simbolo(r)}
+          </button>
+          <input class="pen-bola-nome" type="text" maxlength="40" value="${escAttr(nome)}" data-pen-input="nome-cobranca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Quem bateu a ${i + 1}ª" />
+        </div>`;
+      })
+      .join("");
+
+    return `
+      <div class="pen-quadro" style="--pen-cor:${lado.cor}">
+        <div class="pen-quadro-topo">
+          <strong class="pen-quadro-time">${lado.nome}</strong>
+          <span class="pen-quadro-gols">${golsDe(lado)}</span>
+        </div>
+        <div class="pen-bolas">${bolas}</div>
+      </div>`;
+  }
+
+  function renderLista(ladoKey, lado) {
     const linhas = (lado.batedores || [])
       .map((j, i) => {
-        const r = lado.resultados[i];
-        const meta = j.goleiro ? " · GK" : "";
         return `
-        <li class="pen-jogador" data-lado="${ladoKey}" data-idx="${i}">
+        <li class="pen-jogador">
           <div class="pen-jogador-acoes">
             <button type="button" class="btn-mini pen-mover" data-pen-acao="up" data-lado="${ladoKey}" data-idx="${i}" aria-label="Subir">↑</button>
             <button type="button" class="btn-mini pen-mover" data-pen-acao="down" data-lado="${ladoKey}" data-idx="${i}" aria-label="Descer">↓</button>
           </div>
           <span class="pen-ordem">${i + 1}º</span>
-          <span class="pen-nome">${j.nome}${meta}</span>
-          <button type="button" class="pen-marca ${classeSimbolo(r)}" data-pen-acao="marca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Marcar batida">
-            ${simbolo(r)}
-          </button>
+          <input class="pen-nome-input" type="text" maxlength="40" value="${escAttr(j.nome)}" data-pen-input="nome-lista" data-lado="${ladoKey}" data-idx="${i}" />
+          <button type="button" class="btn-mini btn-link-perigo" data-pen-acao="remover" data-lado="${ladoKey}" data-idx="${i}">Remover</button>
         </li>`;
       })
       .join("");
@@ -148,10 +230,13 @@ const PenaltisApp = (() => {
       <article class="pen-time" style="border-top-color:${lado.cor}">
         <header class="pen-time-topo">
           <h3>${lado.nome}</h3>
-          <strong class="pen-gols">${golsDe(lado)}</strong>
+          <span class="dica">${lado.pontos} pts</span>
         </header>
-        <p class="dica">${lado.pontos} pts na tabela · toque no círculo para O / X</p>
-        <button type="button" class="btn btn-secundario btn-block" data-pen-acao="inverter" data-lado="${ladoKey}">Inverter ordem</button>
+        <p class="dica">Edite nomes, remova quem não bate (lesão) ou adicione (goleiro emprestado, etc.).</p>
+        <div class="pen-lista-acoes">
+          <button type="button" class="btn btn-secundario" data-pen-acao="adicionar" data-lado="${ladoKey}">+ Jogador</button>
+          <button type="button" class="btn btn-secundario" data-pen-acao="inverter" data-lado="${ladoKey}">Inverter</button>
+        </div>
         <ul class="pen-lista">${linhas}</ul>
       </article>`;
   }
@@ -162,9 +247,24 @@ const PenaltisApp = (() => {
     if (!root || !sessao) return;
     if (placar) placar.textContent = placarTexto();
     root.innerHTML = `
-      ${renderLado("timeA", sessao.timeA)}
-      ${renderLado("timeB", sessao.timeB)}
+      <div class="pen-placar-board">
+        ${renderQuadro("timeA", sessao.timeA)}
+        ${renderQuadro("timeB", sessao.timeB)}
+      </div>
+      <button type="button" class="btn btn-secundario btn-block" id="btn-pen-sudden" data-pen-acao="sudden">+ Cobrança (morte súbita)</button>
+      <h3 class="lista-titulo">Ordem / nomes dos batedores</h3>
+      <div class="penaltis-grade">
+        ${renderLista("timeA", sessao.timeA)}
+        ${renderLista("timeB", sessao.timeB)}
+      </div>
     `;
+  }
+
+  function sincronizarNomeCobrancaComLista(ladoKey, index, nome) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    garantirBatedorParaIndice(lado, index);
+    lado.batedores[index].nome = String(nome || "").trim() || `Batedor ${index + 1}`;
   }
 
   function aplicarCampeao(vencedorNome) {
@@ -182,20 +282,19 @@ const PenaltisApp = (() => {
       empate: false,
       detalhe,
     };
+    const mapBatidas = (lado) =>
+      (lado.cobrancas || []).map((r, i) => ({
+        nome: lado.batedores[i]?.nome || `Batedor ${i + 1}`,
+        resultado: r,
+      }));
     resumo.penaltis = {
       timeA: sessao.timeA.nome,
       timeB: sessao.timeB.nome,
       golsA: golsDe(sessao.timeA),
       golsB: golsDe(sessao.timeB),
       campeao: vencedorNome,
-      batidasA: sessao.timeA.batedores.map((j, i) => ({
-        nome: j.nome,
-        resultado: sessao.timeA.resultados[i],
-      })),
-      batidasB: sessao.timeB.batedores.map((j, i) => ({
-        nome: j.nome,
-        resultado: sessao.timeB.resultados[i],
-      })),
+      batidasA: mapBatidas(sessao.timeA),
+      batidasB: mapBatidas(sessao.timeB),
     };
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
@@ -211,11 +310,11 @@ const PenaltisApp = (() => {
     const feitosA = batidasFeitas(sessao.timeA);
     const feitosB = batidasFeitas(sessao.timeB);
     if (!feitosA && !feitosB) {
-      toast("Marque pelo menos uma batida");
+      toast("Marque pelo menos uma cobrança nas bolinhas");
       return;
     }
     if (a === b) {
-      toast("Ainda empatado — marque mais batidas ou escolha o vencedor");
+      toast("Ainda empatado — marque mais ou use + Cobrança");
       return;
     }
     const vencedor = a > b ? sessao.timeA.nome : sessao.timeB.nome;
@@ -250,16 +349,55 @@ const PenaltisApp = (() => {
 
     document.getElementById("btn-penaltis-confirmar")?.addEventListener("click", confirmar);
 
-    document.getElementById("penaltis-conteudo")?.addEventListener("click", (e) => {
+    const root = document.getElementById("penaltis-conteudo");
+    if (!root) return;
+
+    root.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-pen-acao]");
       if (!btn || !sessao) return;
       const acao = btn.dataset.penAcao;
       const lado = btn.dataset.lado;
       const idx = Number(btn.dataset.idx);
-      if (acao === "marca") marcarBatida(lado, idx);
+      if (acao === "marca") marcarCobranca(lado, idx);
       else if (acao === "up") moverBatedor(lado, idx, -1);
       else if (acao === "down") moverBatedor(lado, idx, 1);
       else if (acao === "inverter") inverterOrdem(lado);
+      else if (acao === "adicionar") adicionarBatedor(lado);
+      else if (acao === "remover") removerBatedor(lado, idx);
+      else if (acao === "sudden") adicionarCobrancaSuddenDeath();
+    });
+
+    root.addEventListener("change", (e) => {
+      const input = e.target.closest("[data-pen-input]");
+      if (!input || !sessao) return;
+      const lado = input.dataset.lado;
+      const idx = Number(input.dataset.idx);
+      const tipo = input.dataset.penInput;
+      if (tipo === "nome-cobranca") {
+        sincronizarNomeCobrancaComLista(lado, idx, input.value);
+        // Atualiza só a lista sem recriar o input (evita perder foco se digitar)
+        const listaInput = root.querySelector(
+          `input[data-pen-input="nome-lista"][data-lado="${lado}"][data-idx="${idx}"]`
+        );
+        if (listaInput) listaInput.value = sessao[lado].batedores[idx].nome;
+      } else if (tipo === "nome-lista") {
+        editarNome(lado, idx, input.value);
+        const bolaInput = root.querySelector(
+          `input[data-pen-input="nome-cobranca"][data-lado="${lado}"][data-idx="${idx}"]`
+        );
+        if (bolaInput) bolaInput.value = sessao[lado].batedores[idx].nome;
+      }
+    });
+
+    root.addEventListener("input", (e) => {
+      const input = e.target.closest("[data-pen-input]");
+      if (!input || !sessao) return;
+      // Mantém estado enquanto digita, sem re-render
+      const lado = input.dataset.lado;
+      const idx = Number(input.dataset.idx);
+      if (input.dataset.penInput === "nome-lista" || input.dataset.penInput === "nome-cobranca") {
+        sincronizarNomeCobrancaComLista(lado, idx, input.value);
+      }
     });
   }
 

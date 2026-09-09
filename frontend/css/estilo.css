@@ -3407,7 +3407,6 @@ html[data-theme="dark"] .partida-lances {
   margin: 0 0 14px;
 }
 
-
 /* ---------- Pênaltis (desempate) ---------- */
 #box-desempatar-penaltis {
   margin: 0 0 14px;
@@ -3421,6 +3420,104 @@ html[data-theme="dark"] .partida-lances {
   font-weight: 700;
   color: var(--verde-campo);
   letter-spacing: 0.06em;
+}
+
+.pen-placar-board {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pen-quadro {
+  background: linear-gradient(180deg, #0b3d2e 0%, #146b4a 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 12px 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--sombra);
+}
+
+.pen-quadro-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pen-quadro-time {
+  font-family: var(--fonte-titulo);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pen-quadro-gols {
+  font-family: var(--fonte-titulo);
+  font-size: 1.7rem;
+  line-height: 1;
+  min-width: 1.4rem;
+  text-align: right;
+}
+
+.pen-bolas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.pen-bola-item {
+  flex: 1 1 0;
+  min-width: 48px;
+  max-width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pen-bola {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+  color: transparent;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pen-bola.pen-ok {
+  background: #1faa6c;
+  border-color: #b8f0d3;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(31, 170, 108, 0.35);
+}
+
+.pen-bola.pen-erro {
+  background: #d62828;
+  border-color: #ffb4b4;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.3);
+}
+
+.pen-bola.pen-vazio {
+  color: transparent;
+}
+
+.pen-bola-nome {
+  width: 100%;
+  font-size: 0.62rem;
+  text-align: center;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 2px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #10231c;
 }
 
 .penaltis-grade {
@@ -3449,20 +3546,23 @@ html[data-theme="dark"] .partida-lances {
 .pen-time-topo h3 {
   margin: 0;
   font-family: var(--fonte-titulo);
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   text-transform: uppercase;
 }
 
-.pen-gols {
-  font-family: var(--fonte-titulo);
-  font-size: 1.8rem;
-  color: var(--verde-campo);
-  line-height: 1;
+.pen-lista-acoes {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.pen-lista-acoes .btn {
+  flex: 1;
 }
 
 .pen-lista {
   list-style: none;
-  margin: 10px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
   gap: 6px;
@@ -3498,42 +3598,15 @@ html[data-theme="dark"] .partida-lances {
   min-width: 1.6rem;
 }
 
-.pen-nome {
-  font-size: 0.92rem;
-  font-weight: 600;
+.pen-nome-input {
+  width: 100%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pen-marca {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid var(--linha);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  padding: 6px 8px;
   background: #fff;
-  font-family: var(--fonte-titulo);
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.pen-marca.pen-ok {
-  background: #e8f8ee;
-  border-color: #1faa6c;
-  color: #146b4a;
-}
-
-.pen-marca.pen-erro {
-  background: #fdecea;
-  border-color: #d62828;
-  color: #d62828;
-}
-
-.pen-marca.pen-vazio {
-  color: #b0beb8;
 }
 
 .pen-ok { color: #146b4a; }
@@ -3543,6 +3616,10 @@ html[data-theme="dark"] .partida-lances {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+#btn-pen-sudden {
+  margin-bottom: 8px;
 }
 
 @media (min-width: 720px) {
