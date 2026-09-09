@@ -2229,14 +2229,26 @@ td.num, th.num {
 
 .pdf-export .resumo-capa-pdf--sem-fotos {
   min-height: 0;
+  break-after: auto;
+  page-break-after: auto;
 }
 
 .pdf-export .resumo-capa-pdf--sem-fotos .resumo-times {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+  flex: 0 0 auto;
+  display: block;
   min-height: 0;
   margin-top: 8px;
+}
+
+.pdf-export .resumo-capa-pdf--sem-fotos .resumo-bloco.premios-grid {
+  flex: 0 0 auto;
+  display: block;
+  min-height: 0;
+}
+
+.pdf-export .resumo-pagina-stats-pdf--continua {
+  break-before: auto;
+  page-break-before: auto;
 }
 
 .pdf-export .resumo-capa-pdf .resumo-topo {

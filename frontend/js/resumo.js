@@ -433,14 +433,18 @@ function renderResumoOficial(resumo) {
   const exibirPremiosComFoto =
     typeof FotosPremios !== "undefined" && FotosPremios.temAlgumaFotoPremiacao();
   const temFotoCampeao = typeof FotosPremios !== "undefined" && !!FotosPremios.get("campeao");
-  const capaClass = exibirPremiosComFoto ? "resumo-capa-pdf" : "resumo-capa-pdf resumo-capa-pdf--sem-fotos";
+  const temPaginaExtraFotos = exibirPremiosComFoto || temFotoCampeao;
+  const capaClass = temPaginaExtraFotos
+    ? "resumo-capa-pdf"
+    : "resumo-capa-pdf resumo-capa-pdf--sem-fotos";
+  const statsClass = temPaginaExtraFotos
+    ? "resumo-pagina-stats-pdf"
+    : "resumo-pagina-stats-pdf resumo-pagina-stats-pdf--continua";
 
-  const secaoPremios = exibirPremiosComFoto
-    ? `<section class="resumo-bloco premios-grid">
+  const secaoPremios = `<section class="resumo-bloco premios-grid">
         <h3>Premiação</h3>
-        ${premiosGridHtml(premios, resumo, true)}
-      </section>`
-    : "";
+        ${premiosGridHtml(premios, resumo, exibirPremiosComFoto)}
+      </section>`;
 
   const secaoTimes = `<section class="resumo-bloco resumo-times">
       <h3>Times e goleiros</h3>
@@ -489,7 +493,7 @@ function renderResumoOficial(resumo) {
 
     ${paginaCampeaoHtml}
 
-    <div class="resumo-pagina-stats-pdf">
+    <div class="${statsClass}">
     <section class="resumo-bloco">
       <h3>Gols sofridos (goleiros)</h3>
       ${listaSimples(resumo.golsSofridos, "Nenhum goleiro cadastrado.")}
