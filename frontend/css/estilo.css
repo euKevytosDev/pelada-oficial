@@ -3412,8 +3412,122 @@ html[data-theme="dark"] .partida-lances {
   margin: 0 0 14px;
 }
 
+#tela-penaltis.tela-penaltis {
+  position: relative;
+}
+
+#tela-penaltis.tela-penaltis::before {
+  content: "";
+  position: absolute;
+  inset: 0 -12px auto;
+  height: 160px;
+  background:
+    radial-gradient(ellipse 80% 70% at 20% 30%, rgba(31, 170, 108, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 20%, rgba(11, 61, 46, 0.12), transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#tela-penaltis > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pen-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.pen-bola-svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.pen-bola-svg-cabeca {
+  width: 40px;
+  height: 40px;
+  animation: pen-bola-girar 12s linear infinite;
+  filter: drop-shadow(0 4px 8px rgba(11, 61, 46, 0.25));
+}
+
+.pen-bola-svg-placar {
+  width: 28px;
+  height: 28px;
+  animation: pen-bola-pulse 2.4s ease-in-out infinite;
+}
+
+.pen-bola-svg-titulo {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+}
+
+.pen-bola-svg-gol {
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  animation: pen-bola-pop 0.35s ease-out;
+}
+
+.pen-bola-svg-hero {
+  width: 36px;
+  height: 36px;
+}
+
+.pen-bola-svg-hero-big {
+  width: 48px;
+  height: 48px;
+  animation: pen-bola-girar 10s linear infinite;
+}
+
+.pen-bola-svg-gk {
+  width: 18px;
+  height: 18px;
+}
+
+@keyframes pen-bola-girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pen-bola-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes pen-bola-pop {
+  0% { transform: scale(0.5); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.pen-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(11, 61, 46, 0.08), rgba(31, 170, 108, 0.12));
+  border: 1px solid rgba(11, 61, 46, 0.12);
+}
+
+.pen-hero-txt {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.05rem;
+  color: var(--verde-campo);
+}
+
 .penaltis-placar-topo {
   margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   text-align: center;
   font-family: var(--fonte-titulo);
   font-size: 2rem;
@@ -3424,17 +3538,36 @@ html[data-theme="dark"] .partida-lances {
 
 .pen-placar-board {
   display: grid;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .pen-quadro {
-  background: linear-gradient(180deg, #0b3d2e 0%, #146b4a 100%);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
+    linear-gradient(180deg, #0b3d2e 0%, #146b4a 55%, #0e4a35 100%);
   color: #fff;
-  border-radius: 14px;
-  padding: 12px 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: var(--sombra);
+  border-radius: 16px;
+  padding: 14px 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 10px 28px rgba(11, 61, 46, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.pen-quadro::after {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 90px;
+  height: 90px;
+  background: url("../soccer-ball-svgrepo-com.svg") center / contain no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  transform: rotate(18deg);
 }
 
 .pen-quadro-topo {
@@ -3442,22 +3575,25 @@ html[data-theme="dark"] .partida-lances {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .pen-quadro-time {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--fonte-titulo);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .pen-quadro-gols {
   font-family: var(--fonte-titulo);
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   line-height: 1;
-  min-width: 1.4rem;
+  min-width: 1.5rem;
   text-align: right;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .pen-bolas {
@@ -3478,35 +3614,53 @@ html[data-theme="dark"] .partida-lances {
 }
 
 .pen-bola {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   color: transparent;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.pen-bola:not(:disabled):active {
+  transform: scale(0.92);
+}
+
+.pen-bola:disabled {
+  opacity: 0.85;
+  cursor: default;
 }
 
 .pen-bola.pen-ok {
-  background: #1faa6c;
+  background: linear-gradient(160deg, #2ecc87, #1faa6c);
   border-color: #b8f0d3;
   color: #fff;
-  box-shadow: 0 0 0 2px rgba(31, 170, 108, 0.35);
+  box-shadow: 0 0 0 3px rgba(31, 170, 108, 0.4), 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
 .pen-bola.pen-erro {
-  background: #d62828;
+  background: linear-gradient(160deg, #ef5350, #d62828);
   border-color: #ffb4b4;
   color: #fff;
-  box-shadow: 0 0 0 2px rgba(214, 40, 40, 0.3);
+  box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.35), 0 6px 14px rgba(0, 0, 0, 0.2);
 }
 
 .pen-bola.pen-vazio {
   color: transparent;
+}
+
+.pen-bola.pen-vazio:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 .pen-bola-nome {
@@ -3516,8 +3670,88 @@ html[data-theme="dark"] .partida-lances {
   border: none;
   border-radius: 6px;
   padding: 3px 2px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: #10231c;
+}
+
+.pen-gk-box {
+  margin: 8px 0 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 220, 0.55), rgba(255, 255, 255, 0.9)),
+    var(--bg-card);
+  border: 2px solid rgba(212, 168, 67, 0.55);
+  box-shadow: 0 8px 24px rgba(11, 61, 46, 0.12);
+  animation: pen-gk-entra 0.35s ease-out;
+}
+
+@keyframes pen-gk-entra {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pen-gk-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pen-gk-lista {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pen-gk-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid var(--linha);
+  color: var(--texto);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.pen-gk-btn:hover {
+  border-color: var(--verde-campo);
+}
+
+.pen-gk-btn.pen-gk-ativo {
+  border-color: #d4a843;
+  background: linear-gradient(135deg, #fff8dc, #fff);
+  box-shadow: 0 0 0 2px rgba(212, 168, 67, 0.35);
+}
+
+.pen-gk-manual {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.pen-gk-manual input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+.pen-gk-escolhido {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(31, 170, 108, 0.12);
+  color: var(--verde-campo);
+  font-size: 0.95rem;
 }
 
 .penaltis-grade {

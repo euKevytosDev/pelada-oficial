@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260909c" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260909d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -648,12 +648,17 @@
         </div>
       </section>
 
-      <section class="tela" id="tela-penaltis">
+      <section class="tela tela-penaltis" id="tela-penaltis">
         <button type="button" class="btn-voltar-suave" id="btn-penaltis-voltar">← Voltar à súmula</button>
-        <h2 class="lista-titulo">Pênaltis — desempate</h2>
-        <p class="dica">Toque nas bolinhas: vazio → <strong class="pen-ok">gol</strong> → <strong class="pen-erro">✕</strong> erro. Edite nomes, adicione ou remova batedores (goleiro emprestado, lesão, etc.).</p>
+        <header class="pen-cabecalho">
+          <img class="pen-bola-svg pen-bola-svg-cabeca" src="soccer-ball-svgrepo-com.svg" alt="" width="40" height="40" aria-hidden="true" />
+          <div>
+            <h2 class="lista-titulo" style="margin:0">Pênaltis — desempate</h2>
+            <p class="dica" style="margin:4px 0 0">Toque nas bolinhas: vazio → gol → ✕. Depois escolha o goleiro campeão.</p>
+          </div>
+        </header>
         <p class="penaltis-placar-topo" id="penaltis-placar">0 x 0</p>
-        <div id="penaltis-conteudo" class="penaltis-grade"></div>
+        <div id="penaltis-conteudo"></div>
         <div class="acoes-finas">
           <button type="button" class="btn btn-principal" id="btn-penaltis-confirmar">Definir campeão</button>
         </div>
@@ -690,7 +695,7 @@
   <script src="js/relatorio-mensal.js?v=20260828c"></script>
   <script src="js/caixa.js?v=20260828c"></script>
   <script src="js/sumula-manual.js?v=20260828c"></script>
-  <script src="js/penaltis.js?v=20260909c"></script>
+  <script src="js/penaltis.js?v=20260909d"></script>
   <script src="js/app.js?v=20260909a"></script>
 </body>
 

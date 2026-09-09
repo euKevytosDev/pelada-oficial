@@ -1,11 +1,10 @@
 /**
  * Desempate 1º x 2º nos pênaltis — altera só o prêmio de campeão (tabela fica igual).
- * Lista de batedores é 100% editável (goleiro emprestado, lesão, etc.).
- * Placar visual: 5 cobranças (bolinhas), com sudden death se empatar.
- * Ao confirmar: escolhe o goleiro campeão dos pênaltis (Luva de Ouro permanece).
+ * Lista de batedores editável + escolha explícita do goleiro campeão na tela.
  */
 const PenaltisApp = (() => {
   const COBRANCAS_INICIAIS = 5;
+  const BOLA_SRC = "soccer-ball-svgrepo-com.svg";
   let sessao = null;
   let seqId = 0;
 
@@ -25,7 +24,6 @@ const PenaltisApp = (() => {
     return timesEmpatadosNoTopo(resumo?.classificacao).length >= 2;
   }
 
-  /** Só linha do time — goleiro não entra automático (costuma ser emprestado). */
   function jogadoresSugestao(resumo, nomeTime) {
     const time = (resumo?.times || []).find(
       (t) => String(t.nome).trim().toLowerCase() === String(nomeTime).trim().toLowerCase()
@@ -45,15 +43,24 @@ const PenaltisApp = (() => {
       const n = String(nome || "").trim();
       if (!n) return;
       const key = n.toLowerCase();
-      if (!mapa.has(key)) mapa.set(key, { id: extra.id || key, nome: n, time: extra.time || "" });
+      if (!mapa.has(key)) {
+        mapa.set(key, {
+          id: String(extra.id || `gk-${key}`),
+          nome: n,
+          time: extra.time || "",
+        });
+      } else if (extra.time && !mapa.get(key).time) {
+        mapa.get(key).time = extra.time;
+      }
     };
 
     (resumo?.times || []).forEach((t) => {
       if (t.goleiro?.nome) add(t.goleiro.nome, { id: t.goleiro.id, time: t.nome });
+      (t.jogadores || []).forEach((j) => {
+        if (j?.goleiro && j?.nome) add(j.nome, { id: j.id, time: t.nome });
+      });
     });
-    (resumo?.golsSofridos || []).forEach((g) => {
-      add(g.nome, { time: g.time || "" });
-    });
+    (resumo?.golsSofridos || []).forEach((g) => add(g.nome, { time: g.time || "" }));
 
     try {
       if (typeof LocalJogo !== "undefined") {
@@ -101,6 +108,10 @@ const PenaltisApp = (() => {
       timeA: montarLado(resumo, empatados[0]),
       timeB: montarLado(resumo, empatados[1]),
       finalizado: false,
+      goleiros: listarGoleirosAptos(resumo),
+      goleiroCampeaoId: null,
+      goleiroCampeaoNome: null,
+      etapa: "cobrancas",
     };
     render();
     mostrarTela("tela-penaltis");
@@ -114,7 +125,7 @@ const PenaltisApp = (() => {
 
   function marcarCobranca(ladoKey, index) {
     const lado = sessao?.[ladoKey];
-    if (!lado || sessao.finalizado) return;
+    if (!lado || sessao.finalizado || sessao.etapa !== "cobrancas") return;
     lado.cobrancas[index] = cicloResultado(lado.cobrancas[index]);
     render();
   }
@@ -175,13 +186,37 @@ const PenaltisApp = (() => {
   }
 
   function adicionarCobrancaSuddenDeath() {
-    if (!sessao || sessao.finalizado) return;
+    if (!sessao || sessao.finalizado || sessao.etapa !== "cobrancas") return;
     sessao.timeA.cobrancas.push(null);
     sessao.timeB.cobrancas.push(null);
     garantirBatedorParaIndice(sessao.timeA, sessao.timeA.cobrancas.length - 1);
     garantirBatedorParaIndice(sessao.timeB, sessao.timeB.cobrancas.length - 1);
     render();
     toast("Cobrança extra (morte súbita)");
+  }
+
+  function selecionarGoleiro(id, nome) {
+    if (!sessao) return;
+    sessao.goleiroCampeaoId = String(id);
+    sessao.goleiroCampeaoNome = String(nome || "").trim();
+    render();
+  }
+
+  function adicionarGoleiroManual() {
+    if (!sessao) return;
+    const input = document.getElementById("pen-gk-manual");
+    const nome = String(input?.value || "").trim();
+    if (!nome) {
+      toast("Digite o nome do goleiro");
+      return;
+    }
+    const id = uid("gk-manual");
+    sessao.goleiros.push({ id, nome, time: "" });
+    sessao.goleiroCampeaoId = id;
+    sessao.goleiroCampeaoNome = nome;
+    if (input) input.value = "";
+    render();
+    toast(`${nome} selecionado`);
   }
 
   function golsDe(lado) {
@@ -216,16 +251,21 @@ const PenaltisApp = (() => {
       .replace(/</g, "&lt;");
   }
 
+  function imgBola(cls = "") {
+    return `<img class="pen-bola-svg ${cls}" src="${BOLA_SRC}" alt="" width="22" height="22" aria-hidden="true" />`;
+  }
+
   function renderQuadro(ladoKey, lado) {
     const bolas = (lado.cobrancas || [])
       .map((r, i) => {
         const nome = lado.batedores[i]?.nome || `Batedor ${i + 1}`;
+        const disabled = sessao.etapa !== "cobrancas" ? "disabled" : "";
         return `
         <div class="pen-bola-item">
-          <button type="button" class="pen-bola ${classeSimbolo(r)}" data-pen-acao="marca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Cobrança ${i + 1}">
-            ${simbolo(r)}
+          <button type="button" class="pen-bola ${classeSimbolo(r)}" data-pen-acao="marca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Cobrança ${i + 1}" ${disabled}>
+            ${r === "gol" ? imgBola("pen-bola-svg-gol") : simbolo(r)}
           </button>
-          <input class="pen-bola-nome" type="text" maxlength="40" value="${escAttr(nome)}" data-pen-input="nome-cobranca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Quem bateu a ${i + 1}ª" />
+          <input class="pen-bola-nome" type="text" maxlength="40" value="${escAttr(nome)}" data-pen-input="nome-cobranca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Quem bateu a ${i + 1}ª" ${disabled} />
         </div>`;
       })
       .join("");
@@ -233,7 +273,7 @@ const PenaltisApp = (() => {
     return `
       <div class="pen-quadro" style="--pen-cor:${lado.cor}">
         <div class="pen-quadro-topo">
-          <strong class="pen-quadro-time">${lado.nome}</strong>
+          <strong class="pen-quadro-time">${imgBola("pen-bola-svg-titulo")}${lado.nome}</strong>
           <span class="pen-quadro-gols">${golsDe(lado)}</span>
         </div>
         <div class="pen-bolas">${bolas}</div>
@@ -262,7 +302,7 @@ const PenaltisApp = (() => {
           <h3>${lado.nome}</h3>
           <span class="dica">${lado.pontos} pts</span>
         </header>
-        <p class="dica">Edite nomes, remova quem não bate (lesão) ou adicione (goleiro emprestado, etc.).</p>
+        <p class="dica">Edite nomes, remova quem não bate ou adicione (goleiro emprestado, lesão, etc.).</p>
         <div class="pen-lista-acoes">
           <button type="button" class="btn btn-secundario" data-pen-acao="adicionar" data-lado="${ladoKey}">+ Jogador</button>
           <button type="button" class="btn btn-secundario" data-pen-acao="inverter" data-lado="${ladoKey}">Inverter</button>
@@ -271,23 +311,95 @@ const PenaltisApp = (() => {
       </article>`;
   }
 
+  function renderGoleiroPicker(timeVencedor) {
+    const gks = sessao.goleiros || [];
+    const selecionado = sessao.goleiroCampeaoId;
+    const botoes = gks.length
+      ? gks
+          .map((g) => {
+            const ativo = String(g.id) === String(selecionado) ? " pen-gk-ativo" : "";
+            const label = g.time ? `${g.nome} · ${g.time}` : g.nome;
+            return `<button type="button" class="btn pen-gk-btn${ativo}" data-pen-acao="gk" data-gk-id="${escAttr(g.id)}" data-gk-nome="${escAttr(g.nome)}">
+              ${imgBola("pen-bola-svg-gk")}<span>${label}</span>
+            </button>`;
+          })
+          .join("")
+      : `<p class="dica">Nenhum goleiro na súmula — digite o nome abaixo.</p>`;
+
+    return `
+      <div class="pen-gk-box" id="pen-gk-box">
+        <div class="pen-gk-topo">
+          ${imgBola("pen-bola-svg-hero")}
+          <div>
+            <h3 class="lista-titulo" style="margin:0">Goleiro campeão dos pênaltis</h3>
+            <p class="dica" style="margin:4px 0 0">Time campeão: <strong>${timeVencedor}</strong>. Toque no goleiro que defendeu (Luva de Ouro continua a mesma).</p>
+          </div>
+        </div>
+        <div class="pen-gk-lista">${botoes}</div>
+        <div class="pen-gk-manual">
+          <input type="text" id="pen-gk-manual" maxlength="40" placeholder="Ou digite o nome do goleiro" />
+          <button type="button" class="btn btn-secundario" data-pen-acao="gk-manual">Usar este</button>
+        </div>
+        ${
+          sessao.goleiroCampeaoNome
+            ? `<p class="pen-gk-escolhido">Selecionado: <strong>${sessao.goleiroCampeaoNome}</strong></p>`
+            : `<p class="dica">Escolha um goleiro para liberar a confirmação.</p>`
+        }
+      </div>`;
+  }
+
+  function timeVencedorAtual() {
+    if (!sessao) return null;
+    const a = golsDe(sessao.timeA);
+    const b = golsDe(sessao.timeB);
+    if (a === b) return null;
+    return a > b ? sessao.timeA.nome : sessao.timeB.nome;
+  }
+
   function render() {
     const root = document.getElementById("penaltis-conteudo");
     const placar = document.getElementById("penaltis-placar");
+    const btnConfirmar = document.getElementById("btn-penaltis-confirmar");
     if (!root || !sessao) return;
-    if (placar) placar.textContent = placarTexto();
+    if (placar) {
+      placar.innerHTML = `${imgBola("pen-bola-svg-placar")}<span>${placarTexto()}</span>`;
+    }
+
+    const vencedor = timeVencedorAtual();
+    const etapaGk = sessao.etapa === "goleiro";
+
     root.innerHTML = `
+      <div class="pen-hero">
+        ${imgBola("pen-bola-svg-hero-big")}
+        <p class="pen-hero-txt">${etapaGk ? "Quase lá — escolha o goleiro campeão" : "Marque as cobranças nas bolinhas"}</p>
+      </div>
       <div class="pen-placar-board">
         ${renderQuadro("timeA", sessao.timeA)}
         ${renderQuadro("timeB", sessao.timeB)}
       </div>
-      <button type="button" class="btn btn-secundario btn-block" id="btn-pen-sudden" data-pen-acao="sudden">+ Cobrança (morte súbita)</button>
+      ${
+        etapaGk
+          ? renderGoleiroPicker(vencedor || "—")
+          : `<button type="button" class="btn btn-secundario btn-block" id="btn-pen-sudden" data-pen-acao="sudden">+ Cobrança (morte súbita)</button>
       <h3 class="lista-titulo">Ordem / nomes dos batedores</h3>
       <div class="penaltis-grade">
         ${renderLista("timeA", sessao.timeA)}
         ${renderLista("timeB", sessao.timeB)}
-      </div>
+      </div>`
+      }
     `;
+
+    if (btnConfirmar) {
+      if (etapaGk) {
+        btnConfirmar.textContent = sessao.goleiroCampeaoNome
+          ? `Confirmar — ${sessao.goleiroCampeaoNome}`
+          : "Escolha o goleiro campeão";
+        btnConfirmar.disabled = !sessao.goleiroCampeaoNome;
+      } else {
+        btnConfirmar.textContent = "Definir campeão";
+        btnConfirmar.disabled = false;
+      }
+    }
   }
 
   function sincronizarNomeCobrancaComLista(ladoKey, index, nome) {
@@ -295,24 +407,6 @@ const PenaltisApp = (() => {
     if (!lado) return;
     garantirBatedorParaIndice(lado, index);
     lado.batedores[index].nome = String(nome || "").trim() || `Batedor ${index + 1}`;
-  }
-
-  async function escolherGoleiroCampeao(resumo, timeVencedor) {
-    const gks = listarGoleirosAptos(resumo);
-    if (!gks.length) {
-      toast("Nenhum goleiro apto encontrado — só o time fica campeão");
-      return null;
-    }
-    if (typeof escolherOpcao !== "function") return gks[0]?.nome || null;
-
-    const opcoes = gks.map((g) => ({
-      id: String(g.id),
-      label: g.time ? `${g.nome} (${g.time})` : g.nome,
-      goleiro: true,
-    }));
-    const id = await escolherOpcao(`Goleiro campeão — pênaltis (${timeVencedor})`, opcoes);
-    if (!id) return null;
-    return gks.find((g) => String(g.id) === String(id))?.nome || null;
   }
 
   function aplicarCampeao(vencedorNome, goleiroCampeaoNome) {
@@ -330,7 +424,6 @@ const PenaltisApp = (() => {
       empate: false,
       detalhe,
     };
-    // Não mexe na Luva de Ouro (menos vazado). Prêmio à parte.
     if (goleiroCampeaoNome) {
       resumo.premios.goleiroCampeaoPenaltis = {
         nome: goleiroCampeaoNome,
@@ -366,24 +459,40 @@ const PenaltisApp = (() => {
     );
   }
 
-  async function confirmar() {
+  function confirmar() {
     if (!sessao) return;
     const a = golsDe(sessao.timeA);
     const b = golsDe(sessao.timeB);
     const feitosA = batidasFeitas(sessao.timeA);
     const feitosB = batidasFeitas(sessao.timeB);
-    if (!feitosA && !feitosB) {
-      toast("Marque pelo menos uma cobrança nas bolinhas");
+
+    if (sessao.etapa === "cobrancas") {
+      if (!feitosA && !feitosB) {
+        toast("Marque pelo menos uma cobrança nas bolinhas");
+        return;
+      }
+      if (a === b) {
+        toast("Ainda empatado — marque mais ou use + Cobrança");
+        return;
+      }
+      sessao.etapa = "goleiro";
+      // Recarrega lista de goleiros (pode ter mudado)
+      sessao.goleiros = listarGoleirosAptos(estado.resumoAtual);
+      render();
+      document.getElementById("pen-gk-box")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      toast("Agora escolha o goleiro campeão");
       return;
     }
-    if (a === b) {
-      toast("Ainda empatado — marque mais ou use + Cobrança");
+
+    if (!sessao.goleiroCampeaoNome) {
+      toast("Toque no goleiro campeão dos pênaltis");
+      document.getElementById("pen-gk-box")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+
     const vencedor = a > b ? sessao.timeA.nome : sessao.timeB.nome;
-    const goleiro = await escolherGoleiroCampeao(estado.resumoAtual, vencedor);
     sessao.finalizado = true;
-    aplicarCampeao(vencedor, goleiro);
+    aplicarCampeao(vencedor, sessao.goleiroCampeaoNome);
   }
 
   function atualizarBotaoDesempate(resumo) {
@@ -408,12 +517,15 @@ const PenaltisApp = (() => {
     });
 
     document.getElementById("btn-penaltis-voltar")?.addEventListener("click", () => {
+      if (sessao?.etapa === "goleiro") {
+        sessao.etapa = "cobrancas";
+        render();
+        return;
+      }
       mostrarTela("tela-fim");
     });
 
-    document.getElementById("btn-penaltis-confirmar")?.addEventListener("click", () => {
-      confirmar().catch((err) => toast(err.message || "Não deu para definir o campeão"));
-    });
+    document.getElementById("btn-penaltis-confirmar")?.addEventListener("click", confirmar);
 
     const root = document.getElementById("penaltis-conteudo");
     if (!root) return;
@@ -431,6 +543,8 @@ const PenaltisApp = (() => {
       else if (acao === "adicionar") adicionarBatedor(lado);
       else if (acao === "remover") removerBatedor(lado, idx);
       else if (acao === "sudden") adicionarCobrancaSuddenDeath();
+      else if (acao === "gk") selecionarGoleiro(btn.dataset.gkId, btn.dataset.gkNome);
+      else if (acao === "gk-manual") adicionarGoleiroManual();
     });
 
     root.addEventListener("change", (e) => {
