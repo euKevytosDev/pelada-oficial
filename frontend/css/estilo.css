@@ -3462,14 +3462,13 @@ html[data-theme="dark"] .partida-lances {
 .pen-bola-svg-cabeca {
   width: 40px;
   height: 40px;
-  animation: pen-bola-girar 12s linear infinite;
+  animation: pen-bola-girar 18s linear infinite;
   filter: drop-shadow(0 4px 8px rgba(11, 61, 46, 0.25));
 }
 
 .pen-bola-svg-placar {
   width: 28px;
   height: 28px;
-  animation: pen-bola-pulse 2.4s ease-in-out infinite;
 }
 
 .pen-bola-svg-titulo {
@@ -3482,18 +3481,17 @@ html[data-theme="dark"] .partida-lances {
   width: 26px;
   height: 26px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
-  animation: pen-bola-pop 0.35s ease-out;
 }
 
-.pen-bola-svg-hero {
+.pen-bola-svg-hero,
+.pen-bola-svg-hero-big {
   width: 36px;
   height: 36px;
 }
 
 .pen-bola-svg-hero-big {
-  width: 48px;
-  height: 48px;
-  animation: pen-bola-girar 10s linear infinite;
+  width: 44px;
+  height: 44px;
 }
 
 .pen-bola-svg-gk {
@@ -3501,19 +3499,26 @@ html[data-theme="dark"] .partida-lances {
   height: 18px;
 }
 
+.pen-bola.pen-marca-flash {
+  animation: pen-bola-flash 0.32s ease-out;
+}
+
 @keyframes pen-bola-girar {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-@keyframes pen-bola-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+@keyframes pen-bola-flash {
+  0% { transform: scale(0.86); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 
-@keyframes pen-bola-pop {
-  0% { transform: scale(0.5); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .pen-bola-svg-cabeca,
+  .pen-bola.pen-marca-flash {
+    animation: none;
+  }
 }
 
 .pen-hero {

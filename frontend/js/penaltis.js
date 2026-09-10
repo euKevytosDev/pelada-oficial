@@ -127,7 +127,9 @@ const PenaltisApp = (() => {
     const lado = sessao?.[ladoKey];
     if (!lado || sessao.finalizado || sessao.etapa !== "cobrancas") return;
     lado.cobrancas[index] = cicloResultado(lado.cobrancas[index]);
-    render();
+    atualizarCobrancaUI(ladoKey, index);
+    atualizarPlacarUI();
+    atualizarGolsQuadroUI(ladoKey);
   }
 
   function garantirBatedorParaIndice(lado, index) {
@@ -199,7 +201,7 @@ const PenaltisApp = (() => {
     if (!sessao) return;
     sessao.goleiroCampeaoId = String(id);
     sessao.goleiroCampeaoNome = String(nome || "").trim();
-    render();
+    atualizarGoleiroUI();
   }
 
   function adicionarGoleiroManual() {
@@ -255,6 +257,80 @@ const PenaltisApp = (() => {
     return `<img class="pen-bola-svg ${cls}" src="${BOLA_SRC}" alt="" width="22" height="22" aria-hidden="true" />`;
   }
 
+  function conteudoBola(r) {
+    if (r === "gol") return imgBola("pen-bola-svg-gol");
+    return simbolo(r);
+  }
+
+  function atualizarPlacarUI() {
+    const texto = document.getElementById("penaltis-placar-valor");
+    if (texto) texto.textContent = placarTexto();
+  }
+
+  function atualizarGolsQuadroUI(ladoKey) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    const el = document.querySelector(`.pen-quadro[data-lado="${ladoKey}"] .pen-quadro-gols`);
+    if (el) el.textContent = String(golsDe(lado));
+  }
+
+  function flashMarca(btn) {
+    if (!btn) return;
+    btn.classList.remove("pen-marca-flash");
+    // força restart só nesta bolinha
+    void btn.offsetWidth;
+    btn.classList.add("pen-marca-flash");
+    const limpar = () => btn.classList.remove("pen-marca-flash");
+    btn.addEventListener("animationend", limpar, { once: true });
+  }
+
+  function atualizarCobrancaUI(ladoKey, index) {
+    const lado = sessao?.[ladoKey];
+    if (!lado) return;
+    const r = lado.cobrancas[index];
+    const btn = document.querySelector(
+      `.pen-bola[data-pen-acao="marca"][data-lado="${ladoKey}"][data-idx="${index}"]`
+    );
+    if (!btn) {
+      render();
+      return;
+    }
+    btn.classList.remove("pen-ok", "pen-erro", "pen-vazio");
+    btn.classList.add(classeSimbolo(r));
+    btn.innerHTML = conteudoBola(r);
+    flashMarca(btn);
+  }
+
+  function atualizarGoleiroUI() {
+    const btnConfirmar = document.getElementById("btn-penaltis-confirmar");
+    if (!sessao) return;
+    document.querySelectorAll(".pen-gk-btn").forEach((btn) => {
+      btn.classList.toggle("pen-gk-ativo", String(btn.dataset.gkId) === String(sessao.goleiroCampeaoId));
+    });
+    const box = document.getElementById("pen-gk-box");
+    if (box) {
+      let status = box.querySelector(".pen-gk-status");
+      if (!status) {
+        status = document.createElement("p");
+        status.className = "pen-gk-status";
+        box.appendChild(status);
+      }
+      if (sessao.goleiroCampeaoNome) {
+        status.className = "pen-gk-status pen-gk-escolhido";
+        status.innerHTML = `Selecionado: <strong>${escAttr(sessao.goleiroCampeaoNome)}</strong>`;
+      } else {
+        status.className = "pen-gk-status dica";
+        status.textContent = "Escolha um goleiro para liberar a confirmação.";
+      }
+    }
+    if (btnConfirmar) {
+      btnConfirmar.textContent = sessao.goleiroCampeaoNome
+        ? `Confirmar — ${sessao.goleiroCampeaoNome}`
+        : "Escolha o goleiro campeão";
+      btnConfirmar.disabled = !sessao.goleiroCampeaoNome;
+    }
+  }
+
   function renderQuadro(ladoKey, lado) {
     const bolas = (lado.cobrancas || [])
       .map((r, i) => {
@@ -263,7 +339,7 @@ const PenaltisApp = (() => {
         return `
         <div class="pen-bola-item">
           <button type="button" class="pen-bola ${classeSimbolo(r)}" data-pen-acao="marca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Cobrança ${i + 1}" ${disabled}>
-            ${r === "gol" ? imgBola("pen-bola-svg-gol") : simbolo(r)}
+            ${conteudoBola(r)}
           </button>
           <input class="pen-bola-nome" type="text" maxlength="40" value="${escAttr(nome)}" data-pen-input="nome-cobranca" data-lado="${ladoKey}" data-idx="${i}" aria-label="Quem bateu a ${i + 1}ª" ${disabled} />
         </div>`;
@@ -271,7 +347,7 @@ const PenaltisApp = (() => {
       .join("");
 
     return `
-      <div class="pen-quadro" style="--pen-cor:${lado.cor}">
+      <div class="pen-quadro" data-lado="${ladoKey}" style="--pen-cor:${lado.cor}">
         <div class="pen-quadro-topo">
           <strong class="pen-quadro-time">${imgBola("pen-bola-svg-titulo")}${lado.nome}</strong>
           <span class="pen-quadro-gols">${golsDe(lado)}</span>
@@ -342,8 +418,8 @@ const PenaltisApp = (() => {
         </div>
         ${
           sessao.goleiroCampeaoNome
-            ? `<p class="pen-gk-escolhido">Selecionado: <strong>${sessao.goleiroCampeaoNome}</strong></p>`
-            : `<p class="dica">Escolha um goleiro para liberar a confirmação.</p>`
+            ? `<p class="pen-gk-status pen-gk-escolhido">Selecionado: <strong>${escAttr(sessao.goleiroCampeaoNome)}</strong></p>`
+            : `<p class="pen-gk-status dica">Escolha um goleiro para liberar a confirmação.</p>`
         }
       </div>`;
   }
@@ -358,12 +434,9 @@ const PenaltisApp = (() => {
 
   function render() {
     const root = document.getElementById("penaltis-conteudo");
-    const placar = document.getElementById("penaltis-placar");
     const btnConfirmar = document.getElementById("btn-penaltis-confirmar");
     if (!root || !sessao) return;
-    if (placar) {
-      placar.innerHTML = `${imgBola("pen-bola-svg-placar")}<span>${placarTexto()}</span>`;
-    }
+    atualizarPlacarUI();
 
     const vencedor = timeVencedorAtual();
     const etapaGk = sessao.etapa === "goleiro";
