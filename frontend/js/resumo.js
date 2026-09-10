@@ -447,7 +447,9 @@ function renderResumoOficial(resumo) {
     ? "resumo-pagina-stats-pdf"
     : "resumo-pagina-stats-pdf resumo-pagina-stats-pdf--continua";
 
-  const secaoPremios = `<section class="resumo-bloco premios-grid">
+  const secaoPremios = `<section class="resumo-bloco premios-grid ${
+    exibirPremiosComFoto ? "premios-grid--fotos" : "premios-grid--compacto"
+  }">
         <h3>Premiação</h3>
         ${premiosGridHtml(premios, resumo, exibirPremiosComFoto)}
       </section>`;

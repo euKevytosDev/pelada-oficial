@@ -2229,21 +2229,33 @@ td.num, th.num {
 
 .pdf-export .resumo-capa-pdf--sem-fotos {
   min-height: 0;
+  height: auto;
   break-after: auto;
   page-break-after: auto;
+  display: block;
 }
 
-.pdf-export .resumo-capa-pdf--sem-fotos .resumo-times {
-  flex: 0 0 auto;
-  display: block;
+.pdf-export .resumo-capa-pdf--sem-fotos .resumo-times,
+.pdf-export .resumo-capa-pdf--sem-fotos .resumo-bloco.premios-grid,
+.pdf-export .resumo-capa-pdf--sem-fotos .premios,
+.pdf-export .resumo-capa-pdf--sem-fotos .premios-par,
+.pdf-export .resumo-capa-pdf--sem-fotos .premio {
+  flex: none;
+  height: auto;
   min-height: 0;
-  margin-top: 8px;
 }
 
-.pdf-export .resumo-capa-pdf--sem-fotos .resumo-bloco.premios-grid {
-  flex: 0 0 auto;
-  display: block;
-  min-height: 0;
+.pdf-export .resumo-capa-pdf--sem-fotos .premios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pdf-export .resumo-capa-pdf--sem-fotos .premios-par {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: start;
 }
 
 .pdf-export .resumo-pagina-stats-pdf--continua {
@@ -2266,11 +2278,17 @@ td.num, th.num {
   flex-shrink: 0;
 }
 
-.pdf-export .resumo-capa-pdf .resumo-bloco.premios-grid {
+.pdf-export .resumo-capa-pdf .resumo-bloco.premios-grid--fotos {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-top: 8px;
+}
+
+.pdf-export .resumo-capa-pdf .resumo-bloco.premios-grid--compacto {
+  flex: 0 0 auto;
+  display: block;
   margin-top: 8px;
 }
 
@@ -2288,7 +2306,7 @@ td.num, th.num {
   padding: 4px 2px;
 }
 
-.pdf-export .premios {
+.pdf-export .premios-grid--fotos .premios {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -2296,11 +2314,31 @@ td.num, th.num {
   gap: 6px;
 }
 
-.pdf-export .premios-par {
+.pdf-export .premios-grid--fotos .premios-par {
   flex: 1 1 0;
   gap: 6px;
   min-height: 0;
   align-items: stretch;
+}
+
+.pdf-export .premios-grid--compacto .premios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: none;
+  min-height: 0;
+}
+
+.pdf-export .premios-grid--compacto .premios-par {
+  flex: none;
+  min-height: 0;
+  align-items: start;
+  gap: 6px;
+}
+
+.pdf-export .premios-grid--compacto .premio-compacto {
+  min-height: 0;
+  height: auto;
 }
 
 .pdf-export .premio-destaque.premio-com-foto {
