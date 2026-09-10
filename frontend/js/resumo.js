@@ -155,8 +155,21 @@ const PREMIO_ICONE = {
   Craque: "⭐",
   Garçom: "🎯",
   "Luva de Ouro": "🧤",
-  "Goleiro dos pênaltis": "🧤",
 };
+
+function luvaDeOuroExibicao(premios) {
+  const gkPen = premios?.goleiroCampeaoPenaltis;
+  if (gkPen?.nome) {
+    const nome = String(gkPen.nome).trim();
+    return {
+      nome,
+      nomes: gkPen.nomes?.length ? gkPen.nomes : [nome],
+      empate: false,
+      detalhe: gkPen.detalhe || "campeão nos pênaltis",
+    };
+  }
+  return premios?.luvaDeOuro || null;
+}
 
 function normalizarNomeTime(n) {
   return String(n || "")
@@ -239,15 +252,8 @@ function premiosGridHtml(premios, resumo, modoGridFotos) {
     { titulo: "Artilheiro", premio: premios.artilheiro || premios.bolaDeOuro, key: "artilheiro" },
     { titulo: "Craque", premio: premios.craque, key: "craque" },
     { titulo: "Garçom", premio: premios.garcom, key: "garcom" },
-    { titulo: "Luva de Ouro", premio: premios.luvaDeOuro, key: "luvaDeOuro" },
+    { titulo: "Luva de Ouro", premio: luvaDeOuroExibicao(premios), key: "luvaDeOuro" },
   ];
-  if (premios.goleiroCampeaoPenaltis) {
-    slots.push({
-      titulo: "Goleiro dos pênaltis",
-      premio: premios.goleiroCampeaoPenaltis,
-      key: null,
-    });
-  }
   const linhas = [];
   for (let i = 0; i < slots.length; i += 2) {
     const par = slots
@@ -569,9 +575,6 @@ function textoResumoWhatsApp(resumo) {
     linhas.push(
       `⚽ Pênaltis: ${resumo.penaltis.timeA} ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} ${resumo.penaltis.timeB}`
     );
-    if (resumo.penaltis.goleiroCampeao) {
-      linhas.push(`🧤 Goleiro dos pênaltis: ${resumo.penaltis.goleiroCampeao}`);
-    }
   }
   const artilheiro = premios.artilheiro || premios.bolaDeOuro;
   if (artilheiro) {
@@ -583,11 +586,9 @@ function textoResumoWhatsApp(resumo) {
   if (premios.garcom) {
     linhas.push(`🎯 Garçom: ${premios.garcom.nome} (${premios.garcom.detalhe})`);
   }
-  if (premios.luvaDeOuro) {
-    linhas.push(`🧤 Luva de Ouro: ${premios.luvaDeOuro.nome} (${premios.luvaDeOuro.detalhe})`);
-  }
-  if (premios.goleiroCampeaoPenaltis) {
-    linhas.push(`🧤 Goleiro dos pênaltis: ${premios.goleiroCampeaoPenaltis.nome}`);
+  const luva = luvaDeOuroExibicao(premios);
+  if (luva) {
+    linhas.push(`🧤 Luva de Ouro: ${luva.nome}${luva.detalhe ? ` (${luva.detalhe})` : ""}`);
   }
 
   const artilheiros = artilheirosLideres(resumo.artilharia);

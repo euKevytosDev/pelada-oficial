@@ -6,7 +6,7 @@ const FotosPremios = (() => {
     { key: "artilheiro", titulo: "Artilheiro", get: (p) => p.artilheiro || p.bolaDeOuro },
     { key: "craque", titulo: "Craque", get: (p) => p.craque },
     { key: "garcom", titulo: "Garçom", get: (p) => p.garcom },
-    { key: "luvaDeOuro", titulo: "Luva de Ouro", get: (p) => p.luvaDeOuro },
+    { key: "luvaDeOuro", titulo: "Luva de Ouro", get: (p) => p.goleiroCampeaoPenaltis || p.luvaDeOuro },
   ];
 
   const SLOT_CAMPEAO = {
