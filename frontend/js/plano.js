@@ -79,7 +79,7 @@ const PlanoApp = (() => {
              <li>Cartões amarelo e vermelho</li>
              <li>PDF e WhatsApp da súmula</li>
              <li>Fotos no PDF: premiação (pág. 1) e time campeão horizontal (pág. 2)</li>
-             <li>Caixa da pelada e relatório do mês</li>
+             <li>Relatório do mês</li>
            </ul>
            <div class="paywall-ofertas">
              <article class="paywall-oferta paywall-oferta-destaque">
@@ -209,7 +209,7 @@ const PlanoApp = (() => {
     const lead = document.getElementById("pago-ok-lead");
     if (!lead) return;
     if (a.proAtivo && a.expiraEmTexto) {
-      lead.textContent = `Rei da Pelada Pro ativo até ${a.expiraEmTexto}. Aproveite 4 e 5 times, cartões, PDF, WhatsApp, caixa e relatório.`;
+      lead.textContent = `Rei da Pelada Pro ativo até ${a.expiraEmTexto}. Aproveite 4 e 5 times, cartões, PDF, WhatsApp e relatório.`;
     } else if (a.proAtivo) {
       lead.textContent = "Sua conta já está com o Rei da Pelada Pro ativo. Aproveite os recursos do organizador.";
     } else {

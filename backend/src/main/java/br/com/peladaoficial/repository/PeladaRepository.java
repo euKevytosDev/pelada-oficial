@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface PeladaRepository extends JpaRepository<Pelada, Long> {
     List<Pelada> findByUsuarioOrderByCriadaEmDesc(Usuario usuario);
 
-    /** Só peladas do período (usa encerradaEm, senão criadaEm) — evita carregar o histórico inteiro na caixa. */
+    /** Só peladas do período (usa encerradaEm, senão criadaEm) — evita carregar o histórico inteiro. */
     @Query("""
             select p from Pelada p
             where p.usuario = :usuario

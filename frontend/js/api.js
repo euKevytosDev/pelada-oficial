@@ -342,35 +342,4 @@ const PeladaAPI = {
     }
     return api(`/relatorio-mensal?${q.toString()}`);
   },
-  caixa: (ano, mes) => api(`/caixa?ano=${ano}&mes=${mes}`),
-  caixaValores: (ano, mes, dados) =>
-    api(`/caixa/valores?ano=${ano}&mes=${mes}`, { method: "PUT", body: JSON.stringify(dados) }),
-  caixaModalidade: (id, ano, mes, modalidade) =>
-    api(`/caixa/jogadores/${id}/modalidade?ano=${ano}&mes=${mes}`, {
-      method: "PUT",
-      body: JSON.stringify({ modalidade }),
-    }),
-  caixaCobrar: (id, ano, mes) =>
-    api(`/caixa/jogadores/${id}/cobrar?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
-  caixaPagar: (id, ano, mes, valor) =>
-    api(`/caixa/jogadores/${id}/pagar?ano=${ano}&mes=${mes}`, {
-      method: "POST",
-      body: JSON.stringify({ valor }),
-    }),
-  caixaQuitar: (id, ano, mes) =>
-    api(`/caixa/jogadores/${id}/quitar?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
-  caixaDesfazer: (id, ano, mes) =>
-    api(`/caixa/jogadores/${id}/desfazer?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
-  caixaDesfazerCobranca: (id, ano, mes) =>
-    api(`/caixa/jogadores/${id}/desfazer-cobranca?ano=${ano}&mes=${mes}`, { method: "POST", body: "{}" }),
-  caixaCobrarJogo: (ano, mes, dados) =>
-    api(`/caixa/cobrar-jogo?ano=${ano}&mes=${mes}`, {
-      method: "POST",
-      body: JSON.stringify(dados || {}),
-    }),
-  caixaCancelarJogo: (ano, mes, peladaId) =>
-    api(`/caixa/cancelar-jogo?ano=${ano}&mes=${mes}&peladaId=${peladaId}`, {
-      method: "POST",
-      body: "{}",
-    }),
 };

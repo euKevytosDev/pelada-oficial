@@ -23,11 +23,7 @@ const estado = {
   telaAntesHistorico: "tela-inicio",
   telaAntesPlanos: "tela-configuracoes",
   telaAntesRelatorio: "tela-inicio",
-  telaAntesCaixa: "tela-inicio",
   relatorioMensalAtual: null,
-  caixaAtual: null,
-  caixaPresencaPendente: null,
-  caixaPeladaIdPendente: null,
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -45,7 +41,6 @@ function mostrarTela(id) {
     "tela-pagamento-ok": "Pagamento confirmado",
     "tela-pagamento-falhou": "Pagamento",
     "tela-relatorio-mensal": "Relatório do mês",
-    "tela-caixa": "Caixa da pelada",
     "tela-historico": "Histórico de peladas",
     "tela-sumula-manual": "Gerar súmula sem marcar jogo",
     "tela-jogadores": "Jogadores e goleiros",
@@ -660,7 +655,6 @@ async function abrirSumulaPelada(peladaId) {
     atualizarStatusSyncFim(null);
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
-    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     mostrarTela("tela-fim");
   }, "Carregando súmula...");
 }
@@ -2489,8 +2483,6 @@ async function encerrarPelada() {
   const resumo = LocalJogo.montarResumoLocal();
   const payload = LocalJogo.montarPayloadSync();
   const peladaId = estado.peladaId || local?.peladaId || null;
-  if (typeof guardarPresencaCaixa === "function") guardarPresencaCaixa(local, peladaId);
-
   // Backup local; elenco final (com apto/inapto) grava na conta antes do sync pesado
   salvarElencoLocalBackup(elencoDoPayload(payload));
   try {
@@ -2572,7 +2564,6 @@ async function entrarNaHome() {
   atualizarUserBar();
   if (typeof PlanoApp !== "undefined") await PlanoApp.sincronizar();
   mostrarTela("tela-inicio");
-  if (typeof atualizarFaixaCaixaHome === "function") atualizarFaixaCaixaHome();
   sincronizarApaguesPendentes().catch(() => {});
   sincronizarEncerrarPendente().catch(() => {});
   // Cadastro local em andamento: sobe o elenco para outro celular poder Continuar
@@ -2734,7 +2725,6 @@ async function retomarPelada(pelada) {
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
     await carregarObservacoes(null, "atraso-jogador-fim");
-    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     mostrarTela("tela-fim");
     return;
   }
@@ -3157,7 +3147,6 @@ montarSeletorEstrelas();
 ConfigApp.init();
 if (typeof PlanoApp !== "undefined") PlanoApp.init();
 if (typeof initRelatorioMensal === "function") initRelatorioMensal();
-if (typeof initCaixaPelada === "function") initCaixaPelada();
 if (typeof FotosPremios !== "undefined") FotosPremios.init();
 if (typeof PenaltisApp !== "undefined") PenaltisApp.init();
 aplicarVisibilidadeCronos();
@@ -3656,7 +3645,6 @@ function gerarSumulaManualAgora() {
     estado.sumulaManual = true;
     const boxAtraso = document.getElementById("box-atraso-fim");
     if (boxAtraso) boxAtraso.classList.add("oculto");
-    document.getElementById("btn-caixa-cobrar-fim")?.classList.add("oculto");
     renderResumoOficial(resumo);
     mostrarTela("tela-fim");
     toast("Súmula pronta — PDF, planilha ou WhatsApp");

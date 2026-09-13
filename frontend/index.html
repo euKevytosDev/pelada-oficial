@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260910b" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260912a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -145,7 +145,6 @@
         <div class="hero-copy">
           <p>Monte os times, sorteie equilibrado e marque o jogo ao vivo.</p>
         </div>
-        <button type="button" class="caixa-faixa oculto" id="caixa-faixa-home"></button>
         <div id="box-continuar" class="card-form oculto">
           <p class="continuar-txt">Você tem uma pelada em andamento.</p>
           <button type="button" class="btn btn-principal" id="btn-continuar">Continuar pelada</button>
@@ -157,7 +156,6 @@
           <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico
             completo</button>
           <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal">Relatório do mês</button>
-          <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-home">Caixa da pelada</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
@@ -177,7 +175,6 @@
         </form>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
         <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-inicio">Relatório do mês</button>
-        <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-inicio">Caixa da pelada</button>
       </section>
 
       <section class="tela" id="tela-configuracoes">
@@ -231,7 +228,6 @@
           <h3 class="config-titulo">Ferramentas</h3>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal">Relatório do mês</button>
-          <button type="button" class="btn btn-secundario btn-block" id="cfg-caixa">Caixa da pelada</button>
           <button type="button" class="btn btn-secundario btn-block oculto" id="cfg-sumula">Gerar súmula (colar texto)</button>
         </div>
 
@@ -255,7 +251,7 @@
             <p class="plano-badge">7 dias grátis no 1º login</p>
             <h2>Rei da Pelada Pro</h2>
             <p class="plano-lead">Jogar a pelada continua grátis (até 3 times, placar e ver a súmula). O Pro é o kit do
-              organizador: 4 ou 5 times, cartões, PDF, WhatsApp, caixa e relatório do mês.</p>
+              organizador: 4 ou 5 times, cartões, PDF, WhatsApp e relatório do mês.</p>
           </header>
 
           <p class="dica plano-aviso-android oculto" id="plano-aviso-android">No app da Play a cobrança entra pela loja,
@@ -267,14 +263,6 @@
               <div>
                 <strong>4 e 5 times</strong>
                 <p>Pelada grande: o grátis vai até 3 times. No Pro você sorteia 4 ou 5.</p>
-              </div>
-            </li>
-            <li>
-              <span class="plano-ben-marca" aria-hidden="true">Cx</span>
-              <div>
-                <strong>Caixa da pelada</strong>
-                <p>Cobra quem jogou no dia, vê o mês em um painel e manda o boletim no grupo — sem planilha no WhatsApp.
-                </p>
               </div>
             </li>
             <li>
@@ -314,7 +302,7 @@
           <p class="plano-rodape-dica oculto" id="plano-aviso-cortesia">Esta conta já tem Rei da Pelada Pro liberado sem
             cobrança (conta de desenvolvimento).</p>
           <p class="plano-rodape-dica">No grátis você vê a súmula no fim. O Pro libera PDF, WhatsApp, cartões, 4 ou 5
-            times, caixa e relatório do mês.</p>
+            times e relatório do mês.</p>
         </div>
       </section>
 
@@ -335,7 +323,7 @@
             <li>4 e 5 times no sorteio</li>
             <li>Cartões amarelo e vermelho</li>
             <li>PDF e WhatsApp da súmula</li>
-            <li>Caixa da pelada e relatório do mês</li>
+            <li>Relatório do mês</li>
           </ul>
           <button type="button" class="btn btn-principal btn-block" id="btn-pago-ok-continuar">Continuar</button>
         </div>
@@ -399,39 +387,6 @@
         <div id="resumo-mensal-oficial" class="resumo-oficial"></div>
       </section>
 
-      <section class="tela" id="tela-caixa">
-        <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-caixa">← Voltar</button>
-        <h2 class="lista-titulo">Caixa da pelada</h2>
-        <p class="dica caixa-intro"><strong>Mensalista</strong> paga 1 vez e joga o mês todo. <strong>Por jogo</strong> paga a cada pelada. Toque no nome para registrar pagamento ou mudar o tipo.</p>
-
-        <label>
-          Mês
-          <select id="caixa-mes" aria-label="Mês da caixa"></select>
-        </label>
-
-        <form class="card-form caixa-valores" id="form-caixa-valores">
-          <p class="caixa-valores-titulo">Quanto cobrar?</p>
-          <div class="caixa-valores-grid">
-            <label>
-              Mensalidade
-              <input type="text" id="caixa-valor-mensal" inputmode="decimal" placeholder="50" />
-            </label>
-            <label>
-              Por jogo
-              <input type="text" id="caixa-valor-avulso" inputmode="decimal" placeholder="15" />
-            </label>
-          </div>
-          <button type="button" class="btn btn-secundario btn-block" id="btn-caixa-salvar-valores">Salvar valores</button>
-        </form>
-
-        <div id="caixa-painel"></div>
-
-        <div class="acoes-share no-print">
-          <button type="button" class="btn btn-principal" id="btn-caixa-pdf">Boletim PDF</button>
-          <button type="button" class="btn btn-whats" id="btn-caixa-whats">Mandar no grupo</button>
-        </div>
-        <div id="caixa-boletim" class="resumo-oficial oculto" aria-hidden="true"></div>
-      </section>
 
       <section class="tela" id="tela-historico">
         <button type="button" class="btn btn-secundario btn-voltar-inline" id="btn-voltar-historico">← Voltar</button>
@@ -620,7 +575,6 @@
           <div id="lista-fotos-premios" class="lista-fotos-premios"></div>
         </div>
 
-        <button type="button" class="btn btn-principal btn-block no-print oculto" id="btn-caixa-cobrar-fim">Cobrar quem jogou na caixa</button>
 
         <div class="card-form no-print" id="box-atraso-fim">
           <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
@@ -688,18 +642,17 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="js/api.js?v=20260825h"></script>
+  <script src="js/api.js?v=20260912a"></script>
   <script src="js/config.js?v=20260828c"></script>
-  <script src="js/plano.js?v=20260901d"></script>
+  <script src="js/plano.js?v=20260912a"></script>
   <script src="js/local-jogo.js?v=20260901c"></script>
   <script src="js/premio-fotos.js?v=20260910a"></script>
   <script src="js/pdf-download.js?v=20260901i"></script>
   <script src="js/resumo.js?v=20260910b"></script>
   <script src="js/relatorio-mensal.js?v=20260828c"></script>
-  <script src="js/caixa.js?v=20260828c"></script>
   <script src="js/sumula-manual.js?v=20260828c"></script>
   <script src="js/penaltis.js?v=20260909f"></script>
-  <script src="js/app.js?v=20260909a"></script>
+  <script src="js/app.js?v=20260912a"></script>
 </body>
 
 </html>
