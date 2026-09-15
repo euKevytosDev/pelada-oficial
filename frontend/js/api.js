@@ -331,6 +331,12 @@ const PeladaAPI = {
   planos: () => api("/planos"),
   checkoutAssinatura: (planoId) =>
     api("/assinatura/checkout", { method: "POST", body: JSON.stringify({ planoId }), retry: false }),
+  verificarCompraPlay: (dados) =>
+    api("/assinatura/play/verificar", {
+      method: "POST",
+      body: JSON.stringify(dados || {}),
+      retry: false,
+    }),
   relatorioMensal: (ano, mes, extras) => {
     const q = new URLSearchParams();
     if (ano != null) q.set("ano", String(ano));

@@ -5,10 +5,11 @@ alwaysApply: true
 
 # Monetização
 
-- **Agora:** Rei da Pelada Pro na **web** (Mercado Pago). Teste 7 dias. Mensal R$ 49,90 · anual R$ 349,90.
-- **Android (Play):** não abrir checkout/link de pagamento no app nativo. Quem já pagou no site (mesmo login) usa o Pro no app. Play Billing só depois da identidade + merchant.
-- **iOS:** só pela web (mesmo login).
-- **Grátis:** elenco, sorteio **até 3 times**, placar, 1 cronômetro, gol/cartão, **ver** a súmula no fim (e WhatsApp em texto). Histórico para ver súmula.
-- **Pro:** **4 e 5 times**, **PDF**, relatório do mês.
-- Não abrir paywall ao entrar no app. Só quando o usuário toca em recurso Pro (PDF, relatório do mês, **4 ou 5 times**).
-- Não vender o mesmo digital por link dentro do app da Play. Não anunciar “assine no site” na listagem Android.
+- **Web:** Rei da Pelada Pro via **Mercado Pago**. Teste 7 dias. Mensal R$ 49,90 · anual R$ 349,90.
+- **Android (Play):** assinatura nativa via **Play Billing** (produto `reidapelada_pro`, planos `mensal` / `anual`). Validação no backend Oracle com service account Google.
+- **iOS:** só pela web (mesmo login), por enquanto.
+- **Grátis:** elenco, sorteio **até 3 times**, placar, 1 cronômetro, gol, **ver** a súmula no fim. Histórico para ver súmula.
+- **Pro:** **4 e 5 times**, cartões, **PDF**, fotos, WhatsApp da súmula, relatório do mês.
+- Não abrir paywall ao entrar no app. Só quando o usuário toca em recurso Pro.
+- No app Android, checkout é pela Play (não abrir Mercado Pago / link de site).
+- Ver `docs/PLAY-BILLING.md` para IDs e credenciais.

@@ -33,6 +33,12 @@ public class AssinaturaController {
         return assinaturaService.criarCheckout(u, planoId);
     }
 
+    @PostMapping("/assinatura/play/verificar")
+    public Map<String, Object> verificarPlay(@RequestBody(required = false) br.com.peladaoficial.dto.PlayCompraRequest request) {
+        Usuario u = authSupport.usuarioAtual();
+        return assinaturaService.ativarCompraPlay(u, request);
+    }
+
     @RequestMapping(value = "/assinatura/webhook", method = {RequestMethod.GET, RequestMethod.POST})
     public Map<String, String> webhook(@RequestParam(value = "data.id", required = false) String dataId,
                                        @RequestParam(value = "id", required = false) String id,

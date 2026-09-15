@@ -34,6 +34,7 @@ public class AssinaturaService {
 
     private final UsuarioRepository usuarioRepository;
     private final MercadoPagoClient mercadoPagoClient;
+    private final GooglePlayBillingClient googlePlayBillingClient;
     private final int trialDias;
     private final String frontUrl;
     private final String webhookUrl;
@@ -41,12 +42,14 @@ public class AssinaturaService {
 
     public AssinaturaService(UsuarioRepository usuarioRepository,
                              MercadoPagoClient mercadoPagoClient,
+                             GooglePlayBillingClient googlePlayBillingClient,
                              @Value("${app.assinatura.trial-dias:7}") int trialDias,
                              @Value("${app.assinatura.front-url:https://eukevytosdev.github.io/pelada-oficial/}") String frontUrl,
                              @Value("${app.assinatura.webhook-url:}") String webhookUrl,
                              @Value("${app.assinatura.pro-cortesia:raiankevin18@gmail.com}") String proCortesia) {
         this.usuarioRepository = usuarioRepository;
         this.mercadoPagoClient = mercadoPagoClient;
+        this.googlePlayBillingClient = googlePlayBillingClient;
         this.trialDias = trialDias > 0 ? trialDias : 7;
         this.frontUrl = frontUrl.endsWith("/") ? frontUrl : frontUrl + "/";
         this.webhookUrl = webhookUrl;
@@ -199,6 +202,48 @@ public class AssinaturaService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional
+    public Map<String, Object> ativarCompraPlay(Usuario usuario, br.com.peladaoficial.dto.PlayCompraRequest req) {
+        garantirTrialEMap(usuario);
+        if (!usuarioPersistido(usuario)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Faça login de novo");
+        }
+        if (emailCortesia(usuario)) {
+            return toMap(usuario);
+        }
+        if (req == null || req.getPurchaseToken() == null || req.getPurchaseToken().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token da compra ausente");
+        }
+        String pkg = nvl(req.getPackageName(), GooglePlayBillingClient.PACKAGE_PADRAO);
+        if (!googlePlayBillingClient.packageName().equals(pkg)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pacote Android inválido");
+        }
+
+        GooglePlayBillingClient.AssinaturaPlay play =
+                googlePlayBillingClient.verificarAssinatura(req.getPurchaseToken());
+        String productId = play.productId() != null ? play.productId() : req.getProductId();
+        if (productId == null
+                || (!GooglePlayBillingClient.PRODUCT_ID.equals(productId)
+                && !productId.toLowerCase(Locale.ROOT).contains("reidapelada"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Produto Play inválido");
+        }
+
+        String tokenId = req.getPurchaseToken().trim();
+        String dedupeKey = "play:" + Integer.toHexString(tokenId.hashCode()) + ":"
+                + (tokenId.length() > 24 ? tokenId.substring(tokenId.length() - 24) : tokenId);
+        if (dedupeKey.length() > 80) dedupeKey = dedupeKey.substring(0, 80);
+        if (dedupeKey.equals(usuario.getUltimoPagamentoMp()) && proAtivo(usuario)) {
+            return toMap(usuario);
+        }
+
+        usuario.setPlano(PLANO_PRO);
+        usuario.setPlanoExpiraEm(play.expiraEm());
+        usuario.setPagamentoOrigem("PLAY_BILLING");
+        usuario.setUltimoPagamentoMp(dedupeKey);
+        usuarioRepository.save(usuario);
+        return toMap(usuario);
+    }
+
     private void ativarProPorPagamento(String ext, CatalogoPlano plano, String paymentId, String origem) {
         int sep = ext.indexOf(':');
         if (sep <= 0) return;
@@ -242,6 +287,7 @@ public class AssinaturaService {
         map.put("origem", cortesia ? ORIGEM_CORTESIA : nvl(usuario.getPagamentoOrigem(), ""));
         map.put("cortesia", cortesia);
         map.put("checkoutWeb", mercadoPagoClient.configurado());
+        map.put("checkoutPlay", googlePlayBillingClient.configurado());
         LocalDateTime expira = cortesia ? null : (usuario != null ? usuario.getPlanoExpiraEm() : null);
         map.put("expiraEm", expira != null ? expira.toString() : "");
         map.put("expiraEmTexto", expira != null ? FMT.format(expira) : "");

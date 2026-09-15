@@ -22,6 +22,9 @@ const PlanoApp = (() => {
     document.querySelectorAll("[data-checkout-web]").forEach((el) => {
       el.classList.toggle("oculto", nativo || !!a.cortesia);
     });
+    document.querySelectorAll("[data-checkout-play]").forEach((el) => {
+      el.classList.toggle("oculto", !nativo || !!a.cortesia);
+    });
     document.getElementById("plano-aviso-android")?.classList.toggle("oculto", !nativo);
     document.getElementById("plano-aviso-cortesia")?.classList.toggle("oculto", !a.cortesia);
 
@@ -66,9 +69,29 @@ const PlanoApp = (() => {
     const corpo = nativo
       ? `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
-           <p class="paywall-lead">Recurso do organizador</p>
+           <p class="paywall-lead">Assine pela Google Play</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
-           <p class="dica">O Pro fica ligado à sua conta Google. Se a conta já tiver o Pro ativo, ele aparece neste app automaticamente. O teste de 7 dias já vale nesta conta.</p>
+           <ul class="paywall-lista">
+             <li>4 e 5 times no sorteio</li>
+             <li>Cartões amarelo e vermelho</li>
+             <li>PDF, fotos e WhatsApp da súmula</li>
+             <li>Relatório do mês</li>
+           </ul>
+           <div class="paywall-ofertas">
+             <article class="paywall-oferta paywall-oferta-destaque">
+               <p class="paywall-tag">Mais vantajoso</p>
+               <strong>Anual</strong>
+               <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-play-anual">Assinar na Play</button>
+             </article>
+             <article class="paywall-oferta">
+               <strong>Mensal</strong>
+               <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-play-mensal">Assinar na Play</button>
+             </article>
+           </div>
+           <button type="button" class="btn btn-secundario" id="paywall-btn-play-restaurar">Restaurar compras</button>
+           <p class="dica">Pagamento pela Google Play. O teste de 7 dias já vale nesta conta.</p>
          </div>`
       : `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
@@ -124,6 +147,51 @@ const PlanoApp = (() => {
       if (typeof fecharModal === "function") fecharModal();
       abrir(document.querySelector(".tela.ativa")?.id || "tela-inicio");
     });
+    document.getElementById("paywall-btn-play-mensal")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      assinarPlay("mensal");
+    });
+    document.getElementById("paywall-btn-play-anual")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      assinarPlay("anual");
+    });
+    document.getElementById("paywall-btn-play-restaurar")?.addEventListener("click", () => {
+      if (typeof fecharModal === "function") fecharModal();
+      restaurarPlay();
+    });
+  }
+
+  async function assinarPlay(planKey) {
+    if (typeof PlayBillingApp === "undefined" || !PlayBillingApp.disponivel()) {
+      toast("Compras na Play indisponíveis neste aparelho");
+      return;
+    }
+    try {
+      await comLoading(() => PlayBillingApp.comprar(planKey), "Abrindo Google Play...");
+      toast("Pro ativado nesta conta");
+      mostrarPagamentoOk();
+    } catch (err) {
+      const msg = err?.message || String(err || "");
+      if (/cancel|User cancelled|canceled/i.test(msg)) {
+        toast("Compra cancelada");
+        return;
+      }
+      toast(msg || "Não deu para concluir a compra");
+    }
+  }
+
+  async function restaurarPlay() {
+    if (typeof PlayBillingApp === "undefined" || !PlayBillingApp.disponivel()) {
+      toast("Compras na Play indisponíveis neste aparelho");
+      return;
+    }
+    try {
+      await comLoading(() => PlayBillingApp.restaurar(), "Restaurando compras...");
+      toast("Compras restauradas");
+      pintar();
+    } catch (err) {
+      toast(err?.message || "Não foi possível restaurar");
+    }
   }
 
   function exigirPro(mensagem) {
@@ -164,8 +232,8 @@ const PlanoApp = (() => {
 
   async function assinar(planoId) {
     if (typeof isAppNativo === "function" && isAppNativo()) {
-      toast("O Pro fica na conta Google. Se já estiver ativo, atualize o status do plano nas configurações.");
-      return;
+      if (planoId === "pro_anual") return assinarPlay("anual");
+      return assinarPlay("mensal");
     }
     if (!getToken()) {
       mostrarTela("tela-auth");
@@ -270,6 +338,9 @@ const PlanoApp = (() => {
     document.getElementById("btn-plano-mensal-cartao")?.addEventListener("click", () => assinar("pro_mensal_recorrente"));
     document.getElementById("btn-plano-mensal-pix")?.addEventListener("click", () => assinar("pro_mensal"));
     document.getElementById("btn-plano-anual")?.addEventListener("click", () => assinar("pro_anual"));
+    document.getElementById("btn-plano-play-mensal")?.addEventListener("click", () => assinarPlay("mensal"));
+    document.getElementById("btn-plano-play-anual")?.addEventListener("click", () => assinarPlay("anual"));
+    document.getElementById("btn-plano-play-restaurar")?.addEventListener("click", () => restaurarPlay());
     document.getElementById("btn-pago-ok-continuar")?.addEventListener("click", () => {
       if (typeof entrarNaHome === "function") entrarNaHome();
       else mostrarTela("tela-inicio");
