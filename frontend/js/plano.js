@@ -66,27 +66,32 @@ const PlanoApp = (() => {
 
     const nativo = typeof isAppNativo === "function" && isAppNativo();
     const msg = mensagem || "Esse recurso faz parte do Rei da Pelada Pro.";
+    const ancora =
+      `<p class="paywall-ancora">Menos de <strong>R$ 2 por jogador</strong> no mês · rachado no grupo</p>`;
+    const lista = `<ul class="paywall-lista">
+             <li>4 e 5 times no sorteio</li>
+             <li>Cartões amarelo e vermelho</li>
+             <li>PDF, fotos e WhatsApp da súmula</li>
+             <li>Relatório do mês</li>
+           </ul>`;
     const corpo = nativo
       ? `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
            <p class="paywall-lead">Assine pela Google Play</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
-           <ul class="paywall-lista">
-             <li>4 e 5 times no sorteio</li>
-             <li>Cartões amarelo e vermelho</li>
-             <li>PDF, fotos e WhatsApp da súmula</li>
-             <li>Relatório do mês</li>
-           </ul>
+           ${ancora}
+           ${lista}
            <div class="paywall-ofertas">
              <article class="paywall-oferta paywall-oferta-destaque">
                <p class="paywall-tag">Mais vantajoso</p>
                <strong>Anual</strong>
-               <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
+               <p class="paywall-preco">R$ 299,90<span>/ano</span></p>
+               <p class="paywall-equiv">~R$ 24,99/mês</p>
                <button type="button" class="btn btn-principal" id="paywall-btn-play-anual">Assinar na Play</button>
              </article>
              <article class="paywall-oferta">
                <strong>Mensal</strong>
-               <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
+               <p class="paywall-preco">R$ 39,90<span>/mês</span></p>
                <button type="button" class="btn btn-principal" id="paywall-btn-play-mensal">Assinar na Play</button>
              </article>
            </div>
@@ -95,27 +100,22 @@ const PlanoApp = (() => {
          </div>`
       : `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
-           <p class="paywall-lead">Faça o upgrade da conta</p>
+           <p class="paywall-lead">Upgrade do organizador</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
-           <ul class="paywall-lista">
-             <li>4 e 5 times no sorteio</li>
-             <li>Cartões amarelo e vermelho</li>
-             <li>PDF e WhatsApp da súmula</li>
-             <li>Fotos no PDF: premiação (pág. 1) e time campeão horizontal (pág. 2)</li>
-             <li>Relatório do mês</li>
-           </ul>
+           ${ancora}
+           ${lista}
            <div class="paywall-ofertas">
              <article class="paywall-oferta paywall-oferta-destaque">
                <p class="paywall-tag">Mais vantajoso</p>
                <strong>Anual</strong>
-               <p class="paywall-preco">R$ 349,90<span>/ano</span></p>
-               <p class="paywall-equiv">~R$ 29,15/mês · Pix ou cartão</p>
+               <p class="paywall-preco">R$ 299,90<span>/ano</span></p>
+               <p class="paywall-equiv">~R$ 24,99/mês · Pix ou cartão</p>
                <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
              </article>
              <article class="paywall-oferta">
-               <strong>Mensal cartão</strong>
-               <p class="paywall-preco">R$ 49,90<span>/mês</span></p>
-               <p class="paywall-equiv">Renova automaticamente · Cartão de Crédito</p>
+               <strong>Mensal</strong>
+               <p class="paywall-preco">R$ 39,90<span>/mês</span></p>
+               <p class="paywall-equiv">Cartão renova todo mês · ou Pix avulso</p>
                <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Cartão de Crédito</button>
                <button type="button" class="btn btn-secundario paywall-btn-pix" id="paywall-btn-mensal-pix">Pix</button>
              </article>

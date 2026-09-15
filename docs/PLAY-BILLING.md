@@ -9,8 +9,8 @@ Crie **uma assinatura** com dois base plans:
 | Campo | Valor |
 |--------|--------|
 | Product ID | `reidapelada_pro` |
-| Base plan mensal | `mensal` · R$ 49,90 / mês |
-| Base plan anual | `anual` · R$ 349,90 / ano |
+| Base plan mensal | `mensal` · R$ 39,90 / mês |
+| Base plan anual | `anual` · R$ 299,90 / ano |
 
 App ID: `com.rkds.reidapelada`
 

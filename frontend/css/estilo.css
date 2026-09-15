@@ -679,6 +679,18 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   color: var(--texto-suave);
 }
 
+.plano-ancora {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--texto);
+}
+
+.plano-ancora strong {
+  color: var(--verde-campo);
+  font-weight: 800;
+}
+
 .plano-aviso-android {
   margin: 0;
   padding: 10px 12px;
@@ -953,6 +965,22 @@ html[data-theme="dark"] .config-seg-btn.ativa {
   font-size: 0.92rem;
   line-height: 1.45;
   color: var(--texto-suave);
+}
+
+.paywall-ancora {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: var(--texto);
+  background: color-mix(in srgb, var(--verde-vivo) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--verde-vivo) 22%, transparent);
+}
+
+.paywall-ancora strong {
+  color: var(--verde-campo);
+  font-weight: 800;
 }
 
 .paywall-lista {
@@ -2978,6 +3006,12 @@ html[data-theme="dark"] .partida-lances {
   text-align: center;
   font-size: 0.75rem;
   color: var(--texto-suave);
+}
+
+.resumo-rodape-promo {
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
 }
 
 @media (min-width: 480px) {

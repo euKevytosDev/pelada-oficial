@@ -222,7 +222,7 @@ function renderRelatorioMensal(rel) {
           : `<p class="vazio">Nenhuma pelada neste período.</p>`
       }
     </section>
-    <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
+    ${typeof htmlRodapeMarcaResumo === "function" ? htmlRodapeMarcaResumo() : `<footer class="resumo-rodape">Gerado por Rei da Pelada</footer>`}
   `;
 }
 

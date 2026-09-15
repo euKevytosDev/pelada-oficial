@@ -20,6 +20,16 @@ function formatarDataBr(iso) {
   return d.toLocaleDateString("pt-BR");
 }
 
+/** Rodapé da súmula/PDF: promo discreta no trial/grátis; limpo no Pro pago. */
+function htmlRodapeMarcaResumo() {
+  const a = typeof getUsuario === "function" ? getUsuario()?.assinatura || {} : {};
+  const proPago = !!a.proAtivo && !a.trial;
+  if (proPago) {
+    return `<footer class="resumo-rodape">Gerado por Rei da Pelada</footer>`;
+  }
+  return `<footer class="resumo-rodape resumo-rodape-promo">Gerado por Rei da Pelada · Organize sua pelada aqui</footer>`;
+}
+
 /** Agrupa nomes iguais: João, João → João (2) — usado em listas compactas */
 function nomesAgrupados(nomes) {
   const contagem = new Map();
@@ -547,7 +557,7 @@ function renderResumoOficial(resumo) {
     </section>
     </div>
 
-    <footer class="resumo-rodape">Gerado por Rei da Pelada</footer>
+    ${htmlRodapeMarcaResumo()}
   `;
 
   if (typeof FotosPremios !== "undefined") {

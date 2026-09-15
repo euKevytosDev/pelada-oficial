@@ -6,8 +6,8 @@ const PlayBillingApp = (() => {
   const PACKAGE = "com.rkds.reidapelada";
   const PRODUCT_ID = "reidapelada_pro";
   const PLANOS = {
-    mensal: { planId: "mensal", label: "Mensal", preco: "R$ 49,90" },
-    anual: { planId: "anual", label: "Anual", preco: "R$ 349,90" },
+    mensal: { planId: "mensal", label: "Mensal", preco: "R$ 39,90" },
+    anual: { planId: "anual", label: "Anual", preco: "R$ 299,90" },
   };
 
   function plugin() {

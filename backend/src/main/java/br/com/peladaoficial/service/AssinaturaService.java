@@ -61,9 +61,9 @@ public class AssinaturaService {
 
     public List<Map<String, Object>> catalogo() {
         return List.of(
-                planoPublico(PRO_ANUAL, "Anual", "R$ 349,90", "349.90", "~R$ 29,15/mês. Pix ou cartão avulso."),
-                planoPublico(PRO_MENSAL, "Mensal Pix", "R$ 49,90", "49.90", "Paga uma vez no Pix (30 dias de Pro)."),
-                planoPublico(PRO_MENSAL_RECORRENTE, "Mensal cartão", "R$ 49,90", "49.90",
+                planoPublico(PRO_ANUAL, "Anual", "R$ 299,90", "299.90", "~R$ 24,99/mês. Pix ou cartão avulso."),
+                planoPublico(PRO_MENSAL, "Mensal Pix", "R$ 39,90", "39.90", "Paga uma vez no Pix (30 dias de Pro)."),
+                planoPublico(PRO_MENSAL_RECORRENTE, "Mensal cartão", "R$ 39,90", "39.90",
                         "Renova automaticamente todo mês no cartão.")
         );
     }
@@ -327,13 +327,13 @@ public class AssinaturaService {
 
     private CatalogoPlano resolverPlano(String planoId) {
         if (PRO_ANUAL.equals(planoId)) {
-            return new CatalogoPlano(PRO_ANUAL, "Rei da Pelada Pro anual", new BigDecimal("349.90"), 365);
+            return new CatalogoPlano(PRO_ANUAL, "Rei da Pelada Pro anual", new BigDecimal("299.90"), 365);
         }
         if (PRO_MENSAL_RECORRENTE.equals(planoId)) {
-            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Rei da Pelada Pro mensal (cartão)", new BigDecimal("49.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Rei da Pelada Pro mensal (cartão)", new BigDecimal("39.90"), 30);
         }
         if (PRO_MENSAL.equals(planoId) || planoId == null || planoId.isBlank()) {
-            return new CatalogoPlano(PRO_MENSAL, "Rei da Pelada Pro mensal (Pix)", new BigDecimal("49.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL, "Rei da Pelada Pro mensal (Pix)", new BigDecimal("39.90"), 30);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano inválido");
     }
