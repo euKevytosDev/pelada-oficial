@@ -66,9 +66,9 @@ const PlanoApp = (() => {
     const corpo = nativo
       ? `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
-           <p class="paywall-lead">Faça o upgrade da conta</p>
+           <p class="paywall-lead">Recurso do organizador</p>
            <p class="paywall-msg">${escaparHtml(msg)}</p>
-           <p class="dica">No app Android a assinatura entra pela Play Store. O teste de 7 dias já vale nesta conta.</p>
+           <p class="dica">O Pro fica ligado à sua conta Google. Se a conta já tiver o Pro ativo, ele aparece neste app automaticamente. O teste de 7 dias já vale nesta conta.</p>
          </div>`
       : `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
@@ -164,7 +164,7 @@ const PlanoApp = (() => {
 
   async function assinar(planoId) {
     if (typeof isAppNativo === "function" && isAppNativo()) {
-      toast("No Android a cobrança entra pela Play Store. O teste Pro de 7 dias já vale nesta conta.");
+      toast("O Pro fica na conta Google. Se já estiver ativo, atualize o status do plano nas configurações.");
       return;
     }
     if (!getToken()) {
