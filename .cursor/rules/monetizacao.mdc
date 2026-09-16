@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Monetização
 
-- **Web:** Rei da Pelada Pro via **Mercado Pago**. Teste 7 dias. Mensal R$ 39,90 · anual R$ 299,90.
-- **Android (Play):** assinatura nativa via **Play Billing** (produto `reidapelada_pro`, planos `mensal` / `anual`). Validação no backend Oracle com service account Google.
+- **Web:** Rei da Pelada Pro via **Mercado Pago**. Teste 7 dias no 1º login. Mensal R$ 39,90 · anual R$ 299,90.
+- **Android (Play):** começa no **grátis** (sem trial automático). Assinatura via **Play Billing** (`reidapelada_pro`, planos `mensal` / `anual`) com oferta de **7 dias grátis** na Play. Validação no backend Oracle (OAuth / credenciais Google).
 - **iOS:** só pela web (mesmo login), por enquanto.
 - **Grátis:** elenco, sorteio **até 3 times**, placar, 1 cronômetro, gol, **ver** a súmula no fim. Histórico para ver súmula.
 - **Pro:** **4 e 5 times**, cartões amarelo/vermelho, **desempate nos pênaltis**, **PDF** da súmula, fotos no PDF, relatório do mês.

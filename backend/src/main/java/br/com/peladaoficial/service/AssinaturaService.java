@@ -81,7 +81,9 @@ public class AssinaturaService {
             if (!mudou) {
                 mudou = aplicarGratisTeste(usuario);
             }
-            if (!mudou && usuario.getTrialInicio() == null && !proAtivo(usuario)) {
+            // Web: 7 dias Pro no 1º login. Android: começa grátis; trial fica na oferta da Play.
+            if (!mudou && concederTrialAutomaticoNoCliente()
+                    && usuario.getTrialInicio() == null && !proAtivo(usuario)) {
                 LocalDateTime agora = LocalDateTime.now();
                 usuario.setTrialInicio(agora);
                 usuario.setPlano(PLANO_PRO);
@@ -94,6 +96,21 @@ public class AssinaturaService {
             }
         }
         return toMap(usuario);
+    }
+
+    /** Android envia X-Pelada-Client: android — não ganha trial automático no servidor. */
+    private boolean concederTrialAutomaticoNoCliente() {
+        try {
+            var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (!(attrs instanceof org.springframework.web.context.request.ServletRequestAttributes servletAttrs)) {
+                return true;
+            }
+            String client = servletAttrs.getRequest().getHeader("X-Pelada-Client");
+            if (client == null || client.isBlank()) return true;
+            return !"android".equalsIgnoreCase(client.trim());
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public boolean proAtivo(Usuario usuario) {

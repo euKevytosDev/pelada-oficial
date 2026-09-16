@@ -91,6 +91,7 @@ async function sessaoAindaValida() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        "X-Pelada-Client": isAppNativo() ? "android" : "web",
       },
     });
     if (resposta.status === 401 || resposta.status === 403) {
@@ -146,6 +147,7 @@ async function api(caminho, opcoes = {}) {
     try {
       const headers = {
         "Content-Type": "application/json",
+        "X-Pelada-Client": isAppNativo() ? "android" : "web",
         ...(opcoes.headers || {}),
       };
       const token = getToken();

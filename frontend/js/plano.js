@@ -29,6 +29,12 @@ const PlanoApp = (() => {
     });
     document.getElementById("plano-aviso-android")?.classList.toggle("oculto", !nativo);
     document.getElementById("plano-aviso-cortesia")?.classList.toggle("oculto", !a.cortesia);
+    const badge = document.querySelector(".plano-badge");
+    if (badge) {
+      badge.textContent = nativo
+        ? "7 dias grátis ao assinar na Play"
+        : "7 dias grátis no 1º login";
+    }
 
     if (!status) return;
     if (a.proAtivo) {
@@ -108,17 +114,18 @@ const PlanoApp = (() => {
                <p class="paywall-tag">Mais vantajoso</p>
                <strong>Anual</strong>
                <p class="paywall-preco">R$ 299,90<span>/ano</span></p>
-               <p class="paywall-equiv">~R$ 24,99/mês</p>
+               <p class="paywall-equiv">7 dias grátis · depois ~R$ 24,99/mês</p>
                <button type="button" class="btn btn-principal" id="paywall-btn-play-anual">Assinar na Play</button>
              </article>
              <article class="paywall-oferta">
                <strong>Mensal</strong>
                <p class="paywall-preco">R$ 39,90<span>/mês</span></p>
+               <p class="paywall-equiv">7 dias grátis · depois cobra</p>
                <button type="button" class="btn btn-principal" id="paywall-btn-play-mensal">Assinar na Play</button>
              </article>
            </div>
            <button type="button" class="btn btn-secundario" id="paywall-btn-play-restaurar">Restaurar compras</button>
-           <p class="dica">Pagamento pela Google Play. O teste de 7 dias já vale nesta conta.</p>
+           <p class="dica">Pagamento pela Google Play. Começa grátis; o teste de 7 dias entra ao assinar.</p>
          </div>`
       : `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
