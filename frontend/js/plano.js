@@ -16,6 +16,8 @@ const PlanoApp = (() => {
     const pro = !!a.proAtivo;
     document.getElementById("selo-pro")?.classList.toggle("oculto", !pro);
     document.querySelector(".topo")?.classList.toggle("topo-com-pro", pro);
+    document.body.classList.toggle("plano-gratis", !pro);
+    marcarBadgesPro(!pro);
 
     const status = document.getElementById("cfg-plano-status");
     const nativo = typeof isAppNativo === "function" && isAppNativo();
@@ -40,6 +42,25 @@ const PlanoApp = (() => {
     } else {
         status.textContent = "Plano grátis — até 3 times, sorteio, placar, gol e ver a súmula.";
     }
+  }
+
+  /** Selo dourado PRO no canto dos botões bloqueados (só no plano grátis). */
+  function marcarBadgesPro(mostrar) {
+    document.querySelectorAll("[data-pro-feature]").forEach((el) => {
+      el.classList.toggle("btn-pro-lock", !!mostrar);
+      let badge = el.querySelector(":scope > .btn-pro-tag");
+      if (!mostrar) {
+        badge?.remove();
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "btn-pro-tag";
+        badge.setAttribute("aria-hidden", "true");
+        badge.textContent = "PRO";
+        el.prepend(badge);
+      }
+    });
   }
 
   function abrir(origem) {

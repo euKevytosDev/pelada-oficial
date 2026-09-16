@@ -1494,6 +1494,43 @@ html[data-theme="dark"] .status-sync-fim.erro {
   color: #fff;
 }
 
+/* Selo PRO no canto — só no plano grátis */
+[data-pro-feature].btn-pro-lock {
+  position: relative;
+  overflow: visible;
+}
+
+.btn-pro-tag {
+  display: none;
+}
+
+[data-pro-feature].btn-pro-lock > .btn-pro-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  z-index: 2;
+  min-width: 28px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-family: var(--fonte-titulo);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: #5a3908;
+  background: linear-gradient(145deg, #fff4c2 0%, #f0d36a 45%, #d4a017 100%);
+  border: 1px solid #c4921c;
+  box-shadow:
+    0 1px 0 rgba(255, 248, 210, 0.9) inset,
+    0 2px 5px rgba(20, 12, 0, 0.28);
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 244, 196, 0.7);
+}
+
 textarea#texto-sumula-manual {
   width: 100%;
   min-height: 280px;

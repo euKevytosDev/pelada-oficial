@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260915e" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260915g" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -155,7 +155,7 @@
           <ul class="lista lista-historico" id="lista-historico-home"></ul>
           <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico
             completo</button>
-          <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal">Relatório do mês</button>
+          <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal" data-pro-feature>Relatório do mês</button>
         </div>
         <form id="form-nova-pelada" class="card-form">
           <label>
@@ -174,7 +174,7 @@
           <button type="submit" class="btn btn-principal">Começar pelada</button>
         </form>
         <p class="dica">Vitória 3 pts · Empate 1 · Derrota 0</p>
-        <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-inicio">Relatório do mês</button>
+        <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-inicio" data-pro-feature>Relatório do mês</button>
       </section>
 
       <section class="tela" id="tela-configuracoes">
@@ -227,7 +227,7 @@
         <div class="card-form config-bloco">
           <h3 class="config-titulo">Ferramentas</h3>
           <button type="button" class="btn btn-secundario btn-block" id="cfg-historico">Histórico de peladas</button>
-          <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal">Relatório do mês</button>
+          <button type="button" class="btn btn-secundario btn-block" id="cfg-relatorio-mensal" data-pro-feature>Relatório do mês</button>
           <button type="button" class="btn btn-secundario btn-block oculto" id="cfg-sumula">Gerar súmula (colar texto)</button>
         </div>
 
@@ -397,7 +397,7 @@
         </div>
 
         <div class="acoes-share no-print">
-          <button type="button" class="btn btn-principal" id="btn-pdf-mensal">Baixar PDF</button>
+          <button type="button" class="btn btn-principal" id="btn-pdf-mensal" data-pro-feature>Baixar PDF</button>
         </div>
         <div id="resumo-mensal-oficial" class="resumo-oficial"></div>
       </section>
@@ -522,8 +522,8 @@
         <div class="acoes-evento quatro">
           <button type="button" class="btn btn-gol" data-evento="GOL">Gol</button>
           <button type="button" class="btn btn-contra" data-evento="GOL_CONTRA">Gol contra</button>
-          <button type="button" class="btn btn-amarelo" data-evento="CARTAO_AMARELO">Amarelo</button>
-          <button type="button" class="btn btn-vermelho" data-evento="CARTAO_VERMELHO">Vermelho</button>
+          <button type="button" class="btn btn-amarelo" data-evento="CARTAO_AMARELO" data-pro-feature>Amarelo</button>
+          <button type="button" class="btn btn-vermelho" data-evento="CARTAO_VERMELHO" data-pro-feature>Vermelho</button>
         </div>
 
         <ul class="lista eventos" id="lista-eventos"></ul>
@@ -572,7 +572,7 @@
         <button type="button" class="btn-voltar-suave no-print" id="btn-voltar-inicio-fim">← Voltar ao início</button>
         <p id="status-sync-fim" class="status-sync-fim no-print oculto" role="status"></p>
         <div class="acoes-share no-print">
-          <button type="button" class="btn btn-principal" id="btn-pdf">Baixar PDF</button>
+          <button type="button" class="btn btn-principal" id="btn-pdf" data-pro-feature>Baixar PDF</button>
         </div>
 
         <div class="card-form no-print oculto" id="box-desempatar-penaltis">
@@ -655,7 +655,7 @@
   <script src="js/api.js?v=20260915c"></script>
   <script src="js/config.js?v=20260828c"></script>
   <script src="js/play-billing.js?v=20260915d"></script>
-  <script src="js/plano.js?v=20260915e"></script>
+  <script src="js/plano.js?v=20260915g"></script>
   <script src="js/local-jogo.js?v=20260915f"></script>
   <script src="js/premio-fotos.js?v=20260910a"></script>
   <script src="js/pdf-download.js?v=20260901i"></script>
