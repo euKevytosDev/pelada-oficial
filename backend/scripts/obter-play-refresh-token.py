@@ -18,7 +18,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 PORT = 8765
-REDIRECT = f"http://127.0.0.1:{PORT}"
+# Cliente tipo "Computador" aceita loopback; não precisa cadastrar URI na Console.
+REDIRECT = f"http://localhost:{PORT}"
 
 
 def main() -> int:
