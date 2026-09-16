@@ -82,7 +82,6 @@ function linhasDetalhePartida(partida) {
   return linhas;
 }
 
-/** Texto para WhatsApp (linhas com quebra). */
 function textoDetalhePartida(partida) {
   return linhasDetalhePartida(partida).join("\n   ");
 }
@@ -566,115 +565,6 @@ function renderResumoOficial(resumo) {
   if (typeof PenaltisApp !== "undefined") {
     PenaltisApp.atualizarBotaoDesempate(resumo);
   }
-}
-
-function textoResumoWhatsApp(resumo) {
-  const p = resumo.pelada || {};
-  const linhas = [];
-  linhas.push(`*${p.nome || "Minha pelada"}*`);
-  linhas.push(`📅 ${formatarDataBr(p.encerradaEm || p.criadaEm)}`);
-  linhas.push("");
-  linhas.push("*Classificação*");
-  (resumo.classificacao || []).forEach((t) => {
-    linhas.push(`${t.posicao}º ${t.nome} — ${t.pontos} pts (V${t.vitorias} E${t.empates} D${t.derrotas}) SG ${t.saldo}`);
-  });
-
-  const premios = resumo.premios || {};
-  linhas.push("");
-  linhas.push("*Premiação*");
-  if (premios.campeao) linhas.push(`🏆 Time Campeão: ${premios.campeao.nome}`);
-  if (resumo.penaltis?.campeao) {
-    linhas.push(
-      `⚽ Pênaltis: ${resumo.penaltis.timeA} ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} ${resumo.penaltis.timeB}`
-    );
-  }
-  const artilheiro = premios.artilheiro || premios.bolaDeOuro;
-  if (artilheiro) {
-    linhas.push(`⚽ Artilheiro: ${artilheiro.nome} (${artilheiro.detalhe})`);
-  }
-  if (premios.craque) {
-    linhas.push(`⭐ Craque: ${premios.craque.nome} (${premios.craque.detalhe})`);
-  }
-  if (premios.garcom) {
-    linhas.push(`🎯 Garçom: ${premios.garcom.nome} (${premios.garcom.detalhe})`);
-  }
-  const luva = luvaDeOuroExibicao(premios);
-  if (luva) {
-    linhas.push(`🧤 Luva de Ouro: ${luva.nome}${luva.detalhe ? ` (${luva.detalhe})` : ""}`);
-  }
-
-  const artilheiros = artilheirosLideres(resumo.artilharia);
-  if (artilheiros.length) {
-    linhas.push("");
-    linhas.push("*Artilharia*");
-    artilheiros.forEach((a) => linhas.push(`• ${a.nome}: ${a.gols || a.quantidade}`));
-  }
-
-  if ((resumo.golsSofridos || []).length) {
-    linhas.push("");
-    linhas.push("*Gols sofridos (GK)*");
-    resumo.golsSofridos.forEach((g) => linhas.push(`• ${g.nome}: ${g.quantidade}`));
-  }
-
-  if ((resumo.cartoesAmarelos || []).length) {
-    linhas.push("");
-    linhas.push(`*Amarelos (${resumo.totalAmarelos})*`);
-    resumo.cartoesAmarelos.forEach((c) => linhas.push(`• ${c.nome}: ${c.quantidade}`));
-  }
-  if ((resumo.cartoesVermelhos || []).length) {
-    linhas.push("");
-    linhas.push(`*Vermelhos (${resumo.totalVermelhos})*`);
-    resumo.cartoesVermelhos.forEach((c) => linhas.push(`• ${c.nome}: ${c.quantidade}`));
-  }
-  if ((resumo.golsContra || []).length) {
-    linhas.push("");
-    linhas.push("*Gols contra*");
-    resumo.golsContra.forEach((c) => linhas.push(`• ${c.nome}: ${c.quantidade}`));
-  }
-  if ((resumo.observacoes || []).length) {
-    linhas.push("");
-    linhas.push("*Observações*");
-    resumo.observacoes.forEach((o) => {
-      const hora = o.horario ? ` às ${o.horario}` : "";
-      const extra = o.texto ? ` — ${o.texto}` : "";
-      linhas.push(`• ${o.tipo === "ATRASO" ? "Atraso" : o.tipo}: ${o.jogadorNome}${hora}${extra}`);
-    });
-  }
-
-  if ((resumo.partidas || []).length) {
-    linhas.push("");
-    linhas.push("*Partidas*");
-    resumo.partidas.forEach((m) => {
-      const lances = linhasDetalhePartida(m);
-      linhas.push(
-        `${String(m.numero).padStart(2, "0")}ª ${m.timeA} ${m.golsA} x ${m.golsB} ${m.timeB}`
-      );
-      lances.forEach((l) => linhas.push(`   ${l}`));
-    });
-  }
-
-  linhas.push("");
-  linhas.push("_Rei da Pelada_");
-  return linhas.join("\n");
-}
-
-async function compartilharWhatsApp(resumo) {
-  const texto = textoResumoWhatsApp(resumo);
-  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
-  window.open(url, "_blank");
-}
-
-async function compartilharNativo(resumo) {
-  const texto = textoResumoWhatsApp(resumo);
-  if (navigator.share) {
-    await navigator.share({
-      title: resumo.pelada?.nome || "Minha pelada",
-      text: texto,
-    });
-    return;
-  }
-  await navigator.clipboard.writeText(texto);
-  toast("Resumo copiado! Cole no WhatsApp.");
 }
 
 async function baixarPdfResumo() {

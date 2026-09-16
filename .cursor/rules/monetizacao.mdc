@@ -9,7 +9,7 @@ alwaysApply: true
 - **Android (Play):** assinatura nativa via **Play Billing** (produto `reidapelada_pro`, planos `mensal` / `anual`). Validação no backend Oracle com service account Google.
 - **iOS:** só pela web (mesmo login), por enquanto.
 - **Grátis:** elenco, sorteio **até 3 times**, placar, 1 cronômetro, gol, **ver** a súmula no fim. Histórico para ver súmula.
-- **Pro:** **4 e 5 times**, cartões, **PDF**, fotos, WhatsApp da súmula, relatório do mês.
+- **Pro:** **4 e 5 times**, cartões, **PDF**, fotos, relatório do mês.
 - Não abrir paywall ao entrar no app. Só quando o usuário toca em recurso Pro.
 - No app Android, checkout é pela Play (não abrir Mercado Pago / link de site).
 - Ver `docs/PLAY-BILLING.md` para IDs e credenciais.

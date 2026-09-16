@@ -3611,17 +3611,6 @@ document.getElementById("btn-pdf")?.addEventListener("click", async () => {
   }
 });
 
-document.getElementById("btn-whats-resumo")?.addEventListener("click", () => {
-  if (!estado.resumoAtual) {
-    toast("Abra a súmula primeiro");
-    return;
-  }
-  if (typeof PlanoApp !== "undefined" && !PlanoApp.exigirPro("Para compartilhar a súmula no WhatsApp, faça o upgrade para o Rei da Pelada Pro")) {
-    return;
-  }
-  compartilharWhatsApp(estado.resumoAtual);
-});
-
 function abrirTelaSumulaManual() {
   if (!podeSumulaManual()) {
     toast("Essa ferramenta não está disponível nesta conta");
@@ -3647,7 +3636,7 @@ function gerarSumulaManualAgora() {
     if (boxAtraso) boxAtraso.classList.add("oculto");
     renderResumoOficial(resumo);
     mostrarTela("tela-fim");
-    toast("Súmula pronta — PDF, planilha ou WhatsApp");
+    toast("Súmula pronta — baixe o PDF");
   } catch (err) {
     toast(err.message || "Não deu para ler o texto");
   }

@@ -100,41 +100,6 @@ function paramsRelatorioAtual() {
   };
 }
 
-function textoRelatorioMensalWhatsApp(rel) {
-  const linhas = [];
-  linhas.push(`*${rel.titulo || "Relatório"}*`);
-  const peladas = rel.peladasNoPeriodo ?? rel.peladasNoMes ?? 0;
-  const partidas = rel.partidasNoPeriodo ?? rel.partidasNoMes ?? 0;
-  linhas.push(`${peladas} pelada(s) · ${partidas} partida(s) · ${rel.totalGols || 0} gols`);
-  linhas.push("");
-  const p = rel.premios || {};
-  linhas.push("*Destaques*");
-  if (p.campeao) linhas.push(`🏆 Campeão: ${p.campeao.nome} (${p.campeao.detalhe})`);
-  if (p.artilheiro) linhas.push(`⚽ Artilheiro: ${p.artilheiro.nome} (${p.artilheiro.detalhe})`);
-  if (p.garcom) linhas.push(`🎯 Garçom: ${p.garcom.nome} (${p.garcom.detalhe})`);
-  if (p.craque) linhas.push(`⭐ Craque: ${p.craque.nome} (${p.craque.detalhe})`);
-  if (p.luvaDeOuro) linhas.push(`🧤 Goleiro campeão: ${p.luvaDeOuro.nome} (${p.luvaDeOuro.detalhe})`);
-  if (p.cartolaAmarela) linhas.push(`🟨 Amarelos: ${p.cartolaAmarela.nome} (${p.cartolaAmarela.detalhe})`);
-  if (p.expulsoes) linhas.push(`🟥 Vermelhos: ${p.expulsoes.nome} (${p.expulsoes.detalhe})`);
-  if (p.fairPlay) linhas.push(`🤝 Fair play: ${(p.fairPlay.nomes || [p.fairPlay.nome]).join(", ")}`);
-  const top = (lista, titulo, campo) => {
-    const arr = (lista || []).slice(0, 8);
-    if (!arr.length) return;
-    linhas.push("");
-    linhas.push(`*${titulo}*`);
-    arr.forEach((i) => linhas.push(`• ${i.nome}: ${i[campo] ?? i.quantidade}`));
-  };
-  top(rel.campeoes, "Campeões (peladas ganhas)", "vitorias");
-  top(rel.artilharia, "Artilharia", "gols");
-  top(rel.garcons, "Assistências", "quantidade");
-  top(rel.goleiros, "Goleiros campeões", "vitorias");
-  top(rel.amarelos, "Amarelos", "quantidade");
-  top(rel.vermelhos, "Vermelhos", "quantidade");
-  linhas.push("");
-  linhas.push("_Rei da Pelada — relatório_");
-  return linhas.join("\n");
-}
-
 function renderRelatorioMensal(rel) {
   const el = document.getElementById("resumo-mensal-oficial");
   if (!el || !rel) return;
@@ -291,17 +256,5 @@ function initRelatorioMensal() {
     } catch (err) {
       toast(err.message || "Não foi possível gerar o PDF");
     }
-  });
-  document.getElementById("btn-whats-mensal")?.addEventListener("click", () => {
-    const rel = estado.relatorioMensalAtual;
-    if (!rel) return;
-    if (
-      typeof PlanoApp !== "undefined" &&
-      !PlanoApp.exigirPro("Para compartilhar o relatório no WhatsApp, faça o upgrade para o Rei da Pelada Pro")
-    ) {
-      return;
-    }
-    const texto = textoRelatorioMensalWhatsApp(rel);
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   });
 }
