@@ -364,14 +364,15 @@ public class AssinaturaService {
     }
 
     private CatalogoPlano resolverPlano(String planoId) {
+        // Títulos enviados ao Mercado Pago: sem a palavra "pelada" (política do MP).
         if (PRO_ANUAL.equals(planoId)) {
-            return new CatalogoPlano(PRO_ANUAL, "Rei da Pelada Pro anual", new BigDecimal("299.90"), 365);
+            return new CatalogoPlano(PRO_ANUAL, "Rei do Fut Oficial Pro anual", new BigDecimal("299.90"), 365);
         }
         if (PRO_MENSAL_RECORRENTE.equals(planoId)) {
-            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Rei da Pelada Pro mensal (cartão)", new BigDecimal("39.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL_RECORRENTE, "Rei do Fut Oficial Pro mensal", new BigDecimal("39.90"), 30);
         }
         if (PRO_MENSAL.equals(planoId) || planoId == null || planoId.isBlank()) {
-            return new CatalogoPlano(PRO_MENSAL, "Rei da Pelada Pro mensal (Pix)", new BigDecimal("39.90"), 30);
+            return new CatalogoPlano(PRO_MENSAL, "Rei do Fut Oficial Pro mensal Pix", new BigDecimal("39.90"), 30);
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Plano inválido");
     }

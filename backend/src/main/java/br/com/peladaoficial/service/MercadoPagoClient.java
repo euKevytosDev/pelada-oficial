@@ -49,6 +49,7 @@ public class MercadoPagoClient {
         body.put("items", List.of(item));
         body.put("external_reference", externalRef);
         body.put("notification_url", notificationUrl);
+        body.put("statement_descriptor", "REI DO FUT");
         body.put("auto_return", "approved");
         body.put("back_urls", Map.of(
                 "success", successUrl,
