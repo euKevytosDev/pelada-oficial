@@ -99,6 +99,12 @@ const PenaltisApp = (() => {
   }
 
   function abrir(resumo) {
+    if (
+      typeof PlanoApp !== "undefined" &&
+      !PlanoApp.exigirPro("Desempate nos pênaltis faz parte do Rei da Pelada Pro. Faça o upgrade para liberar.")
+    ) {
+      return;
+    }
     const empatados = timesEmpatadosNoTopo(resumo?.classificacao);
     if (empatados.length < 2) {
       toast("Não há empate em pontos no topo da tabela");
@@ -581,6 +587,7 @@ const PenaltisApp = (() => {
     if (!btn || !box) return;
     const mostra = precisaDesempatar(resumo) && !resumo?.penaltis?.campeao;
     box.classList.toggle("oculto", !mostra);
+    if (mostra && typeof PlanoApp !== "undefined") PlanoApp.pintar();
   }
 
   let bound = false;
@@ -591,6 +598,12 @@ const PenaltisApp = (() => {
     document.getElementById("btn-desempatar-penaltis")?.addEventListener("click", () => {
       if (!estado.resumoAtual) {
         toast("Abra a súmula primeiro");
+        return;
+      }
+      if (
+        typeof PlanoApp !== "undefined" &&
+        !PlanoApp.exigirPro("Desempate nos pênaltis faz parte do Rei da Pelada Pro. Faça o upgrade para liberar.")
+      ) {
         return;
       }
       abrir(estado.resumoAtual);
