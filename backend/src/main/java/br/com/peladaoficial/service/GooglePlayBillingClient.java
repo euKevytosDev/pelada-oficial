@@ -3,6 +3,7 @@ package br.com.peladaoficial.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,30 +28,46 @@ import java.util.Locale;
 
 /**
  * Valida purchaseToken de assinatura com a Google Play Developer API (subscriptionsv2).
+ * Aceita service account (JSON) ou OAuth do dono do Play (client + refresh token).
  */
 @Service
 public class GooglePlayBillingClient {
 
     public static final String PACKAGE_PADRAO = "com.rkds.reidapelada";
     public static final String PRODUCT_ID = "reidapelada_pro";
+    private static final String SCOPE = "https://www.googleapis.com/auth/androidpublisher";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
     private final String credentialsJson;
     private final String credentialsPath;
+    private final String oauthClientId;
+    private final String oauthClientSecret;
+    private final String oauthRefreshToken;
     private final String packageName;
 
     public GooglePlayBillingClient(@Value("${app.play.credentials-json:}") String credentialsJson,
                                    @Value("${app.play.credentials-path:}") String credentialsPath,
+                                   @Value("${app.play.oauth-client-id:}") String oauthClientId,
+                                   @Value("${app.play.oauth-client-secret:}") String oauthClientSecret,
+                                   @Value("${app.play.oauth-refresh-token:}") String oauthRefreshToken,
                                    @Value("${app.play.package-name:com.rkds.reidapelada}") String packageName) {
         this.credentialsJson = credentialsJson;
         this.credentialsPath = credentialsPath;
+        this.oauthClientId = oauthClientId;
+        this.oauthClientSecret = oauthClientSecret;
+        this.oauthRefreshToken = oauthRefreshToken;
         this.packageName = packageName == null || packageName.isBlank() ? PACKAGE_PADRAO : packageName;
     }
 
     public boolean configurado() {
+        if (oauthOk()) return true;
         return (credentialsJson != null && !credentialsJson.isBlank())
                 || (credentialsPath != null && !credentialsPath.isBlank() && Files.isRegularFile(Path.of(credentialsPath)));
+    }
+
+    private boolean oauthOk() {
+        return notBlank(oauthClientId) && notBlank(oauthClientSecret) && notBlank(oauthRefreshToken);
     }
 
     public String packageName() {
@@ -124,15 +141,19 @@ public class GooglePlayBillingClient {
 
     private String accessToken() throws IOException {
         GoogleCredentials credentials;
-        if (credentialsJson != null && !credentialsJson.isBlank()) {
+        if (oauthOk()) {
+            credentials = UserCredentials.newBuilder()
+                    .setClientId(oauthClientId.trim())
+                    .setClientSecret(oauthClientSecret.trim())
+                    .setRefreshToken(oauthRefreshToken.trim())
+                    .build();
+        } else if (credentialsJson != null && !credentialsJson.isBlank()) {
             try (InputStream in = new ByteArrayInputStream(credentialsJson.getBytes(StandardCharsets.UTF_8))) {
-                credentials = GoogleCredentials.fromStream(in)
-                        .createScoped(List.of("https://www.googleapis.com/auth/androidpublisher"));
+                credentials = GoogleCredentials.fromStream(in).createScoped(List.of(SCOPE));
             }
         } else {
             try (InputStream in = Files.newInputStream(Path.of(credentialsPath))) {
-                credentials = GoogleCredentials.fromStream(in)
-                        .createScoped(List.of("https://www.googleapis.com/auth/androidpublisher"));
+                credentials = GoogleCredentials.fromStream(in).createScoped(List.of(SCOPE));
             }
         }
         credentials.refreshIfExpired();
@@ -140,6 +161,10 @@ public class GooglePlayBillingClient {
             credentials.refresh();
         }
         return credentials.getAccessToken().getTokenValue();
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
     }
 
     private static String text(JsonNode node, String field) {

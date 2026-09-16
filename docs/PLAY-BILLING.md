@@ -20,56 +20,38 @@ Oferta opcional: teste grátis de **7 dias** em cada plano (ou no produto).
 
 Sem isso a compra na Play abre, mas o Pro **não ativa** (`checkoutPlay: false`).
 
-### 1) Google Cloud — Service Account
+Há **duas** formas. Se a criação de chave de service account estiver bloqueada pela política
+`iam.disableServiceAccountKeyCreation`, use o **caminho OAuth** (recomendado neste projeto).
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → projeto ligado ao Play (ou crie um)
-2. **IAM e administrador** → **Contas de serviço** → **Criar**
-   - Nome: `pelada-play-billing`
-3. Em **Chaves** → **Adicionar chave** → **JSON** → baixe o arquivo
-4. IAM da conta: permissão **não** precisa no GCP além da chave; o vínculo é na Play
+### Caminho A — OAuth do dono do Play (sem service account key)
 
-### 2) Play Console — liberar a API
-
-1. Play Console → **Configuração** → **Acesso à API**
-2. Vincule o projeto Google Cloud (se ainda não)
-3. Em **Contas de serviço**, conceda acesso à e-mail da service account
-   - Permissão mínima: **Ver dados financeiros** / gerenciar pedidos e assinaturas  
-     (ou o papel “Admin” de contas de serviço, se a UI for essa)
-
-Aguarde alguns minutos após vincular (às vezes até algumas horas).
-
-### 3) Subir o JSON na VM
-
-No Mac (ajuste o caminho do JSON baixado e da chave SSH):
+1. Google Cloud → ative a API **Google Play Android Developer API**
+2. Crie um cliente OAuth tipo **Aplicativo para computador**
+3. No cliente, adicione URI de redirecionamento: `http://127.0.0.1:8765`
+4. No Mac, gere o refresh token (conta **dona** do Play Console):
 
 ```bash
-scp -i ~/Downloads/ssh-key-2026-08-12.key \
-  ~/Downloads/seu-arquivo-service-account.json \
-  ubuntu@147.15.38.121:/home/ubuntu/pelada/secrets/play-service-account.json
+python3 backend/scripts/obter-play-refresh-token.py \
+  ~/Downloads/client_secret_....json
 ```
 
-Na VM:
-
-```bash
-ssh -i ~/Downloads/ssh-key-2026-08-12.key ubuntu@147.15.38.121
-sudo mkdir -p /home/ubuntu/pelada/secrets
-sudo chmod 700 /home/ubuntu/pelada/secrets
-sudo chmod 600 /home/ubuntu/pelada/secrets/play-service-account.json
-```
-
-Crie `/home/ubuntu/pelada/play.env` (só o caminho; **não** cole o JSON no chat):
+5. Play Console → **Configuração → Acesso à API** → vincule o mesmo projeto Cloud
+6. No servidor, `/home/ubuntu/pelada/play.env`:
 
 ```bash
 APP_PLAY_PACKAGE_NAME=com.rkds.reidapelada
-APP_PLAY_CREDENTIALS_PATH=/secrets/play-service-account.json
+APP_PLAY_OAUTH_CLIENT_ID=....apps.googleusercontent.com
+APP_PLAY_OAUTH_CLIENT_SECRET=GOCSPX-....
+APP_PLAY_OAUTH_REFRESH_TOKEN=1//....
 ```
 
-### 4) Recriar o container com o volume
+7. Recrie o container com `--env-file play.env` (script `aplicar-play-billing-oracle.sh`).
 
-O container `pelada-api` precisa montar o JSON e carregar `play.env`.
-Use o script `backend/scripts/aplicar-play-billing-oracle.sh` (roda na VM) ou peça ao assistente depois que o JSON estiver em `~/pelada/secrets/`.
+### Caminho B — Service account (se a política permitir chave JSON)
 
-Reinicie o backend. Confirme no app (logado) que `/api/me` traz `checkoutPlay: true`.
+1. Conta de serviço + chave JSON
+2. Play Console → Acesso à API → conceder acesso à service account
+3. `APP_PLAY_CREDENTIALS_PATH=/secrets/play-service-account.json` no `play.env`
 
 ## Teste
 
