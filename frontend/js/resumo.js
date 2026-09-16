@@ -151,10 +151,12 @@ function listaObservacoes(itens) {
   if (!itens || !itens.length) return `<p class="vazio">Nenhuma observação.</p>`;
   return `<ul class="lista-resumo">${itens
     .map((o) => {
-      const hora = o.horario ? ` às ${o.horario}` : "";
-      const extra = o.texto ? ` — ${o.texto}` : "";
-      const tipo = o.tipo === "ATRASO" ? "Atraso" : o.tipo || "Obs.";
-      return `<li><span><strong>${tipo}:</strong> ${o.jogadorNome || "?"}${hora}${extra}</span></li>`;
+      const partes = [];
+      if (o.jogadorNome) partes.push(o.jogadorNome);
+      if (o.texto) partes.push(o.texto);
+      if (o.horario) partes.push(`às ${o.horario}`);
+      const linha = partes.join(" — ") || "Observação";
+      return `<li><span>${linha}</span></li>`;
     })
     .join("")}</ul>`;
 }

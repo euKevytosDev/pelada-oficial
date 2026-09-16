@@ -305,10 +305,10 @@ public class SyncCompletaService {
                     : buscar(jogadores, item.getJogadorClientId(), "jogador da observação");
             String horario = textoOuNull(item.getHorario());
             String texto = textoOuNull(item.getTexto());
-            if (horario == null && texto == null) {
-                throw erro("Informe o horário ou texto da observação");
+            if (texto == null) {
+                throw erro("Digite o texto da observação");
             }
-            String tipo = valorOuPadrao(item.getTipo(), "ATRASO").toUpperCase();
+            String tipo = valorOuPadrao(item.getTipo(), "OBSERVACAO").toUpperCase();
             observacaoRepository.save(new ObservacaoPelada(pelada, jogador, tipo, horario, texto));
         }
     }

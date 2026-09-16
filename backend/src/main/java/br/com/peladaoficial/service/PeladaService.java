@@ -733,10 +733,13 @@ public class PeladaService {
     @Transactional
     public ObservacaoPelada adicionarObservacao(Long peladaId, ObservacaoRequest request) {
         Pelada pelada = buscar(peladaId);
-        Jogador jogador = jogadorRepository.findById(request.getJogadorId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
-        if (!jogador.getPelada().getId().equals(peladaId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+        Jogador jogador = null;
+        if (request.getJogadorId() != null) {
+            jogador = jogadorRepository.findById(request.getJogadorId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jogador não encontrado"));
+            if (!jogador.getPelada().getId().equals(peladaId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Jogador não pertence a esta pelada");
+            }
         }
 
         String horario = request.getHorario() != null ? request.getHorario().trim() : null;
@@ -747,13 +750,13 @@ public class PeladaService {
         if (texto != null && texto.isEmpty()) {
             texto = null;
         }
-        if (horario == null && texto == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o horário ou uma observação");
+        if (texto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Digite a observação");
         }
 
         String tipo = request.getTipo() != null && !request.getTipo().isBlank()
                 ? request.getTipo().trim().toUpperCase()
-                : "ATRASO";
+                : "OBSERVACAO";
 
         return observacaoRepository.save(new ObservacaoPelada(pelada, jogador, tipo, horario, texto));
     }

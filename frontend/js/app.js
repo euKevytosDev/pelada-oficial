@@ -2397,9 +2397,11 @@ async function carregarObservacoes(listaId, selectId) {
     : await PeladaAPI.listarObservacoes(estado.peladaId);
 
   if (select) {
-    select.innerHTML = jogadores
-      .map((j) => `<option value="${j.id}">${j.nome}${j.goleiro ? " (GK)" : ""}</option>`)
-      .join("");
+    const opcoes = [`<option value="">—</option>`].concat(
+      jogadores.map((j) => `<option value="${j.id}">${j.nome}${j.goleiro ? " (GK)" : ""}</option>`)
+    );
+    select.innerHTML = opcoes.join("");
+    select.value = "";
   }
 
   if (lista) {
@@ -2408,11 +2410,10 @@ async function carregarObservacoes(listaId, selectId) {
     } else {
       lista.innerHTML = observacoes
         .map((o) => {
-          const hora = o.horario ? ` às ${o.horario}` : "";
-          const extra = o.texto ? ` — ${o.texto}` : "";
+          const linha = formatarLinhaObservacao(o);
           return `
         <li>
-          <span>${o.tipo === "ATRASO" ? "Atraso" : o.tipo}: ${o.jogadorNome}${hora}${extra}</span>
+          <span>${linha}</span>
           <button type="button" class="btn-apagar" data-obs-id="${o.id}">Apagar</button>
         </li>`;
         })
@@ -2421,38 +2422,44 @@ async function carregarObservacoes(listaId, selectId) {
   }
 }
 
+function formatarLinhaObservacao(o) {
+  const partes = [];
+  if (o.jogadorNome) partes.push(o.jogadorNome);
+  if (o.texto) partes.push(o.texto);
+  if (o.horario) partes.push(`às ${o.horario}`);
+  return partes.join(" — ") || "Observação";
+}
+
 async function salvarAtraso(sufixo = "") {
-  const jogadorId = document.getElementById(`atraso-jogador${sufixo}`).value;
-  const horario = document.getElementById(`atraso-horario${sufixo}`).value;
+  const selectEl = document.getElementById(`atraso-jogador${sufixo}`);
+  const jogadorId = (selectEl?.value || "").trim();
   const texto = document.getElementById(`atraso-texto${sufixo}`).value.trim();
-  if (!jogadorId) {
-    toast("Escolha o jogador");
-    return;
-  }
-  if (!horario && !texto) {
-    toast("Informe o horário ou uma nota");
+  if (!texto) {
+    toast("Digite a observação");
     return;
   }
   if (LocalJogo.temJogoLocal()) {
-    const jogador = LocalJogo.listarJogadores().find((j) => String(j.id) === String(jogadorId));
+    const jogador = jogadorId
+      ? LocalJogo.listarJogadores().find((j) => String(j.id) === String(jogadorId))
+      : null;
     LocalJogo.adicionarObservacaoLocal({
-      jogadorId,
-      jogadorNome: jogador?.nome || "Jogador",
-      tipo: "ATRASO",
-      horario: horario || null,
-      texto: texto || null,
+      jogadorId: jogadorId || null,
+      jogadorNome: jogador?.nome || null,
+      tipo: "OBSERVACAO",
+      horario: null,
+      texto,
     });
   } else {
     await PeladaAPI.adicionarObservacao(estado.peladaId, {
-      jogadorId,
-      tipo: "ATRASO",
-      horario: horario || null,
-      texto: texto || null,
+      jogadorId: jogadorId ? Number(jogadorId) : null,
+      tipo: "OBSERVACAO",
+      horario: null,
+      texto,
     });
   }
-  document.getElementById(`atraso-horario${sufixo}`).value = "";
+  if (selectEl) selectEl.value = "";
   document.getElementById(`atraso-texto${sufixo}`).value = "";
-  toast("Atraso registrado");
+  toast("Observação salva");
 
   await carregarObservacoes(
     sufixo === "-fim" ? null : "lista-observacoes",
@@ -2460,6 +2467,10 @@ async function salvarAtraso(sufixo = "") {
   );
   if (sufixo === "-fim" && !LocalJogo.temJogoLocal()) {
     const resumo = await PeladaAPI.resumo(estado.peladaId);
+    estado.resumoAtual = resumo;
+    renderResumoOficial(resumo);
+  } else if (sufixo === "-fim" && LocalJogo.temJogoLocal()) {
+    const resumo = LocalJogo.montarResumoLocal();
     estado.resumoAtual = resumo;
     renderResumoOficial(resumo);
   }

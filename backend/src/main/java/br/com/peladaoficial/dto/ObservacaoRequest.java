@@ -1,18 +1,16 @@
 package br.com.peladaoficial.dto;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class ObservacaoRequest {
 
-    @NotNull
     private Long jogadorId;
 
-    /** ATRASO (padrão) ou OUTRO. */
+    /** OBSERVACAO (padrão) ou ATRASO (legado). */
     @Size(max = 30)
-    private String tipo = "ATRASO";
+    private String tipo = "OBSERVACAO";
 
-    /** Ex.: 19:15 */
+    /** Legado — não usado na UI atual. */
     @Size(max = 10)
     private String horario;
 

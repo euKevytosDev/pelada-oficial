@@ -547,20 +547,18 @@
         </div>
 
         <div class="card-form" id="box-atraso">
-          <h2 class="lista-titulo" style="margin-top:0">Observação / atraso</h2>
+          <h2 class="lista-titulo" style="margin-top:0">Observação</h2>
           <label>
-            Jogador
-            <select id="atraso-jogador"></select>
+            Jogador (opcional)
+            <select id="atraso-jogador">
+              <option value="">—</option>
+            </select>
           </label>
           <label>
-            Horário
-            <input type="time" id="atraso-horario" />
+            Observação
+            <input type="text" id="atraso-texto" maxlength="200" placeholder="Ex.: campo molhado, troca de goleiro..." />
           </label>
-          <label>
-            Nota (opcional)
-            <input type="text" id="atraso-texto" maxlength="200" placeholder="Ex: chegou atrasado" />
-          </label>
-          <button type="button" class="btn btn-secundario" id="btn-salvar-atraso">Salvar atraso</button>
+          <button type="button" class="btn btn-secundario" id="btn-salvar-atraso">Salvar observação</button>
           <ul class="lista" id="lista-observacoes"></ul>
         </div>
 
@@ -591,18 +589,16 @@
 
 
         <div class="card-form no-print" id="box-atraso-fim">
-          <h2 class="lista-titulo" style="margin-top:0">Adicionar atraso na súmula</h2>
+          <h2 class="lista-titulo" style="margin-top:0">Adicionar observação na súmula</h2>
           <label>
-            Jogador
-            <select id="atraso-jogador-fim"></select>
+            Jogador (opcional)
+            <select id="atraso-jogador-fim">
+              <option value="">—</option>
+            </select>
           </label>
           <label>
-            Horário
-            <input type="time" id="atraso-horario-fim" />
-          </label>
-          <label>
-            Nota (opcional)
-            <input type="text" id="atraso-texto-fim" maxlength="200" placeholder="Ex: chegou atrasado" />
+            Observação
+            <input type="text" id="atraso-texto-fim" maxlength="200" placeholder="Ex.: campo molhado, troca de goleiro..." />
           </label>
           <button type="button" class="btn btn-secundario" id="btn-salvar-atraso-fim">Incluir na súmula</button>
         </div>
@@ -660,14 +656,14 @@
   <script src="js/config.js?v=20260828c"></script>
   <script src="js/play-billing.js?v=20260915d"></script>
   <script src="js/plano.js?v=20260915e"></script>
-  <script src="js/local-jogo.js?v=20260901c"></script>
+  <script src="js/local-jogo.js?v=20260915f"></script>
   <script src="js/premio-fotos.js?v=20260910a"></script>
   <script src="js/pdf-download.js?v=20260901i"></script>
-  <script src="js/resumo.js?v=20260915e"></script>
+  <script src="js/resumo.js?v=20260915f"></script>
   <script src="js/relatorio-mensal.js?v=20260915e"></script>
   <script src="js/sumula-manual.js?v=20260828c"></script>
   <script src="js/penaltis.js?v=20260909f"></script>
-  <script src="js/app.js?v=20260915e"></script>
+  <script src="js/app.js?v=20260915f"></script>
 </body>
 
 </html>

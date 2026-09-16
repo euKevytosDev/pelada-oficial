@@ -695,7 +695,7 @@ const LocalJogo = (() => {
       })),
       observacoes: (s.observacoes || []).map((o) => ({
         jogadorClientId: o.jogadorId ? String(o.jogadorId) : null,
-        tipo: o.tipo || "ATRASO",
+        tipo: o.tipo || "OBSERVACAO",
         horario: o.horario || null,
         texto: o.texto || null,
       })),
@@ -982,7 +982,7 @@ const LocalJogo = (() => {
       const jog = (s.jogadores || []).find((j) => String(j.id) === String(o.jogadorId));
       return {
         jogadorNome: jog?.nome || o.jogadorNome || null,
-        tipo: o.tipo || "ATRASO",
+        tipo: o.tipo || "OBSERVACAO",
         horario: o.horario || null,
         texto: o.texto || null,
       };
