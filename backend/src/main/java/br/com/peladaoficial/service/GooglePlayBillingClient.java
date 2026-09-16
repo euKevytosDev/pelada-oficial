@@ -34,17 +34,15 @@ public class GooglePlayBillingClient {
     public static final String PACKAGE_PADRAO = "com.rkds.reidapelada";
     public static final String PRODUCT_ID = "reidapelada_pro";
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
     private final String credentialsJson;
     private final String credentialsPath;
     private final String packageName;
 
-    public GooglePlayBillingClient(ObjectMapper objectMapper,
-                                   @Value("${app.play.credentials-json:}") String credentialsJson,
+    public GooglePlayBillingClient(@Value("${app.play.credentials-json:}") String credentialsJson,
                                    @Value("${app.play.credentials-path:}") String credentialsPath,
                                    @Value("${app.play.package-name:com.rkds.reidapelada}") String packageName) {
-        this.objectMapper = objectMapper;
         this.credentialsJson = credentialsJson;
         this.credentialsPath = credentialsPath;
         this.packageName = packageName == null || packageName.isBlank() ? PACKAGE_PADRAO : packageName;
