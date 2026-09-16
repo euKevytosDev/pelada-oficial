@@ -39,6 +39,7 @@ public class AssinaturaService {
     private final String frontUrl;
     private final String webhookUrl;
     private final Set<String> emailsCortesia;
+    private final Set<String> emailsGratisTeste;
 
     public AssinaturaService(UsuarioRepository usuarioRepository,
                              MercadoPagoClient mercadoPagoClient,
@@ -46,7 +47,8 @@ public class AssinaturaService {
                              @Value("${app.assinatura.trial-dias:7}") int trialDias,
                              @Value("${app.assinatura.front-url:https://eukevytosdev.github.io/pelada-oficial/}") String frontUrl,
                              @Value("${app.assinatura.webhook-url:}") String webhookUrl,
-                             @Value("${app.assinatura.pro-cortesia:raiankevin18@gmail.com}") String proCortesia) {
+                             @Value("${app.assinatura.pro-cortesia:raiankevin18@gmail.com}") String proCortesia,
+                             @Value("${app.assinatura.gratis-teste:teste.gratis.play@reidapelada.app}") String gratisTeste) {
         this.usuarioRepository = usuarioRepository;
         this.mercadoPagoClient = mercadoPagoClient;
         this.googlePlayBillingClient = googlePlayBillingClient;
@@ -54,6 +56,10 @@ public class AssinaturaService {
         this.frontUrl = frontUrl.endsWith("/") ? frontUrl : frontUrl + "/";
         this.webhookUrl = webhookUrl;
         this.emailsCortesia = Arrays.stream(nvl(proCortesia, "").split(","))
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toUnmodifiableSet());
+        this.emailsGratisTeste = Arrays.stream(nvl(gratisTeste, "").split(","))
                 .map(s -> s.trim().toLowerCase(Locale.ROOT))
                 .filter(s -> !s.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
@@ -72,6 +78,9 @@ public class AssinaturaService {
     public Map<String, Object> garantirTrialEMap(Usuario usuario) {
         if (usuarioPersistido(usuario)) {
             boolean mudou = aplicarCortesia(usuario);
+            if (!mudou) {
+                mudou = aplicarGratisTeste(usuario);
+            }
             if (!mudou && usuario.getTrialInicio() == null && !proAtivo(usuario)) {
                 LocalDateTime agora = LocalDateTime.now();
                 usuario.setTrialInicio(agora);
@@ -313,9 +322,38 @@ public class AssinaturaService {
         return mudou;
     }
 
+    /** Conta de QA: sempre grátis, sem trial e sem Pro. */
+    private boolean aplicarGratisTeste(Usuario usuario) {
+        if (!emailGratisTeste(usuario)) return false;
+        boolean mudou = false;
+        if (!PLANO_GRATIS.equalsIgnoreCase(nvl(usuario.getPlano(), ""))) {
+            usuario.setPlano(PLANO_GRATIS);
+            mudou = true;
+        }
+        if (!"TESTE_GRATIS".equalsIgnoreCase(nvl(usuario.getPagamentoOrigem(), ""))) {
+            usuario.setPagamentoOrigem("TESTE_GRATIS");
+            mudou = true;
+        }
+        LocalDateTime expirado = LocalDateTime.now().minusDays(1);
+        if (usuario.getPlanoExpiraEm() == null || usuario.getPlanoExpiraEm().isAfter(LocalDateTime.now())) {
+            usuario.setPlanoExpiraEm(expirado);
+            mudou = true;
+        }
+        if (usuario.getTrialInicio() == null) {
+            usuario.setTrialInicio(LocalDateTime.now().minusDays(trialDias + 1));
+            mudou = true;
+        }
+        return mudou;
+    }
+
     private boolean emailCortesia(Usuario usuario) {
         if (usuario == null || usuario.getEmail() == null) return false;
         return emailsCortesia.contains(usuario.getEmail().trim().toLowerCase(Locale.ROOT));
+    }
+
+    private boolean emailGratisTeste(Usuario usuario) {
+        if (usuario == null || usuario.getEmail() == null) return false;
+        return emailsGratisTeste.contains(usuario.getEmail().trim().toLowerCase(Locale.ROOT));
     }
 
     private boolean usuarioPersistido(Usuario usuario) {
