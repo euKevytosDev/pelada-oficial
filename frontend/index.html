@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20260915g" />
+  <link rel="stylesheet" href="css/estilo.css?v=20260915i" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -621,10 +621,19 @@
             <p class="dica" style="margin:4px 0 0">Toque nas bolinhas: vazio → gol → ✕. Depois escolha o goleiro campeão.</p>
           </div>
         </header>
-        <p class="penaltis-placar-topo" id="penaltis-placar">
-          <img class="pen-bola-svg pen-bola-svg-placar" src="soccer-ball-svgrepo-com.svg" alt="" width="28" height="28" aria-hidden="true" />
-          <span id="penaltis-placar-valor">0 x 0</span>
-        </p>
+        <div class="placar-bloco penaltis-placar-bloco">
+          <div class="placar" id="penaltis-placar" aria-live="polite">
+            <div class="lado" id="penaltis-lado-a">
+              <span class="time-nome" id="penaltis-nome-a">Time A</span>
+              <strong class="gols" id="penaltis-gols-a">0</strong>
+            </div>
+            <span class="vs">x</span>
+            <div class="lado" id="penaltis-lado-b">
+              <span class="time-nome" id="penaltis-nome-b">Time B</span>
+              <strong class="gols" id="penaltis-gols-b">0</strong>
+            </div>
+          </div>
+        </div>
         <div id="penaltis-conteudo"></div>
         <div class="acoes-finas">
           <button type="button" class="btn btn-principal" id="btn-penaltis-confirmar">Definir campeão</button>
@@ -662,7 +671,7 @@
   <script src="js/resumo.js?v=20260915f"></script>
   <script src="js/relatorio-mensal.js?v=20260915e"></script>
   <script src="js/sumula-manual.js?v=20260828c"></script>
-  <script src="js/penaltis.js?v=20260909f"></script>
+  <script src="js/penaltis.js?v=20260915i"></script>
   <script src="js/app.js?v=20260915h"></script>
 </body>
 

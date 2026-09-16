@@ -263,8 +263,15 @@ const PenaltisApp = (() => {
   }
 
   function atualizarPlacarUI() {
-    const texto = document.getElementById("penaltis-placar-valor");
-    if (texto) texto.textContent = placarTexto();
+    if (!sessao) return;
+    const nomeA = document.getElementById("penaltis-nome-a");
+    const nomeB = document.getElementById("penaltis-nome-b");
+    const golsA = document.getElementById("penaltis-gols-a");
+    const golsB = document.getElementById("penaltis-gols-b");
+    if (nomeA) nomeA.textContent = sessao.timeA?.nome || "Time A";
+    if (nomeB) nomeB.textContent = sessao.timeB?.nome || "Time B";
+    if (golsA) golsA.textContent = String(golsDe(sessao.timeA));
+    if (golsB) golsB.textContent = String(golsDe(sessao.timeB));
   }
 
   function atualizarGolsQuadroUI(ladoKey) {
