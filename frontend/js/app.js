@@ -2478,7 +2478,7 @@ async function salvarAtraso(sufixo = "") {
 
 async function encerrarPelada() {
   const ok = confirm(
-    "Encerrar a pelada agora?\n\nA súmula abre na hora. O envio à sua conta roda em segundo plano (mesmo sem internet)."
+    "Finalizar a pelada agora?\n\nA súmula abre na hora. O envio à sua conta roda em segundo plano (mesmo sem internet)."
   );
   if (!ok) return;
   if (estado.partidaAtual) {
