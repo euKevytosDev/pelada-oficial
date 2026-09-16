@@ -43,7 +43,7 @@ No dia a dia de desenvolvimento uso H2 em arquivo: reinicia o Spring e os dados 
 - Na partida: gol, gol contra, amarelo, vermelho
 - Gol contra: escolhe quem sofreu; o placar sobe pro adversário
 - Pontos: vitória 3 · empate 1 · derrota 0
-- Rodadas seguem até **Encerrar pelada**
+- Rodadas seguem até **Finalizar pelada**
 
 ## Subir o projeto
 

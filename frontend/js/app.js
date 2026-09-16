@@ -2482,11 +2482,11 @@ async function encerrarPelada() {
   );
   if (!ok) return;
   if (estado.partidaAtual) {
-    toast("Finalize ou saia da partida aberta antes de encerrar");
+    toast("Finalize ou saia da partida aberta antes de finalizar a pelada");
     return;
   }
   if (!LocalJogo.temJogoLocal()) {
-    toast("Nada para encerrar neste celular");
+    toast("Nada para finalizar neste celular");
     return;
   }
 
