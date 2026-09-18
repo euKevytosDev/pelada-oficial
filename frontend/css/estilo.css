@@ -965,9 +965,10 @@ html[data-theme="dark"] .config-seg-btn.ativa {
 
 .pago-ok-lead {
   margin: 0 0 16px;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   line-height: 1.45;
-  color: var(--texto-suave);
+  font-weight: 600;
+  color: var(--texto);
 }
 
 .pago-ok-lista {
