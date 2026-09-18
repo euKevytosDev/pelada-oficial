@@ -47,6 +47,9 @@ html, body {
   min-height: 100%;
   font-family: var(--fonte-corpo);
   color: var(--texto);
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+  overscroll-behavior: none;
   background-color: var(--bg-corpo-2);
   background-image:
     radial-gradient(circle at top, rgba(31, 170, 108, 0.22), transparent 55%),
