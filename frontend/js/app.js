@@ -2039,6 +2039,26 @@ async function registrarEventoAoVivo(tipo) {
     jogadoresDoTime = todosJogadoresAptosDaPelada();
     jogadorId = await escolherJogadorDoLance("Quem fez o gol contra?", partida, timeId);
     if (!jogadorId) return;
+
+    // Goleiro do time que sofreu (mesmo time do autor do gol contra)
+    const goleiros = goleirosAptosParaSofrerGol(partida);
+    if (goleiros.length) {
+      const ordenados = [...goleiros].sort((a, b) => {
+        const aDoTime = String(a.timeId) === String(timeId) ? 0 : 1;
+        const bDoTime = String(b.timeId) === String(timeId) ? 0 : 1;
+        return aDoTime - bDoTime;
+      });
+      goleiroId = await escolherOpcao(
+        "Goleiro que sofreu?",
+        ordenados.map((g) => ({
+          id: g.id,
+          label: rotuloGoleiroLance(g, timeId),
+          goleiro: true,
+        }))
+      );
+      if (!goleiroId) return;
+      goleiroNome = (ordenados.find((g) => String(g.id) === String(goleiroId)) || {}).nome;
+    }
   } else {
     timeId = await escolherOpcao(
       "Qual time?",
