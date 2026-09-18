@@ -248,15 +248,18 @@
 
         <div class="plano-shell">
           <header class="plano-hero">
-            <p class="plano-badge">7 dias grátis no 1º login</p>
+            <div class="plano-trial" id="plano-trial" role="status">
+              <p class="plano-trial-selo">7 dias grátis</p>
+              <p class="plano-trial-titulo" id="plano-trial-titulo">Teste o Pro sem pagar agora</p>
+              <p class="plano-trial-txt" id="plano-trial-txt">No 1º login você libera 7 dias do kit completo. Cancele quando quiser.</p>
+            </div>
             <h2>Rei da Pelada Pro</h2>
             <p class="plano-lead">Jogar continua grátis (até 3 times, placar, gol e ver a súmula). O Pro é o kit completo
               do organizador — tudo que falta para fechar a pelada com cara de oficial.</p>
             <p class="plano-ancora">Menos de <strong>R$ 2 por jogador</strong> no mês · rachado no grupo</p>
           </header>
 
-          <p class="dica plano-aviso-android oculto" id="plano-aviso-android">Neste app o pagamento do Rei da Pelada Pro
-            é pela Google Play. Você começa no plano grátis; ao assinar, a Play oferece 7 dias de teste.</p>
+          <p class="dica plano-aviso-android oculto" id="plano-aviso-android">Pagamento só pela Google Play. Ao assinar, a Play libera <strong>7 dias grátis</strong> antes de cobrar.</p>
 
           <ul class="plano-beneficios" aria-label="Benefícios do Rei da Pelada Pro">
             <li>
@@ -306,17 +309,19 @@
           <div class="plano-ofertas" data-checkout-web>
             <article class="plano-oferta plano-oferta-destaque">
               <p class="plano-tag">Mais vantajoso</p>
+              <p class="plano-trial-chip">7 dias grátis inclusos</p>
               <h3>Anual</h3>
               <p class="plano-preco">R$ 299,90<span>/ano</span></p>
-              <p class="plano-equiv">~R$ 24,99/mês · Pix ou cartão</p>
-              <button type="button" class="btn btn-principal" id="btn-plano-anual">Assinar anual</button>
+              <p class="plano-equiv">Depois ~R$ 24,99/mês · Pix ou cartão</p>
+              <button type="button" class="btn btn-principal" id="btn-plano-anual">Começar 7 dias grátis</button>
             </article>
 
             <article class="plano-oferta">
+              <p class="plano-trial-chip">7 dias grátis inclusos</p>
               <h3>Mensal</h3>
               <p class="plano-preco">R$ 39,90<span>/mês</span></p>
-              <p class="plano-equiv">Pix avulso ou cartão com renovação automática</p>
-              <button type="button" class="btn btn-principal" id="btn-plano-mensal-cartao">Cartão de Crédito</button>
+              <p class="plano-equiv">Depois cobra · Pix avulso ou cartão</p>
+              <button type="button" class="btn btn-principal" id="btn-plano-mensal-cartao">Começar no cartão</button>
               <button type="button" class="btn btn-secundario" id="btn-plano-mensal-pix">Pix (pagamento único)</button>
             </article>
           </div>
@@ -324,14 +329,18 @@
           <div class="plano-ofertas oculto" data-checkout-play>
             <article class="plano-oferta plano-oferta-destaque">
               <p class="plano-tag">Google Play</p>
+              <p class="plano-trial-chip">7 dias grátis na Play</p>
               <h3>Anual</h3>
               <p class="plano-preco">R$ 299,90<span>/ano</span></p>
-              <button type="button" class="btn btn-principal" id="btn-plano-play-anual">Assinar na Play</button>
+              <p class="plano-equiv">Teste 7 dias · depois ~R$ 24,99/mês</p>
+              <button type="button" class="btn btn-principal" id="btn-plano-play-anual">Começar 7 dias grátis</button>
             </article>
             <article class="plano-oferta">
+              <p class="plano-trial-chip">7 dias grátis na Play</p>
               <h3>Mensal</h3>
               <p class="plano-preco">R$ 39,90<span>/mês</span></p>
-              <button type="button" class="btn btn-principal" id="btn-plano-play-mensal">Assinar na Play</button>
+              <p class="plano-equiv">Teste 7 dias · depois R$ 39,90/mês</p>
+              <button type="button" class="btn btn-principal" id="btn-plano-play-mensal">Começar 7 dias grátis</button>
               <button type="button" class="btn btn-secundario" id="btn-plano-play-restaurar">Restaurar compras</button>
             </article>
           </div>

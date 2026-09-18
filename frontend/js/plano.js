@@ -29,11 +29,16 @@ const PlanoApp = (() => {
     });
     document.getElementById("plano-aviso-android")?.classList.toggle("oculto", !nativo);
     document.getElementById("plano-aviso-cortesia")?.classList.toggle("oculto", !a.cortesia);
-    const badge = document.querySelector(".plano-badge");
-    if (badge) {
-      badge.textContent = nativo
-        ? "7 dias grátis ao assinar na Play"
-        : "7 dias grátis no 1º login";
+    const trialTitulo = document.getElementById("plano-trial-titulo");
+    const trialTxt = document.getElementById("plano-trial-txt");
+    if (trialTitulo && trialTxt) {
+      if (nativo) {
+        trialTitulo.textContent = "7 dias grátis na Google Play";
+        trialTxt.textContent = "Assine e teste o Pro sem pagar agora. A Play só cobra depois do teste — cancele quando quiser.";
+      } else {
+        trialTitulo.textContent = "Teste o Pro sem pagar agora";
+        trialTxt.textContent = "No 1º login você libera 7 dias do kit completo. Cancele quando quiser.";
+      }
     }
 
     if (!status) return;
@@ -93,6 +98,13 @@ const PlanoApp = (() => {
 
     const nativo = typeof isAppNativo === "function" && isAppNativo();
     const msg = mensagem || "Esse recurso faz parte do Rei da Pelada Pro.";
+    const trialFaixa = `<div class="paywall-trial" role="status">
+             <p class="paywall-trial-selo">7 dias grátis</p>
+             <p class="paywall-trial-titulo">${nativo ? "Teste na Play sem pagar agora" : "Teste o Pro sem pagar agora"}</p>
+             <p class="paywall-trial-txt">${nativo
+               ? "Ao assinar, a Google Play libera 7 dias. Só cobra se continuar depois do teste."
+               : "No 1º login o Pro já entra por 7 dias. Cancele quando quiser."}</p>
+           </div>`;
     const ancora =
       `<p class="paywall-ancora">Menos de <strong>R$ 2 por jogador</strong> no mês · rachado no grupo</p>`;
     const lista = `<ul class="paywall-lista">
@@ -106,46 +118,52 @@ const PlanoApp = (() => {
       ? `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
            <p class="paywall-lead">Assine pela Google Play</p>
+           ${trialFaixa}
            <p class="paywall-msg">${escaparHtml(msg)}</p>
            ${ancora}
            ${lista}
            <div class="paywall-ofertas">
              <article class="paywall-oferta paywall-oferta-destaque">
                <p class="paywall-tag">Mais vantajoso</p>
+               <p class="paywall-trial-chip">7 dias grátis</p>
                <strong>Anual</strong>
                <p class="paywall-preco">R$ 299,90<span>/ano</span></p>
-               <p class="paywall-equiv">7 dias grátis · depois ~R$ 24,99/mês</p>
-               <button type="button" class="btn btn-principal" id="paywall-btn-play-anual">Assinar na Play</button>
+               <p class="paywall-equiv">Depois ~R$ 24,99/mês</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-play-anual">Começar 7 dias grátis</button>
              </article>
              <article class="paywall-oferta">
+               <p class="paywall-trial-chip">7 dias grátis</p>
                <strong>Mensal</strong>
                <p class="paywall-preco">R$ 39,90<span>/mês</span></p>
-               <p class="paywall-equiv">7 dias grátis · depois cobra</p>
-               <button type="button" class="btn btn-principal" id="paywall-btn-play-mensal">Assinar na Play</button>
+               <p class="paywall-equiv">Depois R$ 39,90/mês</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-play-mensal">Começar 7 dias grátis</button>
              </article>
            </div>
            <button type="button" class="btn btn-secundario" id="paywall-btn-play-restaurar">Restaurar compras</button>
-           <p class="dica">Pagamento pela Google Play. Começa grátis; o teste de 7 dias entra ao assinar.</p>
+           <p class="dica">Pagamento pela Google Play · cancele antes do fim do teste e não cobra.</p>
          </div>`
       : `<div class="paywall">
            <p class="paywall-selo">Rei da Pelada Pro</p>
            <p class="paywall-lead">Upgrade do organizador</p>
+           ${trialFaixa}
            <p class="paywall-msg">${escaparHtml(msg)}</p>
            ${ancora}
            ${lista}
            <div class="paywall-ofertas">
              <article class="paywall-oferta paywall-oferta-destaque">
                <p class="paywall-tag">Mais vantajoso</p>
+               <p class="paywall-trial-chip">7 dias grátis</p>
                <strong>Anual</strong>
                <p class="paywall-preco">R$ 299,90<span>/ano</span></p>
-               <p class="paywall-equiv">~R$ 24,99/mês · Pix ou cartão</p>
-               <button type="button" class="btn btn-principal" id="paywall-btn-anual">Assinar anual</button>
+               <p class="paywall-equiv">Depois ~R$ 24,99/mês · Pix ou cartão</p>
+               <button type="button" class="btn btn-principal" id="paywall-btn-anual">Começar 7 dias grátis</button>
              </article>
              <article class="paywall-oferta">
+               <p class="paywall-trial-chip">7 dias grátis</p>
                <strong>Mensal</strong>
                <p class="paywall-preco">R$ 39,90<span>/mês</span></p>
                <p class="paywall-equiv">Cartão renova todo mês · ou Pix avulso</p>
-               <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Cartão de Crédito</button>
+               <button type="button" class="btn btn-principal" id="paywall-btn-mensal-cartao">Começar no cartão</button>
                <button type="button" class="btn btn-secundario paywall-btn-pix" id="paywall-btn-mensal-pix">Pix</button>
              </article>
            </div>
