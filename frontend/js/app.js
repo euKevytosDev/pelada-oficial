@@ -2875,6 +2875,14 @@ function tentarRetomarDoCelular(peladaId) {
     }
   }
 
+  // Times já sorteados (mesmo sem partida aberta) — NÃO voltar ao cadastro
+  if ((local.times || []).length) {
+    renderTimes(local.times);
+    mostrarTela("tela-times");
+    toast("Times retomados");
+    return true;
+  }
+
   if (local.status === "AGUARDANDO" || (local.jogadores || []).length) {
     renderListasCadastro(local.jogadores);
     mostrarTela("tela-jogadores");
@@ -2920,6 +2928,70 @@ async function bootAuth() {
     toast(err.message || "Servidor acordando… tente Continuar de novo");
     await entrarNaHome();
   }
+  // Se o botão Voltar do Android fechou o app no meio do jogo, reabre direto
+  tentarAbrirJogoLocalSalvo();
+}
+
+/** Abre partida/times salvos neste celular sem exigir toque em Continuar. */
+function tentarAbrirJogoLocalSalvo() {
+  if (deveOcultarBoxContinuar()) return false;
+  const local = LocalJogo.obter();
+  if (!local?.peladaId) return false;
+  return tentarRetomarDoCelular(local.peladaId);
+}
+
+function telaAtivaId() {
+  return document.querySelector(".tela.ativa")?.id || "";
+}
+
+function registrarBotaoVoltarAndroid() {
+  if (typeof isAppNativo !== "function" || !isAppNativo()) return;
+  const CapApp = window.Capacitor?.Plugins?.App;
+  if (!CapApp?.addListener) return;
+
+  CapApp.addListener("backButton", () => {
+    const tela = telaAtivaId();
+
+    // Partida ao vivo: mesma proteção do botão Voltar da tela
+    if (tela === "tela-partida") {
+      voltarDaPartidaComSeguranca().catch((err) => {
+        toast(err?.message || "Não deu para sair da partida");
+      });
+      return;
+    }
+
+    if (tela === "tela-times" || tela === "tela-classificacao") {
+      entrarNaHome().catch(() => mostrarTela("tela-inicio"));
+      return;
+    }
+
+    if (tela === "tela-jogadores") {
+      entrarNaHome().catch(() => mostrarTela("tela-inicio"));
+      return;
+    }
+
+    if (tela === "tela-configuracoes" || tela === "tela-planos" || tela === "tela-historico") {
+      entrarNaHome().catch(() => mostrarTela("tela-inicio"));
+      return;
+    }
+
+    if (tela === "tela-fim" || tela === "tela-pagamento-ok" || tela === "tela-pagamento-falhou") {
+      entrarNaHome().catch(() => mostrarTela("tela-inicio"));
+      return;
+    }
+
+    if (tela === "tela-auth" || tela === "tela-inicio") {
+      // Minimiza em vez de matar o app (preserva o jogo na memória/localStorage)
+      if (typeof CapApp.minimizeApp === "function") {
+        CapApp.minimizeApp();
+      } else if (typeof CapApp.exitApp === "function") {
+        CapApp.exitApp();
+      }
+      return;
+    }
+
+    entrarNaHome().catch(() => mostrarTela("tela-inicio"));
+  });
 }
 
 /* ---------- eventos auth ---------- */
@@ -3182,6 +3254,7 @@ if (typeof FotosPremios !== "undefined") FotosPremios.init();
 if (typeof PenaltisApp !== "undefined") PenaltisApp.init();
 aplicarVisibilidadeCronos();
 bootAuth();
+registrarBotaoVoltarAndroid();
 iniciarGoogleLogin();
 setTimeout(() => {
   sincronizarApaguesPendentes().catch(() => {});
