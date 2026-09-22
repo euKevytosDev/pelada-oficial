@@ -81,6 +81,7 @@ sudo docker run -d \
   -p 8080:8080 \
   "${VOLUME_ARGS[@]}" \
   "${ENV_ARGS[@]}" \
+  -e TZ=America/Sao_Paulo \
   -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-14692725836-8n7a4aisfk1sjmvadnn400joq1j6rjdi.apps.googleusercontent.com}" \
   "$IMAGE" \
   java -jar /app.jar

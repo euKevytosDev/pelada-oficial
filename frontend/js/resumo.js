@@ -2,22 +2,40 @@
  * Resumo final profissional da pelada (estilo súmula + Brasileirão).
  */
 
-/** Data de hoje no fuso do aparelho (relatório sempre com o dia real). */
+const FUSO_BRASIL = "America/Sao_Paulo";
+
+/** Data de hoje no Brasil (súmula / histórico). */
 function dataHojeBr() {
   try {
-    return new Date().toLocaleDateString("pt-BR", {
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || undefined,
-    });
+    return new Date().toLocaleDateString("pt-BR", { timeZone: FUSO_BRASIL });
   } catch (_) {
     return new Date().toLocaleDateString("pt-BR");
   }
 }
 
+/**
+ * Formata data da pelada/súmula em dd/mm/aaaa no calendário do Brasil.
+ * - ISO com Z/offset: converte para America/Sao_Paulo
+ * - LocalDateTime sem fuso (API): usa o dia do calendário gravado (yyyy-mm-dd)
+ */
 function formatarDataBr(iso) {
   if (!iso) return dataHojeBr();
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
-  return d.toLocaleDateString("pt-BR");
+  const s = String(iso).trim();
+  const temFuso = /[zZ]|[+-]\d{2}:?\d{2}$/.test(s);
+  if (!temFuso) {
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  }
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) {
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : s.slice(0, 10);
+  }
+  try {
+    return d.toLocaleDateString("pt-BR", { timeZone: FUSO_BRASIL });
+  } catch (_) {
+    return d.toLocaleDateString("pt-BR");
+  }
 }
 
 /** Rodapé da súmula/PDF: promo discreta no trial/grátis; limpo no Pro pago. */

@@ -988,7 +988,16 @@ const LocalJogo = (() => {
       };
     });
 
-    const agora = new Date().toISOString();
+    // Horário de Brasília (não UTC) — evita súmula “1 dia à frente” à noite
+    const agora = (() => {
+      try {
+        return new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }).replace(" ", "T");
+      } catch (_) {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+    })();
     return {
       pelada: {
         id: s.peladaId || null,
