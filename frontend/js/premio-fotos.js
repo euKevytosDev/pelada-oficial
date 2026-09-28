@@ -34,7 +34,7 @@ const FotosPremios = (() => {
     if (novoPeladaId != null) peladaId = novoPeladaId;
   }
 
-  function comprimirImagem(file, maxPx = 560, quality = 0.88, targetRatio = 4 / 5) {
+  function comprimirImagem(file, maxPx = 2400, quality = 1, targetRatio = 4 / 5) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
@@ -63,6 +63,8 @@ const FotosPremios = (() => {
         canvas.width = outW;
         canvas.height = outH;
         const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.fillStyle = "#0b3d2e";
         ctx.fillRect(0, 0, outW, outH);
         ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH);
@@ -108,8 +110,8 @@ const FotosPremios = (() => {
       const horizontal = chave === "campeao";
       fotos[chave] = await comprimirImagem(
         file,
-        horizontal ? 960 : 560,
-        0.88,
+        horizontal ? 3200 : 2400,
+        1,
         horizontal ? 16 / 9 : 4 / 5
       );
       return true;
