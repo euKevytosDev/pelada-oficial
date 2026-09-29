@@ -34,41 +34,24 @@ const FotosPremios = (() => {
     if (novoPeladaId != null) peladaId = novoPeladaId;
   }
 
-  function comprimirImagem(file, maxPx = 2400, quality = 1, targetRatio = 4 / 5) {
+  function prepararImagem(file, maxLado = 2400) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
         URL.revokeObjectURL(url);
-        let sx = 0;
-        let sy = 0;
-        let sWidth = img.width;
-        let sHeight = img.height;
-        const imgRatio = sWidth / sHeight;
-
-        if (imgRatio > targetRatio) {
-          sWidth = sHeight * targetRatio;
-          sx = (img.width - sWidth) / 2;
-        } else {
-          sHeight = sWidth / targetRatio;
-          sy =
-            targetRatio >= 1
-              ? (img.height - sHeight) / 2
-              : Math.max(0, Math.min(img.height * 0.06, img.height - sHeight));
-        }
-
-        const outW = Math.min(maxPx, Math.round(sWidth));
-        const outH = Math.round(outW / targetRatio);
+        const maior = Math.max(img.width, img.height) || 1;
+        const escala = maior > maxLado ? maxLado / maior : 1;
+        const outW = Math.max(1, Math.round(img.width * escala));
+        const outH = Math.max(1, Math.round(img.height * escala));
         const canvas = document.createElement("canvas");
         canvas.width = outW;
         canvas.height = outH;
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
-        ctx.fillStyle = "#0b3d2e";
-        ctx.fillRect(0, 0, outW, outH);
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outW, outH);
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        ctx.drawImage(img, 0, 0, outW, outH);
+        resolve(canvas.toDataURL("image/jpeg", 1));
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
@@ -107,13 +90,7 @@ const FotosPremios = (() => {
       return false;
     }
     try {
-      const horizontal = chave === "campeao";
-      fotos[chave] = await comprimirImagem(
-        file,
-        horizontal ? 3200 : 2400,
-        1,
-        horizontal ? 16 / 9 : 4 / 5
-      );
+      fotos[chave] = await prepararImagem(file, chave === "campeao" ? 3200 : 2400);
       return true;
     } catch (err) {
       toast(err.message || "Erro ao processar foto");
@@ -165,7 +142,7 @@ const FotosPremios = (() => {
         const preview = foto
           ? `<img class="foto-premio-thumb${s.horizontal ? " foto-premio-thumb-horizontal" : ""}" src="${foto}" alt="" />`
           : `<span class="foto-premio-vazio${s.horizontal ? " foto-premio-vazio-horizontal" : ""}" aria-hidden="true">📷</span>`;
-        const dica = s.horizontal ? '<span class="foto-premio-formato">Horizontal · página 2 do PDF</span>' : "";
+        const dica = s.horizontal ? '<span class="foto-premio-formato">Página 2 do PDF</span>' : "";
         return `
         <div class="foto-premio-item${s.horizontal ? " foto-premio-item-horizontal" : ""}" data-foto-key="${s.key}">
           ${preview}

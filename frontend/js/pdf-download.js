@@ -97,11 +97,38 @@ async function html2pdfBlob(element, opt) {
     throw new Error("Gerador de PDF indisponível");
   }
   element.classList.add("pdf-export");
+  const soltarFotos = travarProporcaoFotos(element);
   try {
     return await html2pdf().set(opt).from(element).outputPdf("blob");
   } finally {
+    soltarFotos();
     element.classList.remove("pdf-export");
   }
+}
+
+/** Altura em px na mesma proporção da foto, para o PDF não amassar a imagem. */
+function travarProporcaoFotos(element) {
+  const imgs = [...element.querySelectorAll("img.premio-foto, img.campeao-foto-img")];
+  const anteriores = imgs.map((img) => img.getAttribute("style"));
+  imgs.forEach((img) => {
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    const w = img.clientWidth;
+    if (!nw || !nh || !w) return;
+    const h = Math.max(1, Math.round(w * (nh / nw)));
+    img.style.position = "static";
+    img.style.width = "100%";
+    img.style.height = `${h}px`;
+    img.style.objectFit = "contain";
+    img.style.maxHeight = "none";
+  });
+  return () => {
+    imgs.forEach((img, i) => {
+      const prev = anteriores[i];
+      if (prev == null) img.removeAttribute("style");
+      else img.setAttribute("style", prev);
+    });
+  };
 }
 
 async function baixarPdfHtml(element, opt) {
