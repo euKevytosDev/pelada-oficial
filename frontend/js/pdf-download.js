@@ -107,20 +107,20 @@ async function html2pdfBlob(element, opt) {
 }
 
 /**
- * Corta só um pouco em cima e um pouco mais embaixo, sem achatar o jogador.
- * O escurecido do nome vai na própria imagem para não virar linha preta no celular.
+ * Premiação: foto na proporção original, cortando o que sobra embaixo.
+ * Time campeão: mais alta, cortando as laterais, para não ficar uma faixa fina.
  */
 function encaixarFotosNosCards(element) {
   const restaurar = [];
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
-    aplicarCoverNoCard(img, wrap, true, restaurar);
+    aplicarFotoNoCard(img, wrap, true, restaurar);
   });
 
   element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.campeao-foto-img");
-    aplicarRecorteLeve(img, wrap.clientWidth, false, restaurar);
+    aplicarFotoCampeao(img, wrap, restaurar);
   });
 
   return () => {
@@ -128,29 +128,68 @@ function encaixarFotosNosCards(element) {
   };
 }
 
-function aplicarCoverNoCard(img, wrap, fadeTopo, restaurar) {
+function guardarEstilo(el) {
+  return el ? el.getAttribute("style") : null;
+}
+
+function restaurarEstilo(el, estilo) {
+  if (!el) return;
+  if (estilo == null) el.removeAttribute("style");
+  else el.setAttribute("style", estilo);
+}
+
+function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   const cssW = wrap.clientWidth;
   const cssH = wrap.clientHeight;
   if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8 || cssH < 8) return;
-  const url = fotoCoverNoCard(img, cssW, cssH, fadeTopo);
+  const url = fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo);
   if (!url) return;
   const src = img.getAttribute("src");
-  const estilo = img.getAttribute("style");
+  const estiloImg = guardarEstilo(img);
+  const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  img.style.position = "absolute";
-  img.style.inset = "0";
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.objectFit = "fill";
+  travarCaixa(wrap, img, cssW, cssH);
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
     else img.setAttribute("src", src);
-    if (estilo == null) img.removeAttribute("style");
-    else img.setAttribute("style", estilo);
+    restaurarEstilo(img, estiloImg);
+    restaurarEstilo(wrap, estiloWrap);
   });
 }
 
-function fotoCoverNoCard(img, cssW, cssH, fadeTopo) {
+function aplicarFotoCampeao(img, wrap, restaurar) {
+  const cssW = wrap.clientWidth;
+  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8) return;
+  const cssH = Math.max(1, Math.round(cssW / (4 / 3)));
+  const url = fotoCortandoLaterais(img, cssW, cssH);
+  if (!url) return;
+  const src = img.getAttribute("src");
+  const estiloImg = guardarEstilo(img);
+  const estiloWrap = guardarEstilo(wrap);
+  img.setAttribute("src", url);
+  travarCaixa(wrap, img, cssW, cssH);
+  restaurar.push(() => {
+    if (src == null) img.removeAttribute("src");
+    else img.setAttribute("src", src);
+    restaurarEstilo(img, estiloImg);
+    restaurarEstilo(wrap, estiloWrap);
+  });
+}
+
+function travarCaixa(wrap, img, cssW, cssH) {
+  wrap.style.height = `${cssH}px`;
+  wrap.style.flex = "none";
+  img.style.position = "absolute";
+  img.style.inset = "0";
+  img.style.width = `${cssW}px`;
+  img.style.height = `${cssH}px`;
+  img.style.maxWidth = "none";
+  img.style.maxHeight = "none";
+  img.style.objectFit = "fill";
+}
+
+/** Largura inteira da foto, mesma proporção, corta o excesso embaixo. */
+function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
   const dpr = 3;
   const dw = Math.max(1, Math.round(cssW * dpr));
   const dh = Math.max(1, Math.round(cssH * dpr));
@@ -160,87 +199,69 @@ function fotoCoverNoCard(img, cssW, cssH, fadeTopo) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  const ir = img.naturalWidth / img.naturalHeight;
-  const dr = dw / dh;
-  let sx = 0;
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  const escala = dw / nw;
   let sy = 0;
-  let sw = img.naturalWidth;
-  let sh = img.naturalHeight;
-  if (ir > dr) {
-    sw = sh * dr;
-    sx = (img.naturalWidth - sw) / 2;
+  let sh = nh;
+  let destH = dh;
+  if (nh * escala > dh) {
+    sh = dh / escala;
+    const extra = nh - sh;
+    sy = Math.min(nh * 0.04, extra);
+    if (sy + sh > nh) sy = Math.max(0, nh - sh);
   } else {
-    sh = sw / dr;
-    sy = (img.naturalHeight - sh) * 0.18;
+    destH = Math.max(1, Math.round(nh * escala));
   }
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
-
-  if (fadeTopo) {
-    const alturaFade = dh * 0.2;
-    const g = ctx.createLinearGradient(0, 0, 0, alturaFade);
-    g.addColorStop(0, "rgba(5, 22, 16, 0.62)");
-    g.addColorStop(1, "rgba(5, 22, 16, 0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, dw, Math.round(alturaFade));
-  }
-
+  ctx.drawImage(img, 0, sy, nw, sh, 0, 0, dw, destH);
+  pintarFadeTopo(ctx, dw, dh, fadeTopo);
   return canvas.toDataURL("image/png");
 }
 
-function aplicarRecorteLeve(img, cssW, fadeTopo, restaurar) {
-  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8) return;
-  const preparado = fotoRecorteLeve(img, cssW, fadeTopo);
-  if (!preparado) return;
-  const src = img.getAttribute("src");
-  const estilo = img.getAttribute("style");
-  img.setAttribute("src", preparado.url);
-  img.style.position = "static";
-  img.style.width = "100%";
-  img.style.height = `${preparado.cssH}px`;
-  img.style.maxHeight = "none";
-  img.style.objectFit = "contain";
-  restaurar.push(() => {
-    if (src == null) img.removeAttribute("src");
-    else img.setAttribute("src", src);
-    if (estilo == null) img.removeAttribute("style");
-    else img.setAttribute("style", estilo);
-  });
-}
-
-function fotoRecorteLeve(img, cssW, fadeTopo) {
+/** Mais alta que uma faixa: corta as laterais e mantém a proporção. */
+function fotoCortandoLaterais(img, cssW, cssH) {
   const dpr = 3;
-  const corteTopo = 0.05;
-  const corteBaixo = 0.11;
-  const sw = img.naturalWidth;
-  const sh = img.naturalHeight * (1 - corteTopo - corteBaixo);
-  const sy = img.naturalHeight * corteTopo;
   const dw = Math.max(1, Math.round(cssW * dpr));
-  const dh = Math.max(1, Math.round(dw * (sh / sw)));
+  const dh = Math.max(1, Math.round(cssH * dpr));
   const canvas = document.createElement("canvas");
   canvas.width = dw;
   canvas.height = dh;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, 0, sy, sw, sh, 0, 0, dw, dh);
 
-  if (fadeTopo) {
-    const alturaFade = dh * 0.2;
-    const g = ctx.createLinearGradient(0, 0, 0, alturaFade);
-    g.addColorStop(0, "rgba(5, 22, 16, 0.62)");
-    g.addColorStop(1, "rgba(5, 22, 16, 0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, dw, Math.round(alturaFade));
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  const dr = dw / dh;
+  const ir = nw / nh;
+  let sx = 0;
+  let sy = 0;
+  let sw = nw;
+  let sh = nh;
+  if (ir > dr) {
+    sw = nh * dr;
+    sx = (nw - sw) / 2;
+  } else {
+    sh = nw / dr;
+    sy = Math.min(nh * 0.06, Math.max(0, nh - sh));
   }
 
-  return {
-    url: canvas.toDataURL("image/png"),
-    cssH: Math.max(1, Math.round(cssW * (sh / sw))),
-  };
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  return canvas.toDataURL("image/png");
+}
+
+function pintarFadeTopo(ctx, dw, dh, fadeTopo) {
+  if (!fadeTopo) return;
+  const alturaFade = dh * 0.2;
+  const g = ctx.createLinearGradient(0, 0, 0, alturaFade);
+  g.addColorStop(0, "rgba(5, 22, 16, 0.62)");
+  g.addColorStop(1, "rgba(5, 22, 16, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, dw, Math.round(alturaFade));
 }
 
 async function baixarPdfHtml(element, opt) {

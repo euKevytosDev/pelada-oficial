@@ -2640,16 +2640,17 @@ td.num, th.num {
 .pdf-export .campeao-foto-wrap {
   border-radius: 0;
   aspect-ratio: auto;
-  height: auto;
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 
 .pdf-export .campeao-foto-img {
-  position: static;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: fill;
 }
 
 .pdf-export .campeao-foto-eyebrow {
