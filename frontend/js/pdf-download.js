@@ -75,7 +75,7 @@ function opcoesPdfPadrao(filename) {
   return {
     margin: [10, 10, 10, 10],
     filename: filename || "documento.pdf",
-    image: { type: "png", quality: 1 },
+    image: { type: "jpeg", quality: 0.86 },
     html2canvas: { scale: 3, useCORS: true, logging: false, scrollY: 0 },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: {
