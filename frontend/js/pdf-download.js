@@ -75,7 +75,7 @@ function opcoesPdfPadrao(filename) {
   return {
     margin: [10, 10, 10, 10],
     filename: filename || "documento.pdf",
-    image: { type: "jpeg", quality: 0.86 },
+    image: { type: "jpeg", quality: 0.94 },
     html2canvas: { scale: 3, useCORS: true, logging: false, scrollY: 0 },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: {
@@ -107,72 +107,78 @@ async function html2pdfBlob(element, opt) {
 }
 
 /**
- * Recorta a foto no tamanho do card (sem esticar) e desenha o escurecido
- * atrás do nome direto na imagem. O degradê em CSS vira linha preta no celular.
+ * Corta só um pouco em cima e um pouco mais embaixo, sem achatar o jogador.
+ * O escurecido do nome vai na própria imagem para não virar linha preta no celular.
  */
 function encaixarFotosNosCards(element) {
   const restaurar = [];
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
-    aplicarCover(img, wrap.clientWidth, wrap.clientHeight, true, restaurar);
+    aplicarRecorteLeve(img, wrap.clientWidth, true, restaurar);
   });
 
   element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.campeao-foto-img");
-    aplicarCover(img, wrap.clientWidth, wrap.clientHeight, false, restaurar);
+    aplicarRecorteLeve(img, wrap.clientWidth, false, restaurar);
   });
 
   return () => {
-    restaurar.forEach(([img, src]) => img.setAttribute("src", src));
+    restaurar.forEach((voltar) => voltar());
   };
 }
 
-function aplicarCover(img, w, h, fadeTopo, restaurar) {
-  if (!img || !img.naturalWidth || !img.naturalHeight || w < 8 || h < 8) return;
-  const anterior = img.getAttribute("src");
-  const url = fotoCoverDataUrl(img, w, h, fadeTopo);
-  if (!url) return;
-  img.setAttribute("src", url);
-  restaurar.push([img, anterior]);
+function aplicarRecorteLeve(img, cssW, fadeTopo, restaurar) {
+  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8) return;
+  const preparado = fotoRecorteLeve(img, cssW, fadeTopo);
+  if (!preparado) return;
+  const src = img.getAttribute("src");
+  const estilo = img.getAttribute("style");
+  img.setAttribute("src", preparado.url);
+  img.style.position = "static";
+  img.style.width = "100%";
+  img.style.height = `${preparado.cssH}px`;
+  img.style.maxHeight = "none";
+  img.style.objectFit = "contain";
+  restaurar.push(() => {
+    if (src == null) img.removeAttribute("src");
+    else img.setAttribute("src", src);
+    if (estilo == null) img.removeAttribute("style");
+    else img.setAttribute("style", estilo);
+  });
 }
 
-function fotoCoverDataUrl(img, cssW, cssH, fadeTopo) {
-  const dpr = 2;
+function fotoRecorteLeve(img, cssW, fadeTopo) {
+  const dpr = 3;
+  const corteTopo = 0.05;
+  const corteBaixo = 0.11;
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight * (1 - corteTopo - corteBaixo);
+  const sy = img.naturalHeight * corteTopo;
   const dw = Math.max(1, Math.round(cssW * dpr));
-  const dh = Math.max(1, Math.round(cssH * dpr));
+  const dh = Math.max(1, Math.round(dw * (sh / sw)));
   const canvas = document.createElement("canvas");
   canvas.width = dw;
   canvas.height = dh;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-
-  const ir = img.naturalWidth / img.naturalHeight;
-  const dr = dw / dh;
-  let sx = 0;
-  let sy = 0;
-  let sw = img.naturalWidth;
-  let sh = img.naturalHeight;
-  if (ir > dr) {
-    sw = sh * dr;
-    sx = (img.naturalWidth - sw) / 2;
-  } else {
-    sh = sw / dr;
-    sy = (img.naturalHeight - sh) * 0.28;
-  }
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, sy, sw, sh, 0, 0, dw, dh);
 
   if (fadeTopo) {
-    const g = ctx.createLinearGradient(0, 0, 0, dh * 0.46);
-    g.addColorStop(0, "rgba(5, 22, 16, 0.92)");
-    g.addColorStop(0.55, "rgba(5, 22, 16, 0.55)");
+    const alturaFade = dh * 0.2;
+    const g = ctx.createLinearGradient(0, 0, 0, alturaFade);
+    g.addColorStop(0, "rgba(5, 22, 16, 0.62)");
     g.addColorStop(1, "rgba(5, 22, 16, 0)");
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, dw, Math.round(dh * 0.46));
+    ctx.fillRect(0, 0, dw, Math.round(alturaFade));
   }
 
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return {
+    url: canvas.toDataURL("image/png"),
+    cssH: Math.max(1, Math.round(cssW * (sh / sw))),
+  };
 }
 
 async function baixarPdfHtml(element, opt) {
