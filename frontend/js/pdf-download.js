@@ -115,7 +115,7 @@ function encaixarFotosNosCards(element) {
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
-    aplicarRecorteLeve(img, wrap.clientWidth, true, restaurar);
+    aplicarCoverNoCard(img, wrap, true, restaurar);
   });
 
   element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
@@ -126,6 +126,68 @@ function encaixarFotosNosCards(element) {
   return () => {
     restaurar.forEach((voltar) => voltar());
   };
+}
+
+function aplicarCoverNoCard(img, wrap, fadeTopo, restaurar) {
+  const cssW = wrap.clientWidth;
+  const cssH = wrap.clientHeight;
+  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8 || cssH < 8) return;
+  const url = fotoCoverNoCard(img, cssW, cssH, fadeTopo);
+  if (!url) return;
+  const src = img.getAttribute("src");
+  const estilo = img.getAttribute("style");
+  img.setAttribute("src", url);
+  img.style.position = "absolute";
+  img.style.inset = "0";
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.objectFit = "fill";
+  restaurar.push(() => {
+    if (src == null) img.removeAttribute("src");
+    else img.setAttribute("src", src);
+    if (estilo == null) img.removeAttribute("style");
+    else img.setAttribute("style", estilo);
+  });
+}
+
+function fotoCoverNoCard(img, cssW, cssH, fadeTopo) {
+  const dpr = 3;
+  const dw = Math.max(1, Math.round(cssW * dpr));
+  const dh = Math.max(1, Math.round(cssH * dpr));
+  const canvas = document.createElement("canvas");
+  canvas.width = dw;
+  canvas.height = dh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const ir = img.naturalWidth / img.naturalHeight;
+  const dr = dw / dh;
+  let sx = 0;
+  let sy = 0;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (ir > dr) {
+    sw = sh * dr;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = sw / dr;
+    sy = (img.naturalHeight - sh) * 0.18;
+  }
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+
+  if (fadeTopo) {
+    const alturaFade = dh * 0.2;
+    const g = ctx.createLinearGradient(0, 0, 0, alturaFade);
+    g.addColorStop(0, "rgba(5, 22, 16, 0.62)");
+    g.addColorStop(1, "rgba(5, 22, 16, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, dw, Math.round(alturaFade));
+  }
+
+  return canvas.toDataURL("image/png");
 }
 
 function aplicarRecorteLeve(img, cssW, fadeTopo, restaurar) {

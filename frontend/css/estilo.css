@@ -2435,6 +2435,7 @@ td.num, th.num {
 .pdf-export .resumo-capa-pdf {
   break-after: page;
   page-break-after: always;
+  height: 264mm;
   min-height: 264mm;
   display: flex;
   flex-direction: column;
@@ -2498,10 +2499,9 @@ td.num, th.num {
 }
 
 .pdf-export .resumo-capa-pdf .resumo-bloco.premios-grid--fotos {
-  flex: none;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  height: auto;
   min-height: 0;
   margin-top: 8px;
 }
@@ -2527,20 +2527,20 @@ td.num, th.num {
 }
 
 .pdf-export .premios-grid--fotos .premios {
-  flex: none;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  height: auto;
   min-height: 0;
   gap: 6px;
 }
 
 .pdf-export .premios-grid--fotos .premios-par {
-  flex: none;
-  height: auto;
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
   min-height: 0;
-  align-items: start;
+  align-items: stretch;
 }
 
 .pdf-export .premios-grid--compacto .premios {
@@ -2564,8 +2564,10 @@ td.num, th.num {
 }
 
 .pdf-export .premio-destaque.premio-com-foto {
-  height: auto;
+  height: 100%;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pdf-export .premio-foto-overlay {
@@ -2592,20 +2594,21 @@ td.num, th.num {
 }
 
 .pdf-export .premio-foto-wrap {
-  flex: none;
-  height: auto;
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 0;
   position: relative;
   overflow: hidden;
-  background: transparent;
+  background: #0b3d2e;
 }
 
 .pdf-export .premio-foto {
-  position: static;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center center;
 }
 
