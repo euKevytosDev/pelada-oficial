@@ -97,7 +97,7 @@ async function html2pdfBlob(element, opt) {
     throw new Error("Gerador de PDF indisponível");
   }
   element.classList.add("pdf-export");
-  const soltarFotos = travarProporcaoFotos(element);
+  const soltarFotos = encaixarFotosNosCards(element);
   try {
     return await html2pdf().set(opt).from(element).outputPdf("blob");
   } finally {
@@ -106,29 +106,73 @@ async function html2pdfBlob(element, opt) {
   }
 }
 
-/** Altura em px na mesma proporção da foto, para o PDF não amassar a imagem. */
-function travarProporcaoFotos(element) {
-  const imgs = [...element.querySelectorAll("img.premio-foto, img.campeao-foto-img")];
-  const anteriores = imgs.map((img) => img.getAttribute("style"));
-  imgs.forEach((img) => {
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
-    const w = img.clientWidth;
-    if (!nw || !nh || !w) return;
-    const h = Math.max(1, Math.round(w * (nh / nw)));
-    img.style.position = "static";
-    img.style.width = "100%";
-    img.style.height = `${h}px`;
-    img.style.objectFit = "contain";
-    img.style.maxHeight = "none";
+/**
+ * Recorta a foto no tamanho do card (sem esticar) e desenha o escurecido
+ * atrás do nome direto na imagem. O degradê em CSS vira linha preta no celular.
+ */
+function encaixarFotosNosCards(element) {
+  const restaurar = [];
+
+  element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
+    const img = wrap.querySelector("img.premio-foto");
+    aplicarCover(img, wrap.clientWidth, wrap.clientHeight, true, restaurar);
   });
+
+  element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
+    const img = wrap.querySelector("img.campeao-foto-img");
+    aplicarCover(img, wrap.clientWidth, wrap.clientHeight, false, restaurar);
+  });
+
   return () => {
-    imgs.forEach((img, i) => {
-      const prev = anteriores[i];
-      if (prev == null) img.removeAttribute("style");
-      else img.setAttribute("style", prev);
-    });
+    restaurar.forEach(([img, src]) => img.setAttribute("src", src));
   };
+}
+
+function aplicarCover(img, w, h, fadeTopo, restaurar) {
+  if (!img || !img.naturalWidth || !img.naturalHeight || w < 8 || h < 8) return;
+  const anterior = img.getAttribute("src");
+  const url = fotoCoverDataUrl(img, w, h, fadeTopo);
+  if (!url) return;
+  img.setAttribute("src", url);
+  restaurar.push([img, anterior]);
+}
+
+function fotoCoverDataUrl(img, cssW, cssH, fadeTopo) {
+  const dpr = 2;
+  const dw = Math.max(1, Math.round(cssW * dpr));
+  const dh = Math.max(1, Math.round(cssH * dpr));
+  const canvas = document.createElement("canvas");
+  canvas.width = dw;
+  canvas.height = dh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const ir = img.naturalWidth / img.naturalHeight;
+  const dr = dw / dh;
+  let sx = 0;
+  let sy = 0;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (ir > dr) {
+    sw = sh * dr;
+    sx = (img.naturalWidth - sw) / 2;
+  } else {
+    sh = sw / dr;
+    sy = (img.naturalHeight - sh) * 0.28;
+  }
+
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+
+  if (fadeTopo) {
+    const g = ctx.createLinearGradient(0, 0, 0, dh * 0.46);
+    g.addColorStop(0, "rgba(5, 22, 16, 0.92)");
+    g.addColorStop(0.55, "rgba(5, 22, 16, 0.55)");
+    g.addColorStop(1, "rgba(5, 22, 16, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, dw, Math.round(dh * 0.46));
+  }
+
+  return canvas.toDataURL("image/jpeg", 0.92);
 }
 
 async function baixarPdfHtml(element, opt) {

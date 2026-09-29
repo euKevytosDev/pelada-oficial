@@ -2498,10 +2498,9 @@ td.num, th.num {
 }
 
 .pdf-export .resumo-capa-pdf .resumo-bloco.premios-grid--fotos {
-  flex: none;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  height: auto;
   min-height: 0;
   margin-top: 8px;
 }
@@ -2527,20 +2526,18 @@ td.num, th.num {
 }
 
 .pdf-export .premios-grid--fotos .premios {
-  flex: none;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  height: auto;
   min-height: 0;
   gap: 6px;
 }
 
 .pdf-export .premios-grid--fotos .premios-par {
-  flex: none;
-  height: auto;
+  flex: 1 1 0;
   gap: 6px;
   min-height: 0;
-  align-items: start;
+  align-items: stretch;
 }
 
 .pdf-export .premios-grid--compacto .premios {
@@ -2564,14 +2561,13 @@ td.num, th.num {
 }
 
 .pdf-export .premio-destaque.premio-com-foto {
-  height: auto;
+  height: 100%;
   min-height: 0;
 }
 
 .pdf-export .premio-foto-overlay {
-  padding: 7px 10px 8px;
-  /* Sem degradê: no celular o html2pdf desenha uma linha preta no fim do fade */
-  background: #10281f;
+  padding: 7px 10px 18px;
+  background: none;
 }
 
 .pdf-export .premio-foto-overlay .premio-categoria {
@@ -2586,28 +2582,27 @@ td.num, th.num {
 .pdf-export .premio-foto-overlay-nome .premio-nome {
   font-size: 1.05rem;
   margin-top: 3px;
-  text-shadow: none;
 }
 
 .pdf-export .premio-foto-overlay .premio-ico {
   font-size: 0.9rem;
-  filter: none;
 }
 
 .pdf-export .premio-foto-wrap {
-  flex: none;
-  height: auto;
+  flex: 1 1 auto;
   min-height: 0;
   position: relative;
   overflow: hidden;
+  background: #0b3d2e;
 }
 
 .pdf-export .premio-foto {
-  position: static;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center center;
 }
 
@@ -2638,15 +2633,18 @@ td.num, th.num {
 
 .pdf-export .campeao-foto-wrap {
   border-radius: 0;
-  aspect-ratio: auto;
+  aspect-ratio: 16 / 9;
   height: auto;
+  position: relative;
+  overflow: hidden;
 }
 
 .pdf-export .campeao-foto-img {
-  position: static;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  height: 100%;
+  object-fit: fill;
 }
 
 .pdf-export .campeao-foto-eyebrow {
