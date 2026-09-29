@@ -165,7 +165,7 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   if (cssW < 8) return;
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
-  const alvo = 3 / 2;
+  const alvo = 1;
   let sx = 0;
   let sw = nw;
   if (nw / nh > alvo) {
