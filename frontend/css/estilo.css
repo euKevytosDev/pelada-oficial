@@ -2632,6 +2632,11 @@ td.num, th.num {
 
 .pdf-export .resumo-pagina-campeao-pdf .campeao-foto-hero {
   flex: 0 0 auto;
+  width: calc(100% + 20px);
+  margin-left: -10px;
+  margin-right: -10px;
+  margin-bottom: 8px;
+  gap: 6px;
 }
 
 .pdf-export .campeao-foto-titulo {
