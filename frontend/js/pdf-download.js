@@ -148,7 +148,9 @@ function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  travarCaixa(wrap, img, cssW, cssH);
+  wrap.style.height = `${cssH}px`;
+  wrap.style.flex = "none";
+  travarCaixa(wrap, img);
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
     else img.setAttribute("src", src);
@@ -158,16 +160,18 @@ function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
 }
 
 function aplicarFotoCampeao(img, wrap, restaurar) {
-  const cssW = wrap.clientWidth;
-  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8) return;
-  const cssH = Math.max(1, Math.round(cssW / (4 / 3)));
+  if (!img || !img.naturalWidth || !img.naturalHeight) return;
+  const cssW = wrap.clientWidth || wrap.parentElement?.clientWidth || 0;
+  if (cssW < 8) return;
+  const cssH = Math.max(1, Math.round(cssW * 3 / 4));
   const url = fotoCortandoLaterais(img, cssW, cssH);
   if (!url) return;
   const src = img.getAttribute("src");
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  travarCaixa(wrap, img, cssW, cssH);
+  wrap.style.height = `${cssH}px`;
+  travarCaixa(wrap, img);
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
     else img.setAttribute("src", src);
@@ -176,13 +180,14 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   });
 }
 
-function travarCaixa(wrap, img, cssW, cssH) {
-  wrap.style.height = `${cssH}px`;
-  wrap.style.flex = "none";
+function travarCaixa(wrap, img) {
+  wrap.style.width = "100%";
+  wrap.style.background = "transparent";
+  wrap.style.overflow = "hidden";
   img.style.position = "absolute";
   img.style.inset = "0";
-  img.style.width = `${cssW}px`;
-  img.style.height = `${cssH}px`;
+  img.style.width = "100%";
+  img.style.height = "100%";
   img.style.maxWidth = "none";
   img.style.maxHeight = "none";
   img.style.objectFit = "fill";
@@ -201,22 +206,16 @@ function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
 
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
-  const escala = dw / nw;
-  let sy = 0;
-  let sh = nh;
-  let destH = dh;
-  if (nh * escala > dh) {
-    sh = dh / escala;
-    const extra = nh - sh;
-    sy = Math.min(nh * 0.04, extra);
-    if (sy + sh > nh) sy = Math.max(0, nh - sh);
-  } else {
-    destH = Math.max(1, Math.round(nh * escala));
-  }
+  const escala = Math.max(dw / nw, dh / nh);
+  const sw = dw / escala;
+  const sh = dh / escala;
+  const extraY = Math.max(0, nh - sh);
+  const sy = Math.min(nh * 0.04, extraY);
+  const sx = Math.max(0, (nw - sw) / 2);
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, 0, sy, nw, sh, 0, 0, dw, destH);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
   pintarFadeTopo(ctx, dw, dh, fadeTopo);
   return canvas.toDataURL("image/png");
 }

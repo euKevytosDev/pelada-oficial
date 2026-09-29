@@ -2599,7 +2599,7 @@ td.num, th.num {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  background: #0b3d2e;
+  background: transparent;
 }
 
 .pdf-export .premio-foto {
