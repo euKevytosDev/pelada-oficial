@@ -2447,6 +2447,14 @@ td.num, th.num {
   box-sizing: border-box;
 }
 
+.pdf-export .resumo-pagina-campeao-pdf:not(.resumo-pagina-campeao-pdf--so-hero) {
+  height: 248mm;
+  max-height: 248mm;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .pdf-export .resumo-capa-pdf--sem-fotos {
   min-height: 0;
   height: auto;
@@ -2622,12 +2630,8 @@ td.num, th.num {
   page-break-after: always;
 }
 
-.pdf-export .campeao-foto-hero {
-  width: calc(100% + 20px);
-  margin-left: -10px;
-  margin-right: -10px;
-  margin-bottom: 8px;
-  gap: 6px;
+.pdf-export .resumo-pagina-campeao-pdf .campeao-foto-hero {
+  flex: 0 0 auto;
 }
 
 .pdf-export .campeao-foto-titulo {
@@ -2672,12 +2676,49 @@ td.num, th.num {
 }
 
 .pdf-export .resumo-pagina-campeao-pdf .resumo-times {
-  margin-top: 0;
+  margin-top: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .pdf-export .resumo-pagina-campeao-pdf .resumo-times h3 {
   margin-bottom: 6px;
   font-size: 0.92rem;
+  flex-shrink: 0;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .times-resumo-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  align-content: stretch;
+  grid-auto-rows: 1fr;
+  gap: 8px;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .time-resumo {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px 10px;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .time-resumo .lista-resumo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0;
+}
+
+.pdf-export .resumo-pagina-campeao-pdf .time-resumo .lista-resumo li {
+  font-size: 0.78rem;
+  padding: 1px 0;
 }
 
 .premio-foto {
