@@ -163,8 +163,10 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
   const cssW = wrap.clientWidth || wrap.parentElement?.clientWidth || 0;
   if (cssW < 8) return;
-  const cssH = Math.max(1, Math.round(cssW * 3 / 4));
-  const url = fotoCortandoLaterais(img, cssW, cssH);
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  const cssH = Math.max(1, Math.round(cssW * (nh / nw)));
+  const url = fotoNaProporcaoOriginal(img, cssW, cssH);
   if (!url) return;
   const src = img.getAttribute("src");
   const estiloImg = guardarEstilo(img);
@@ -220,8 +222,8 @@ function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
   return canvas.toDataURL("image/png");
 }
 
-/** Mais alta que uma faixa: corta as laterais e mantém a proporção. */
-function fotoCortandoLaterais(img, cssW, cssH) {
+/** Time campeão: mesma proporção da foto. Sem achatar. */
+function fotoNaProporcaoOriginal(img, cssW, cssH) {
   const dpr = 3;
   const dw = Math.max(1, Math.round(cssW * dpr));
   const dh = Math.max(1, Math.round(cssH * dpr));
@@ -230,26 +232,9 @@ function fotoCortandoLaterais(img, cssW, cssH) {
   canvas.height = dh;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-
-  const nw = img.naturalWidth;
-  const nh = img.naturalHeight;
-  const dr = dw / dh;
-  const ir = nw / nh;
-  let sx = 0;
-  let sy = 0;
-  let sw = nw;
-  let sh = nh;
-  if (ir > dr) {
-    sw = nh * dr;
-    sx = (nw - sw) / 2;
-  } else {
-    sh = nw / dr;
-    sy = Math.min(nh * 0.06, Math.max(0, nh - sh));
-  }
-
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, dw, dh);
   return canvas.toDataURL("image/png");
 }
 
