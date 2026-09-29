@@ -75,8 +75,8 @@ function opcoesPdfPadrao(filename) {
   return {
     margin: [10, 10, 10, 10],
     filename: filename || "documento.pdf",
-    image: { type: "jpeg", quality: 0.94 },
-    html2canvas: { scale: 3, useCORS: true, logging: false, scrollY: 0 },
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 4, useCORS: true, logging: false, scrollY: 0 },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     pagebreak: {
       mode: ["css", "legacy"],
@@ -197,7 +197,7 @@ function travarCaixa(wrap, img) {
 
 /** Largura inteira da foto, mesma proporção, corta o excesso embaixo. */
 function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
-  const dpr = 3;
+  const dpr = 4;
   const dw = Math.max(1, Math.round(cssW * dpr));
   const dh = Math.max(1, Math.round(cssH * dpr));
   const canvas = document.createElement("canvas");
@@ -224,7 +224,7 @@ function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
 
 /** Time campeão: mesma proporção da foto. Sem achatar. */
 function fotoNaProporcaoOriginal(img, cssW, cssH) {
-  const dpr = 3;
+  const dpr = 4;
   const dw = Math.max(1, Math.round(cssW * dpr));
   const dh = Math.max(1, Math.round(cssH * dpr));
   const canvas = document.createElement("canvas");
