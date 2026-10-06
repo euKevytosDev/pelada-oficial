@@ -107,24 +107,22 @@ async function html2pdfBlob(element, opt) {
 }
 
 /**
- * Premiação: foto na proporção original, cortando o que sobra embaixo.
- * Time campeão: mais alta, cortando as laterais, para não ficar uma faixa fina.
+ * Coloca a foto no card com zoom uniforme.
+ * Se não couber, corta laterais e a parte de baixo — nunca estica.
  */
 async function encaixarFotosNosCards(element) {
   const restaurar = [];
-  const esperas = [];
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
-    aplicarFotoNoCard(img, wrap, true, restaurar, esperas);
+    aplicarFotoNoCard(img, wrap, true, restaurar);
   });
 
   element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.campeao-foto-img");
-    aplicarFotoCampeao(img, wrap, restaurar, esperas);
+    aplicarFotoCampeao(img, wrap, restaurar);
   });
 
-  await Promise.all(esperas);
   return () => {
     restaurar.forEach((voltar) => voltar());
   };
@@ -140,112 +138,74 @@ function restaurarEstilo(el, estilo) {
   else el.setAttribute("style", estilo);
 }
 
-function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar, esperas) {
+function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
-  ocuparCardInteiro(wrap, img);
   const card = wrap.closest(".premio-com-foto") || wrap;
+  soltarImagemDoFluxo(wrap, img);
   const cssW = Math.round(card.clientWidth);
   const cssH = Math.round(card.clientHeight);
   if (cssW < 8 || cssH < 8) return;
-  const url = fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo);
-  if (!url) return;
-  const src = img.getAttribute("src");
-  const estiloImg = guardarEstilo(img);
-  const estiloWrap = guardarEstilo(wrap);
-  img.setAttribute("src", url);
-  preencherCard(wrap, img, cssH);
-  esperas.push(esperarImagem(img));
-  restaurar.push(() => {
-    if (src == null) img.removeAttribute("src");
-    else img.setAttribute("src", src);
-    restaurarEstilo(img, estiloImg);
-    restaurarEstilo(wrap, estiloWrap);
-  });
+  colocarCanvasZoom(img, wrap, cssW, cssH, fadeTopo, restaurar, card);
 }
 
-function aplicarFotoCampeao(img, wrap, restaurar, esperas) {
+function aplicarFotoCampeao(img, wrap, restaurar) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
   const hero = wrap.closest(".campeao-foto-hero") || wrap.parentElement || wrap;
   const cssW = Math.round(hero.clientWidth || wrap.clientWidth || 0);
   if (cssW < 8) return;
-  const nw = img.naturalWidth;
-  const nh = img.naturalHeight;
-  const alvo = 1;
-  let sx = 0;
-  let sw = nw;
-  if (nw / nh > alvo) {
-    sw = nh * alvo;
-    sx = (nw - sw) / 2;
-  }
-  const cssH = Math.max(1, Math.round(cssW * (nh / sw)));
-  const url = fotoCampeaoCortandoLados(img, cssW, cssH, sx, sw);
-  if (!url) return;
-  const src = img.getAttribute("src");
-  const estiloImg = guardarEstilo(img);
-  const estiloWrap = guardarEstilo(wrap);
-  img.setAttribute("src", url);
-  preencherCard(wrap, img, cssH);
-  esperas.push(esperarImagem(img));
-  restaurar.push(() => {
-    if (src == null) img.removeAttribute("src");
-    else img.setAttribute("src", src);
-    restaurarEstilo(img, estiloImg);
-    restaurarEstilo(wrap, estiloWrap);
-  });
+  const alturaNatural = Math.round(cssW * (img.naturalHeight / img.naturalWidth));
+  const cssH = Math.max(1, Math.min(alturaNatural, cssW));
+  colocarCanvasZoom(img, wrap, cssW, cssH, false, restaurar, wrap);
 }
 
-function esperarImagem(img) {
-  if (typeof img.decode === "function") return img.decode().catch(() => {});
-  return new Promise((resolve) => {
-    if (img.complete && img.naturalWidth) resolve();
-    else {
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-    }
-  });
-}
-
-/** Faz a caixa ocupar o card antes de medir, para a foto não nascer pela metade. */
-function ocuparCardInteiro(wrap, img) {
+function soltarImagemDoFluxo(wrap, img) {
   wrap.style.setProperty("width", "100%", "important");
   wrap.style.setProperty("height", "100%", "important");
   wrap.style.setProperty("flex", "1 1 auto", "important");
   wrap.style.setProperty("min-height", "0", "important");
   wrap.style.setProperty("position", "relative", "important");
   img.style.setProperty("position", "absolute", "important");
-  img.style.setProperty("inset", "0", "important");
-  img.style.setProperty("width", "100%", "important");
-  img.style.setProperty("height", "100%", "important");
 }
 
-/** Foto cobre o card inteiro. O recorte já está na proporção da caixa, então não estica. */
-function preencherCard(wrap, img, cssH) {
+/**
+ * Desenha a foto numa escala só. O que sobra nas laterais e embaixo é cortado.
+ * O canvas entra no PDF já no tamanho do card, para o gerador não esticar.
+ */
+function colocarCanvasZoom(img, wrap, cssW, cssH, fadeTopo, restaurar, caixa) {
+  const canvas = criarCanvasZoom(img, cssW, cssH, fadeTopo);
+  if (!canvas) return;
+  const estiloImg = guardarEstilo(img);
+  const estiloWrap = guardarEstilo(wrap);
+  const estiloCaixa = caixa !== wrap ? guardarEstilo(caixa) : null;
+  img.style.setProperty("display", "none", "important");
+  wrap.appendChild(canvas);
+  travarCaixaPx(wrap, cssW, cssH);
+  if (caixa !== wrap) travarCaixaPx(caixa, cssW, cssH);
+  restaurar.push(() => {
+    canvas.remove();
+    restaurarEstilo(img, estiloImg);
+    restaurarEstilo(wrap, estiloWrap);
+    if (caixa !== wrap) restaurarEstilo(caixa, estiloCaixa);
+  });
+}
+
+function travarCaixaPx(el, cssW, cssH) {
+  const w = `${cssW}px`;
   const h = `${cssH}px`;
-  wrap.style.setProperty("width", "100%", "important");
-  wrap.style.setProperty("height", h, "important");
-  wrap.style.setProperty("min-height", h, "important");
-  wrap.style.setProperty("flex", "1 1 auto", "important");
-  wrap.style.setProperty("aspect-ratio", "auto", "important");
-  wrap.style.background = "transparent";
-  wrap.style.overflow = "hidden";
-  wrap.style.position = "relative";
-
-  img.style.setProperty("position", "absolute", "important");
-  img.style.setProperty("inset", "0", "important");
-  img.style.setProperty("display", "block", "important");
-  img.style.setProperty("width", "100%", "important");
-  img.style.setProperty("height", "100%", "important");
-  img.style.setProperty("min-width", "100%", "important");
-  img.style.setProperty("min-height", "100%", "important");
-  img.style.setProperty("max-width", "none", "important");
-  img.style.setProperty("max-height", "none", "important");
-  img.style.setProperty("object-fit", "fill", "important");
-  img.removeAttribute("width");
-  img.removeAttribute("height");
+  el.style.setProperty("width", w, "important");
+  el.style.setProperty("height", h, "important");
+  el.style.setProperty("min-width", w, "important");
+  el.style.setProperty("min-height", h, "important");
+  el.style.setProperty("max-width", w, "important");
+  el.style.setProperty("max-height", h, "important");
+  el.style.setProperty("flex", "none", "important");
+  el.style.setProperty("aspect-ratio", "auto", "important");
+  el.style.position = "relative";
+  el.style.overflow = "hidden";
+  el.style.background = "transparent";
 }
 
-/** Largura inteira da foto, mesma proporção, corta o excesso embaixo. */
-function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
+function criarCanvasZoom(img, cssW, cssH, fadeTopo) {
   const dpr = 4;
   const dw = Math.max(1, Math.round(cssW * dpr));
   const dh = Math.max(1, Math.round(cssH * dpr));
@@ -260,31 +220,23 @@ function fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo) {
   const escala = Math.max(dw / nw, dh / nh);
   const sw = dw / escala;
   const sh = dh / escala;
-  const extraY = Math.max(0, nh - sh);
-  const sy = Math.min(nh * 0.04, extraY);
   const sx = Math.max(0, (nw - sw) / 2);
+  const sy = 0;
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
   pintarFadeTopo(ctx, dw, dh, fadeTopo);
-  return canvas.toDataURL("image/png");
-}
 
-/** Time campeão: corta só as laterais e amplia na mesma proporção. */
-function fotoCampeaoCortandoLados(img, cssW, cssH, sx, sw) {
-  const dpr = 4;
-  const dw = Math.max(1, Math.round(cssW * dpr));
-  const dh = Math.max(1, Math.round(cssH * dpr));
-  const canvas = document.createElement("canvas");
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, sx, 0, sw, img.naturalHeight, 0, 0, dw, dh);
-  return canvas.toDataURL("image/png");
+  canvas.style.setProperty("position", "absolute", "important");
+  canvas.style.setProperty("left", "0", "important");
+  canvas.style.setProperty("top", "0", "important");
+  canvas.style.setProperty("width", `${cssW}px`, "important");
+  canvas.style.setProperty("height", `${cssH}px`, "important");
+  canvas.style.setProperty("max-width", "none", "important");
+  canvas.style.setProperty("max-height", "none", "important");
+  canvas.style.setProperty("display", "block", "important");
+  return canvas;
 }
 
 function pintarFadeTopo(ctx, dw, dh, fadeTopo) {
