@@ -218,8 +218,44 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   const cssW = Math.round(hero.clientWidth || wrap.clientWidth || 0);
   if (cssW < 8) return;
   const alturaNatural = Math.round(cssW * (img.naturalHeight / img.naturalWidth));
-  const cssH = Math.max(1, Math.min(alturaNatural, cssW));
+  const cssH = Math.max(1, Math.min(alturaNatural, alturaQueCabeNaFolha(wrap, cssW, restaurar)));
   colocarCanvasZoom(img, wrap, cssW, cssH, false, restaurar, wrap);
+}
+
+/** Deixa a foto do campeão só um pouco menor, para os nomes dos times caberem. */
+function alturaQueCabeNaFolha(wrap, cssW, restaurar) {
+  const pagina = wrap.closest(".resumo-pagina-campeao-pdf");
+  if (!pagina) return cssW;
+  const times = pagina.querySelector(".resumo-times");
+  if (times) {
+    const estiloTimes = guardarEstilo(times);
+    const grade = times.querySelector(".times-resumo-grid");
+    const estiloGrade = guardarEstilo(grade);
+    const cards = [...times.querySelectorAll(".time-resumo")];
+    const estilosCards = cards.map((card) => guardarEstilo(card));
+    times.style.setProperty("flex", "none", "important");
+    times.style.setProperty("height", "auto", "important");
+    times.style.setProperty("overflow", "visible", "important");
+    cards.forEach((card) => {
+      card.style.setProperty("height", "auto", "important");
+      card.style.setProperty("max-height", "none", "important");
+      card.style.setProperty("overflow", "visible", "important");
+    });
+    if (grade) {
+      grade.style.setProperty("height", "auto", "important");
+      grade.style.setProperty("grid-auto-rows", "auto", "important");
+    }
+    restaurar.push(() => {
+      restaurarEstilo(times, estiloTimes);
+      restaurarEstilo(grade, estiloGrade);
+      cards.forEach((card, i) => restaurarEstilo(card, estilosCards[i]));
+    });
+  }
+  const titulo = pagina.querySelector(".campeao-foto-titulo");
+  const tituloH = titulo ? titulo.offsetHeight : 0;
+  const timesH = times ? times.offsetHeight : 0;
+  const folga = 18;
+  return Math.max(140, pagina.clientHeight - timesH - tituloH - folga);
 }
 
 function soltarImagemDoFluxo(wrap, img) {

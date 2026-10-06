@@ -2689,8 +2689,10 @@ td.num, th.num {
 
 .pdf-export .resumo-pagina-campeao-pdf .resumo-times {
   margin-top: 6px;
-  flex: 1 1 auto;
+  flex: none;
+  height: auto;
   min-height: 0;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -2702,20 +2704,20 @@ td.num, th.num {
 }
 
 .pdf-export .resumo-pagina-campeao-pdf .times-resumo-grid {
-  flex: 1 1 auto;
+  flex: none;
   min-height: 0;
-  height: 100%;
-  align-content: stretch;
-  grid-auto-rows: 1fr;
+  height: auto;
+  align-content: start;
+  grid-auto-rows: auto;
   gap: 8px;
 }
 
 .pdf-export .resumo-pagina-campeao-pdf .time-resumo {
-  height: 100%;
+  height: auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   padding: 8px 10px;
 }
 
