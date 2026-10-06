@@ -220,6 +220,7 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   const alturaNatural = Math.round(cssW * (img.naturalHeight / img.naturalWidth));
   const cssH = Math.max(1, Math.min(alturaNatural, alturaQueCabeNaFolha(wrap, cssW, restaurar)));
   colocarCanvasZoom(img, wrap, cssW, cssH, false, restaurar, wrap);
+  apararFotoSeAindaCortar(img, wrap, cssW, cssH, restaurar);
 }
 
 /** Deixa a foto do campeão só um pouco menor, para os nomes dos times caberem. */
@@ -254,8 +255,33 @@ function alturaQueCabeNaFolha(wrap, cssW, restaurar) {
   const titulo = pagina.querySelector(".campeao-foto-titulo");
   const tituloH = titulo ? titulo.offsetHeight : 0;
   const timesH = times ? times.offsetHeight : 0;
-  const folga = 18;
-  return Math.max(140, pagina.clientHeight - timesH - tituloH - folga);
+  const estiloPagina = getComputedStyle(pagina);
+  const padTop = parseFloat(estiloPagina.paddingTop) || 0;
+  const padBot = parseFloat(estiloPagina.paddingBottom) || 0;
+  const hero = wrap.closest(".campeao-foto-hero");
+  const estiloHero = hero ? getComputedStyle(hero) : null;
+  const heroMb = estiloHero ? parseFloat(estiloHero.marginBottom) || 0 : 0;
+  const heroGap = estiloHero ? parseFloat(estiloHero.rowGap || estiloHero.gap) || 0 : 0;
+  const timesMt = times ? parseFloat(getComputedStyle(times).marginTop) || 0 : 0;
+  const folga = 36;
+  return Math.max(
+    140,
+    pagina.clientHeight - padTop - padBot - tituloH - heroGap - heroMb - timesH - timesMt - folga
+  );
+}
+
+function apararFotoSeAindaCortar(img, wrap, cssW, cssH, restaurar) {
+  const pagina = wrap.closest(".resumo-pagina-campeao-pdf");
+  if (!pagina) return;
+  const estouro = pagina.scrollHeight - pagina.clientHeight;
+  if (estouro <= 1) return;
+  wrap.querySelector("canvas")?.remove();
+  const novoH = Math.max(120, Math.round(cssH - estouro - 20));
+  const canvas = criarCanvasZoom(img, cssW, novoH, false);
+  if (!canvas) return;
+  wrap.appendChild(canvas);
+  travarCaixaPx(wrap, cssW, novoH);
+  restaurar.push(() => canvas.remove());
 }
 
 function soltarImagemDoFluxo(wrap, img) {
