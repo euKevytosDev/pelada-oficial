@@ -301,6 +301,17 @@ public class PeladaService {
         );
     }
 
+    @Transactional
+    public Pelada salvarGoleiroCampeaoPenaltis(Long id, String nome) {
+        Pelada pelada = buscar(id);
+        String limpo = nome == null ? "" : nome.trim();
+        if (limpo.isBlank() || limpo.length() > 80) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do goleiro campeão");
+        }
+        pelada.setGoleiroCampeaoPenaltis(limpo);
+        return peladaRepository.save(pelada);
+    }
+
     @Transactional(readOnly = true)
     public Pelada buscar(Long id) {
         return peladaRepository.findByIdAndUsuario(id, authSupport.usuarioAtual())

@@ -39,6 +39,10 @@ public class Pelada {
 
     private LocalDateTime encerradaEm;
 
+    /** Goleiro escolhido como campeão no desempate de pênaltis (nome na foto da Luva). */
+    @Column(length = 80)
+    private String goleiroCampeaoPenaltis;
+
     /** Dono da pelada (conta logada). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")

@@ -84,6 +84,9 @@ public class SchemaPatchRunner implements ApplicationRunner {
             jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_pagamento_mp varchar(80)");
             jdbc.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mp_preapproval_id varchar(80)");
             log.info("Schema OK: colunas usuarios.plano / trial verificadas");
+
+            jdbc.execute("ALTER TABLE peladas ADD COLUMN IF NOT EXISTS goleiro_campeao_penaltis varchar(80)");
+            log.info("Schema OK: coluna peladas.goleiro_campeao_penaltis verificada");
         } catch (Exception e) {
             // H2 em alguns modos pode não aceitar IF NOT EXISTS da mesma forma — não derruba o app
             log.warn("Não foi possível garantir colunas de schema: {}", e.getMessage());

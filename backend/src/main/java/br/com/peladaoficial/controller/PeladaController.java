@@ -206,6 +206,15 @@ public class PeladaController {
         return moverJogador(id, jogadorId, request);
     }
 
+    /** Grava o goleiro campeão dos pênaltis para aparecer na foto da súmula. */
+    @PostMapping("/{id}/goleiro-campeao-penaltis")
+    public Map<String, Object> salvarGoleiroCampeaoPenaltis(@PathVariable Long id,
+                                                            @RequestBody Map<String, String> body) {
+        String nome = body != null ? body.get("nome") : null;
+        peladaService.salvarGoleiroCampeaoPenaltis(id, nome);
+        return resumoService.montar(id);
+    }
+
     @PostMapping("/{id}/encerrar")
     public Map<String, Object> encerrar(@PathVariable Long id) {
         peladaService.encerrar(id);

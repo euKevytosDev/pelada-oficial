@@ -165,7 +165,17 @@ public class ResumoService {
         body.put("totalVermelhos", vermelhos.stream().mapToInt(m -> (Integer) m.get("quantidade")).sum());
         body.put("golsContra", golsContra);
         body.put("observacoes", observacoes);
-        body.put("premios", montarPremios(classificacao, aptos));
+        Map<String, Object> premios = montarPremios(classificacao, aptos);
+        String gkPenaltis = pelada.getGoleiroCampeaoPenaltis();
+        if (gkPenaltis != null && !gkPenaltis.isBlank()) {
+            Map<String, Object> gk = new LinkedHashMap<>();
+            gk.put("nome", gkPenaltis.trim());
+            gk.put("nomes", List.of(gkPenaltis.trim()));
+            gk.put("empate", false);
+            gk.put("detalhe", "campeão nos pênaltis");
+            premios.put("goleiroCampeaoPenaltis", gk);
+        }
+        body.put("premios", premios);
         return body;
     }
 
