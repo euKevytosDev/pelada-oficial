@@ -141,16 +141,19 @@ function restaurarEstilo(el, estilo) {
 }
 
 function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar, esperas) {
-  const cssW = Math.round(wrap.clientWidth);
-  const cssH = Math.round(wrap.clientHeight);
-  if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8 || cssH < 8) return;
+  if (!img || !img.naturalWidth || !img.naturalHeight) return;
+  ocuparCardInteiro(wrap, img);
+  const card = wrap.closest(".premio-com-foto") || wrap;
+  const cssW = Math.round(card.clientWidth);
+  const cssH = Math.round(card.clientHeight);
+  if (cssW < 8 || cssH < 8) return;
   const url = fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo);
   if (!url) return;
   const src = img.getAttribute("src");
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  travarCaixa(wrap, img, cssW, cssH);
+  preencherCard(wrap, img, cssH);
   esperas.push(esperarImagem(img));
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
@@ -162,7 +165,8 @@ function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar, esperas) {
 
 function aplicarFotoCampeao(img, wrap, restaurar, esperas) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
-  const cssW = Math.round(wrap.clientWidth || wrap.parentElement?.clientWidth || 0);
+  const hero = wrap.closest(".campeao-foto-hero") || wrap.parentElement || wrap;
+  const cssW = Math.round(hero.clientWidth || wrap.clientWidth || 0);
   if (cssW < 8) return;
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
@@ -180,7 +184,7 @@ function aplicarFotoCampeao(img, wrap, restaurar, esperas) {
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  travarCaixa(wrap, img, cssW, cssH);
+  preencherCard(wrap, img, cssH);
   esperas.push(esperarImagem(img));
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
@@ -201,31 +205,40 @@ function esperarImagem(img) {
   });
 }
 
-/** Trava a caixa no mesmo retângulo da foto já cortada, para o PDF não esticar. */
-function travarCaixa(wrap, img, cssW, cssH) {
-  const w = `${cssW}px`;
+/** Faz a caixa ocupar o card antes de medir, para a foto não nascer pela metade. */
+function ocuparCardInteiro(wrap, img) {
+  wrap.style.setProperty("width", "100%", "important");
+  wrap.style.setProperty("height", "100%", "important");
+  wrap.style.setProperty("flex", "1 1 auto", "important");
+  wrap.style.setProperty("min-height", "0", "important");
+  wrap.style.setProperty("position", "relative", "important");
+  img.style.setProperty("position", "absolute", "important");
+  img.style.setProperty("inset", "0", "important");
+  img.style.setProperty("width", "100%", "important");
+  img.style.setProperty("height", "100%", "important");
+}
+
+/** Foto cobre o card inteiro. O recorte já está na proporção da caixa, então não estica. */
+function preencherCard(wrap, img, cssH) {
   const h = `${cssH}px`;
-  wrap.style.setProperty("width", w, "important");
+  wrap.style.setProperty("width", "100%", "important");
   wrap.style.setProperty("height", h, "important");
-  wrap.style.setProperty("min-width", w, "important");
   wrap.style.setProperty("min-height", h, "important");
-  wrap.style.setProperty("max-width", w, "important");
-  wrap.style.setProperty("max-height", h, "important");
-  wrap.style.setProperty("flex", "none", "important");
-  wrap.style.setProperty("aspect-ratio", `${cssW} / ${cssH}`, "important");
+  wrap.style.setProperty("flex", "1 1 auto", "important");
+  wrap.style.setProperty("aspect-ratio", "auto", "important");
   wrap.style.background = "transparent";
   wrap.style.overflow = "hidden";
   wrap.style.position = "relative";
 
-  img.style.setProperty("position", "static", "important");
-  img.style.setProperty("inset", "auto", "important");
+  img.style.setProperty("position", "absolute", "important");
+  img.style.setProperty("inset", "0", "important");
   img.style.setProperty("display", "block", "important");
-  img.style.setProperty("width", w, "important");
-  img.style.setProperty("height", h, "important");
-  img.style.setProperty("min-width", w, "important");
-  img.style.setProperty("min-height", h, "important");
-  img.style.setProperty("max-width", w, "important");
-  img.style.setProperty("max-height", h, "important");
+  img.style.setProperty("width", "100%", "important");
+  img.style.setProperty("height", "100%", "important");
+  img.style.setProperty("min-width", "100%", "important");
+  img.style.setProperty("min-height", "100%", "important");
+  img.style.setProperty("max-width", "none", "important");
+  img.style.setProperty("max-height", "none", "important");
   img.style.setProperty("object-fit", "fill", "important");
   img.removeAttribute("width");
   img.removeAttribute("height");
