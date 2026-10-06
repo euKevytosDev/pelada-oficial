@@ -112,6 +112,7 @@ async function html2pdfBlob(element, opt) {
  */
 async function encaixarFotosNosCards(element) {
   const restaurar = [];
+  const soltarPremios = expandirPremiosNaFolha(element);
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
@@ -125,6 +126,59 @@ async function encaixarFotosNosCards(element) {
 
   return () => {
     restaurar.forEach((voltar) => voltar());
+    soltarPremios();
+  };
+}
+
+/** A premiação ocupa o que sobra da folha, para a foto não ficar na metade. */
+function expandirPremiosNaFolha(element) {
+  const capa = element.querySelector(".resumo-capa-pdf");
+  const bloco = capa?.querySelector(".premios-grid--fotos");
+  if (!capa || !bloco) return () => {};
+  const grade = bloco.querySelector(".premios");
+  const pares = [...bloco.querySelectorAll(".premios-par")];
+  const cards = [...bloco.querySelectorAll(".premio-com-foto")];
+  const estilo = guardarEstilo(bloco);
+  const estiloGrade = guardarEstilo(grade);
+  const estilosPares = pares.map((par) => guardarEstilo(par));
+  const estilosCards = cards.map((card) => guardarEstilo(card));
+  bloco.querySelectorAll("img.premio-foto").forEach((img) => {
+    img.style.setProperty("position", "absolute", "important");
+  });
+  const acima = bloco.getBoundingClientRect().top - capa.getBoundingClientRect().top;
+  const sobra = Math.max(160, Math.round(capa.clientHeight - acima - 4));
+  bloco.style.setProperty("height", `${sobra}px`, "important");
+  bloco.style.setProperty("min-height", `${sobra}px`, "important");
+  bloco.style.setProperty("max-height", `${sobra}px`, "important");
+  bloco.style.setProperty("display", "flex", "important");
+  bloco.style.setProperty("flex-direction", "column", "important");
+  bloco.style.setProperty("overflow", "hidden", "important");
+  bloco.style.setProperty("box-sizing", "border-box", "important");
+  if (grade) {
+    grade.style.setProperty("flex", "1 1 auto", "important");
+    grade.style.setProperty("height", "100%", "important");
+    grade.style.setProperty("min-height", "0", "important");
+    grade.style.setProperty("display", "flex", "important");
+    grade.style.setProperty("flex-direction", "column", "important");
+  }
+  pares.forEach((par) => {
+    par.style.setProperty("flex", "1 1 0", "important");
+    par.style.setProperty("min-height", "0", "important");
+    par.style.setProperty("height", "auto", "important");
+    par.style.setProperty("grid-template-rows", "1fr", "important");
+    par.style.setProperty("align-items", "stretch", "important");
+  });
+  cards.forEach((card) => {
+    card.style.setProperty("height", "100%", "important");
+    card.style.setProperty("min-height", "0", "important");
+    card.style.setProperty("max-height", "none", "important");
+  });
+  bloco.offsetHeight;
+  return () => {
+    restaurarEstilo(bloco, estilo);
+    restaurarEstilo(grade, estiloGrade);
+    pares.forEach((par, i) => restaurarEstilo(par, estilosPares[i]));
+    cards.forEach((card, i) => restaurarEstilo(card, estilosCards[i]));
   };
 }
 
