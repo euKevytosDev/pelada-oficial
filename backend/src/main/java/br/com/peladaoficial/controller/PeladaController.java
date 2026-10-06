@@ -206,12 +206,20 @@ public class PeladaController {
         return moverJogador(id, jogadorId, request);
     }
 
-    /** Grava o goleiro campeão dos pênaltis para aparecer na foto da súmula. */
+    /** Grava o desempate dos pênaltis para aparecer na súmula. */
     @PostMapping("/{id}/goleiro-campeao-penaltis")
     public Map<String, Object> salvarGoleiroCampeaoPenaltis(@PathVariable Long id,
-                                                            @RequestBody Map<String, String> body) {
-        String nome = body != null ? body.get("nome") : null;
-        peladaService.salvarGoleiroCampeaoPenaltis(id, nome);
+                                                            @RequestBody Map<String, Object> body) {
+        String nome = body != null && body.get("nome") != null ? String.valueOf(body.get("nome")) : null;
+        String penaltisJson = null;
+        if (body != null && body.get("penaltis") != null) {
+            try {
+                penaltisJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(body.get("penaltis"));
+            } catch (Exception ignored) {
+                penaltisJson = null;
+            }
+        }
+        peladaService.salvarGoleiroCampeaoPenaltis(id, nome, penaltisJson);
         return resumoService.montar(id);
     }
 

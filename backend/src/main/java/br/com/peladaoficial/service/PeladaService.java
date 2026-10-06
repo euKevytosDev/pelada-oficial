@@ -302,13 +302,16 @@ public class PeladaService {
     }
 
     @Transactional
-    public Pelada salvarGoleiroCampeaoPenaltis(Long id, String nome) {
+    public Pelada salvarGoleiroCampeaoPenaltis(Long id, String nome, String penaltisJson) {
         Pelada pelada = buscar(id);
         String limpo = nome == null ? "" : nome.trim();
         if (limpo.isBlank() || limpo.length() > 80) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o nome do goleiro campeão");
         }
         pelada.setGoleiroCampeaoPenaltis(limpo);
+        if (penaltisJson != null && !penaltisJson.isBlank()) {
+            pelada.setPenaltisJson(penaltisJson);
+        }
         return peladaRepository.save(pelada);
     }
 

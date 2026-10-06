@@ -176,7 +176,26 @@ public class ResumoService {
             premios.put("goleiroCampeaoPenaltis", gk);
         }
         body.put("premios", premios);
+        body.put("penaltis", montarPenaltisSalvos(pelada));
         return body;
+    }
+
+    private Map<String, Object> montarPenaltisSalvos(Pelada pelada) {
+        String json = pelada.getPenaltisJson();
+        if (json != null && !json.isBlank()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                Map<String, Object> lido = mapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                if (lido != null && !lido.isEmpty()) return lido;
+            } catch (Exception ignored) {
+                // cai no goleiro salvo
+            }
+        }
+        String gk = pelada.getGoleiroCampeaoPenaltis();
+        if (gk == null || gk.isBlank()) return null;
+        Map<String, Object> pen = new LinkedHashMap<>();
+        pen.put("goleiroCampeao", gk.trim());
+        return pen;
     }
 
     private boolean isApto(Jogador j) {

@@ -259,10 +259,10 @@ const PeladaAPI = {
     }),
   listarGoleiros: (peladaId) => api(`/peladas/${peladaId}/goleiros`),
   encerrar: (peladaId) => api(`/peladas/${peladaId}/encerrar`, { method: "POST", body: "{}" }),
-  salvarGoleiroCampeaoPenaltis: (peladaId, nome) =>
+  salvarGoleiroCampeaoPenaltis: (peladaId, nome, penaltis) =>
     api(`/peladas/${peladaId}/goleiro-campeao-penaltis`, {
       method: "POST",
-      body: JSON.stringify({ nome }),
+      body: JSON.stringify({ nome, penaltis: penaltis || null }),
     }),
   encerrarAtivas: () => api(`/peladas/encerrar-ativas`, { method: "POST", body: "{}" }),
   sincronizarCompleta: (peladaId, dados) =>

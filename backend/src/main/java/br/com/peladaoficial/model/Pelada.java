@@ -43,6 +43,10 @@ public class Pelada {
     @Column(length = 80)
     private String goleiroCampeaoPenaltis;
 
+    /** Resultado do desempate (placar, campeão e cobranças) para a súmula. */
+    @Column(columnDefinition = "text")
+    private String penaltisJson;
+
     /** Dono da pelada (conta logada). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")

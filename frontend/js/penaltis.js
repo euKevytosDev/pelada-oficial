@@ -537,7 +537,7 @@ const PenaltisApp = (() => {
     estado.resumoAtual = resumo;
     const peladaId = estado.peladaId || resumo?.pelada?.id || null;
     if (peladaId && goleiroCampeaoNome && typeof PeladaAPI !== "undefined") {
-      PeladaAPI.salvarGoleiroCampeaoPenaltis(peladaId, goleiroCampeaoNome).catch(() => {});
+      PeladaAPI.salvarGoleiroCampeaoPenaltis(peladaId, goleiroCampeaoNome, resumo.penaltis).catch(() => {});
     }
     renderResumoOficial(resumo);
     atualizarBotaoDesempate(resumo);

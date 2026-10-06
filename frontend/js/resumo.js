@@ -368,16 +368,23 @@ function listaBatidasPenaltis(batidas, vazio) {
 }
 
 function quadroPenaltisHtml(pen) {
-  if (!pen?.campeao) return "";
+  if (!pen?.campeao && !pen?.goleiroCampeao) return "";
+  const temPlacar = pen.timeA && pen.golsA != null && pen.golsA !== "" && pen.golsB != null && pen.golsB !== "";
+  const placar = temPlacar
+    ? `<p class="penaltis-resumo-linha"><strong>${pen.timeA}</strong> ${pen.golsA} x ${pen.golsB} <strong>${pen.timeB}</strong></p>`
+    : pen.timeA && pen.timeB
+      ? `<p class="penaltis-resumo-linha"><strong>${pen.timeA}</strong> x <strong>${pen.timeB}</strong></p>`
+      : "";
+  const campeao = pen.campeao
+    ? `<p class="penaltis-resumo-linha">Time campeão: <strong>${pen.campeao}</strong></p>`
+    : "";
   const gk = pen.goleiroCampeao
     ? `<p class="penaltis-resumo-linha">Goleiro campeão: <strong>${pen.goleiroCampeao}</strong></p>`
     : "";
-  return `
-    <div class="penaltis-sumula-box">
-      <p class="penaltis-resumo-linha"><strong>${pen.timeA}</strong> ${pen.golsA} x ${pen.golsB} <strong>${pen.timeB}</strong></p>
-      <p class="penaltis-resumo-linha">Time campeão: <strong>${pen.campeao}</strong></p>
-      ${gk}
-      <div class="penaltis-batidas-cols">
+  const temBatidas = (pen.batidasA || []).some((b) => b && (b.resultado === "gol" || b.resultado === "erro"))
+    || (pen.batidasB || []).some((b) => b && (b.resultado === "gol" || b.resultado === "erro"));
+  const batidas = temBatidas
+    ? `<div class="penaltis-batidas-cols">
         <div>
           <h4 class="pen-batidas-titulo">${pen.timeA}</h4>
           ${listaBatidasPenaltis(pen.batidasA, "Sem cobranças")}
@@ -386,8 +393,41 @@ function quadroPenaltisHtml(pen) {
           <h4 class="pen-batidas-titulo">${pen.timeB}</h4>
           ${listaBatidasPenaltis(pen.batidasB, "Sem cobranças")}
         </div>
-      </div>
+      </div>`
+    : "";
+  return `
+    <div class="penaltis-sumula-box">
+      ${placar}
+      ${campeao}
+      ${gk}
+      ${batidas}
     </div>`;
+}
+
+function penaltisDaSumula(resumo) {
+  const pen = resumo?.penaltis;
+  if (pen && (pen.campeao || pen.goleiroCampeao || pen.timeA)) return pen;
+  const gk = resumo?.premios?.goleiroCampeaoPenaltis?.nome;
+  if (!gk) return null;
+  return { goleiroCampeao: gk };
+}
+
+function htmlLinhaDesempate(pen) {
+  if (!pen) return "";
+  const temPlacar = pen.timeA && pen.golsA != null && pen.golsA !== "" && pen.golsB != null && pen.golsB !== "";
+  const placar = temPlacar
+    ? `<p class="penaltis-resumo-linha"><strong>${pen.timeA}</strong> ${pen.golsA} x ${pen.golsB} <strong>${pen.timeB}</strong>${
+        pen.campeao ? ` — campeão: <strong>${pen.campeao}</strong>` : ""
+      }${pen.goleiroCampeao ? ` · GK: <strong>${pen.goleiroCampeao}</strong>` : ""}</p>`
+    : `<p class="penaltis-resumo-linha">${
+        pen.timeA && pen.timeB ? `<strong>${pen.timeA}</strong> x <strong>${pen.timeB}</strong>` : "Desempate"
+      }${pen.campeao ? ` — campeão: <strong>${pen.campeao}</strong>` : ""}${
+        pen.goleiroCampeao ? ` · Goleiro campeão: <strong>${pen.goleiroCampeao}</strong>` : ""
+      }</p>`;
+  return `<section class="resumo-bloco">
+        <h3>Desempate nos pênaltis</h3>
+        ${placar}
+      </section>`;
 }
 
 function campeaoHeroHtml(resumo, campeaoNome) {
@@ -476,6 +516,8 @@ function renderResumoOficial(resumo) {
     ? "resumo-pagina-stats-pdf"
     : "resumo-pagina-stats-pdf resumo-pagina-stats-pdf--continua";
 
+  const penaltis = penaltisDaSumula(resumo);
+
   const secaoPremios = `<section class="resumo-bloco premios-grid ${
     exibirPremiosComFoto ? "premios-grid--fotos" : "premios-grid--compacto"
   }">
@@ -511,18 +553,7 @@ function renderResumoOficial(resumo) {
         ${tabelaBrasileirao(resumo.classificacao)}
       </section>
 
-      ${
-        resumo.penaltis?.campeao
-          ? `<section class="resumo-bloco">
-        <h3>Desempate nos pênaltis</h3>
-        <p class="penaltis-resumo-linha"><strong>${resumo.penaltis.timeA}</strong> ${resumo.penaltis.golsA} x ${resumo.penaltis.golsB} <strong>${resumo.penaltis.timeB}</strong> — campeão: <strong>${resumo.penaltis.campeao}</strong>${
-              resumo.penaltis.goleiroCampeao
-                ? ` · GK: <strong>${resumo.penaltis.goleiroCampeao}</strong>`
-                : ""
-            }</p>
-      </section>`
-          : ""
-      }
+      ${penaltis ? htmlLinhaDesempate(penaltis) : ""}
 
       ${secaoPremios}
       ${exibirPremiosComFoto ? "" : secaoTimes}
@@ -557,9 +588,9 @@ function renderResumoOficial(resumo) {
       ${listaObservacoes(resumo.observacoes)}
     </section>
 
-    <section class="resumo-bloco ${resumo.penaltis?.campeao ? "partidas-com-penaltis" : ""}">
+    <section class="resumo-bloco ${penaltis ? "partidas-com-penaltis" : ""}">
       ${
-        resumo.penaltis?.campeao
+        penaltis
           ? `<div class="duas-cols partidas-penaltis-grid">
         <div>
           <h3>Partidas</h3>
@@ -567,7 +598,7 @@ function renderResumoOficial(resumo) {
         </div>
         <div>
           <h3>Pênaltis</h3>
-          ${quadroPenaltisHtml(resumo.penaltis)}
+          ${quadroPenaltisHtml(penaltis)}
         </div>
       </div>`
           : `<h3>Partidas</h3>
