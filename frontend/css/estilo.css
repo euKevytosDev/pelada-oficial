@@ -2429,6 +2429,10 @@ td.num, th.num {
 }
 
 .pdf-export.resumo-oficial {
+  width: 190mm;
+  max-width: none;
+  min-width: 190mm;
+  box-sizing: border-box;
   padding: 8px 10px 6px;
 }
 

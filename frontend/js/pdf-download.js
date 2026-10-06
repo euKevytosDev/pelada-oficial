@@ -97,11 +97,18 @@ async function html2pdfBlob(element, opt) {
     throw new Error("Gerador de PDF indisponível");
   }
   element.classList.add("pdf-export");
+  const estiloEl = element.getAttribute("style");
+  element.style.setProperty("width", "190mm", "important");
+  element.style.setProperty("max-width", "none", "important");
+  element.style.setProperty("min-width", "190mm", "important");
+  element.style.setProperty("box-sizing", "border-box", "important");
   const soltarFotos = await encaixarFotosNosCards(element);
   try {
     return await html2pdf().set(opt).from(element).outputPdf("blob");
   } finally {
     soltarFotos();
+    if (estiloEl == null) element.removeAttribute("style");
+    else element.setAttribute("style", estiloEl);
     element.classList.remove("pdf-export");
   }
 }
@@ -195,9 +202,12 @@ function restaurarEstilo(el, estilo) {
 function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
   const card = wrap.closest(".premio-com-foto") || wrap;
+  card.style.setProperty("width", "100%", "important");
+  card.style.setProperty("max-width", "none", "important");
+  card.style.setProperty("justify-self", "stretch", "important");
   soltarImagemDoFluxo(wrap, img);
-  const cssW = Math.round(card.clientWidth);
-  const cssH = Math.round(card.clientHeight);
+  const cssW = Math.round(card.getBoundingClientRect().width);
+  const cssH = Math.round(card.getBoundingClientRect().height);
   if (cssW < 8 || cssH < 8) return;
   colocarCanvasZoom(img, wrap, cssW, cssH, fadeTopo, restaurar, card);
 }
