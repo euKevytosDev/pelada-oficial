@@ -97,7 +97,7 @@ async function html2pdfBlob(element, opt) {
     throw new Error("Gerador de PDF indisponível");
   }
   element.classList.add("pdf-export");
-  const soltarFotos = encaixarFotosNosCards(element);
+  const soltarFotos = await encaixarFotosNosCards(element);
   try {
     return await html2pdf().set(opt).from(element).outputPdf("blob");
   } finally {
@@ -110,19 +110,21 @@ async function html2pdfBlob(element, opt) {
  * Premiação: foto na proporção original, cortando o que sobra embaixo.
  * Time campeão: mais alta, cortando as laterais, para não ficar uma faixa fina.
  */
-function encaixarFotosNosCards(element) {
+async function encaixarFotosNosCards(element) {
   const restaurar = [];
+  const esperas = [];
 
   element.querySelectorAll(".premio-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.premio-foto");
-    aplicarFotoNoCard(img, wrap, true, restaurar);
+    aplicarFotoNoCard(img, wrap, true, restaurar, esperas);
   });
 
   element.querySelectorAll(".campeao-foto-wrap").forEach((wrap) => {
     const img = wrap.querySelector("img.campeao-foto-img");
-    aplicarFotoCampeao(img, wrap, restaurar);
+    aplicarFotoCampeao(img, wrap, restaurar, esperas);
   });
 
+  await Promise.all(esperas);
   return () => {
     restaurar.forEach((voltar) => voltar());
   };
@@ -138,9 +140,9 @@ function restaurarEstilo(el, estilo) {
   else el.setAttribute("style", estilo);
 }
 
-function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
-  const cssW = wrap.clientWidth;
-  const cssH = wrap.clientHeight;
+function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar, esperas) {
+  const cssW = Math.round(wrap.clientWidth);
+  const cssH = Math.round(wrap.clientHeight);
   if (!img || !img.naturalWidth || !img.naturalHeight || cssW < 8 || cssH < 8) return;
   const url = fotoOriginalCortandoBaixo(img, cssW, cssH, fadeTopo);
   if (!url) return;
@@ -148,9 +150,8 @@ function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  wrap.style.height = `${cssH}px`;
-  wrap.style.flex = "none";
-  travarCaixa(wrap, img);
+  travarCaixa(wrap, img, cssW, cssH);
+  esperas.push(esperarImagem(img));
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
     else img.setAttribute("src", src);
@@ -159,9 +160,9 @@ function aplicarFotoNoCard(img, wrap, fadeTopo, restaurar) {
   });
 }
 
-function aplicarFotoCampeao(img, wrap, restaurar) {
+function aplicarFotoCampeao(img, wrap, restaurar, esperas) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return;
-  const cssW = wrap.clientWidth || wrap.parentElement?.clientWidth || 0;
+  const cssW = Math.round(wrap.clientWidth || wrap.parentElement?.clientWidth || 0);
   if (cssW < 8) return;
   const nw = img.naturalWidth;
   const nh = img.naturalHeight;
@@ -179,8 +180,8 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   const estiloImg = guardarEstilo(img);
   const estiloWrap = guardarEstilo(wrap);
   img.setAttribute("src", url);
-  wrap.style.height = `${cssH}px`;
-  travarCaixa(wrap, img);
+  travarCaixa(wrap, img, cssW, cssH);
+  esperas.push(esperarImagem(img));
   restaurar.push(() => {
     if (src == null) img.removeAttribute("src");
     else img.setAttribute("src", src);
@@ -189,17 +190,45 @@ function aplicarFotoCampeao(img, wrap, restaurar) {
   });
 }
 
-function travarCaixa(wrap, img) {
-  wrap.style.width = "100%";
+function esperarImagem(img) {
+  if (typeof img.decode === "function") return img.decode().catch(() => {});
+  return new Promise((resolve) => {
+    if (img.complete && img.naturalWidth) resolve();
+    else {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    }
+  });
+}
+
+/** Trava a caixa no mesmo retângulo da foto já cortada, para o PDF não esticar. */
+function travarCaixa(wrap, img, cssW, cssH) {
+  const w = `${cssW}px`;
+  const h = `${cssH}px`;
+  wrap.style.setProperty("width", w, "important");
+  wrap.style.setProperty("height", h, "important");
+  wrap.style.setProperty("min-width", w, "important");
+  wrap.style.setProperty("min-height", h, "important");
+  wrap.style.setProperty("max-width", w, "important");
+  wrap.style.setProperty("max-height", h, "important");
+  wrap.style.setProperty("flex", "none", "important");
+  wrap.style.setProperty("aspect-ratio", `${cssW} / ${cssH}`, "important");
   wrap.style.background = "transparent";
   wrap.style.overflow = "hidden";
-  img.style.position = "absolute";
-  img.style.inset = "0";
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.maxWidth = "none";
-  img.style.maxHeight = "none";
-  img.style.objectFit = "fill";
+  wrap.style.position = "relative";
+
+  img.style.setProperty("position", "static", "important");
+  img.style.setProperty("inset", "auto", "important");
+  img.style.setProperty("display", "block", "important");
+  img.style.setProperty("width", w, "important");
+  img.style.setProperty("height", h, "important");
+  img.style.setProperty("min-width", w, "important");
+  img.style.setProperty("min-height", h, "important");
+  img.style.setProperty("max-width", w, "important");
+  img.style.setProperty("max-height", h, "important");
+  img.style.setProperty("object-fit", "fill", "important");
+  img.removeAttribute("width");
+  img.removeAttribute("height");
 }
 
 /** Largura inteira da foto, mesma proporção, corta o excesso embaixo. */

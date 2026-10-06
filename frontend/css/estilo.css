@@ -2611,12 +2611,12 @@ td.num, th.num {
 }
 
 .pdf-export .premio-foto {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  position: static;
+  width: auto;
+  height: auto;
   min-height: 0;
-  object-fit: fill;
+  max-width: none;
+  object-fit: cover;
   object-position: center center;
 }
 
@@ -2655,11 +2655,11 @@ td.num, th.num {
 }
 
 .pdf-export .campeao-foto-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
+  position: static;
+  width: auto;
+  height: auto;
+  max-width: none;
+  object-fit: cover;
 }
 
 .pdf-export .campeao-foto-eyebrow {
