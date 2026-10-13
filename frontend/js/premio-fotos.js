@@ -91,11 +91,77 @@ const FotosPremios = (() => {
     }
     try {
       fotos[chave] = await prepararImagem(file, chave === "campeao" ? 3200 : 2400);
-      return true;
+      if (origem === "camera") {
+        try {
+          return (await salvarNaGaleria(file)) ? "galeria" : "pdf";
+        } catch (_) {
+          return "pdf";
+        }
+      }
+      return "pdf";
     } catch (err) {
       toast(err.message || "Erro ao processar foto");
       return false;
     }
+  }
+
+  function arquivoParaDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Não foi possível ler a foto"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function baixarNoCelular(file) {
+    const nome = `ReiDaPelada_${Date.now()}.jpg`;
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nome;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  async function albumReiDaPelada(media) {
+    const achar = (lista) => (lista?.albums || []).find((a) => a.name === "Rei da Pelada");
+    let achou = achar(await media.getAlbums());
+    if (achou?.identifier) return achou.identifier;
+    try {
+      await media.createAlbum({ name: "Rei da Pelada" });
+    } catch (_) {
+      // a pasta já pode existir
+    }
+    achou = achar(await media.getAlbums());
+    if (achou?.identifier) return achou.identifier;
+    if (media.getAlbumsPath) {
+      const caminho = await media.getAlbumsPath();
+      if (caminho?.path) return `${String(caminho.path).replace(/\/$/, "")}/Rei da Pelada`;
+    }
+    return null;
+  }
+
+  async function salvarNaGaleria(file) {
+    const cap = window.Capacitor;
+    const media = cap?.Plugins?.Media;
+    const nativo = typeof cap?.isNativePlatform === "function" && cap.isNativePlatform();
+    if (nativo && media?.savePhoto && media?.getAlbums) {
+      const dataUrl = await arquivoParaDataUrl(file);
+      const albumIdentifier = await albumReiDaPelada(media);
+      if (!albumIdentifier) throw new Error("sem album");
+      await media.savePhoto({
+        path: dataUrl,
+        albumIdentifier,
+        fileName: `ReiDaPelada_${Date.now()}`,
+      });
+      return true;
+    }
+    baixarNoCelular(file);
+    return true;
   }
 
   function removerFoto(chave) {
@@ -208,11 +274,15 @@ const FotosPremios = (() => {
         toast("Foto removida");
         return;
       }
-      const ok = await definirFoto(key, acao === "camera" ? "camera" : "galeria");
-      if (ok && estado.resumoAtual) {
+      const resultado = await definirFoto(key, acao === "camera" ? "camera" : "galeria");
+      if (resultado && estado.resumoAtual) {
         renderResumoOficial(estado.resumoAtual);
         syncPainel(estado.resumoAtual);
-        toast("Foto adicionada — aparece no PDF");
+        toast(
+          resultado === "galeria"
+            ? "Foto adicionada e salva na galeria"
+            : "Foto adicionada — aparece no PDF"
+        );
       }
     });
   }
