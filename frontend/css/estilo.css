@@ -4100,3 +4100,345 @@ html[data-theme="dark"] .partida-lances {
   font-size: 0.68rem;
   padding: 2px 0;
 }
+
+/* ---- Relatório mensal / período / anual ---- */
+
+.relatorio-doc {
+  color: #10231c;
+  background: #fff;
+}
+
+.rel-folha {
+  color: #10231c;
+  font-size: 15px;
+}
+
+.rel-cabeca {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.8em;
+  padding: 0.2em 0 0.45em;
+  border-bottom: 2.5px solid #0b3d2e;
+}
+
+.rel-marca {
+  margin: 0;
+  font-size: 0.68em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #1faa6c;
+}
+
+.rel-cabeca h2 {
+  margin: 0.05em 0 0;
+  font-family: var(--fonte-titulo);
+  font-size: 1.85em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: #0b3d2e;
+}
+
+.rel-sub {
+  margin: 0.2em 0 0;
+  font-size: 0.78em;
+  color: #5c6f66;
+}
+
+.rel-selo {
+  flex: none;
+  min-width: 4.6em;
+  text-align: center;
+  border: 1.5px solid #0b3d2e;
+  border-radius: 10px;
+  padding: 0.28em 0.55em 0.32em;
+  background: #f4faf7;
+}
+
+.rel-selo span {
+  display: block;
+  font-size: 0.58em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #146b4a;
+}
+
+.rel-selo strong {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 1.7em;
+  line-height: 0.9;
+  color: #0b3d2e;
+}
+
+.rel-selo em {
+  display: block;
+  font-style: normal;
+  font-size: 0.62em;
+  color: #5c6f66;
+}
+
+.rel-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35em;
+  margin-top: 0.7em;
+}
+
+.rel-kpi {
+  background: #f3f7f5;
+  border-radius: 8px;
+  padding: 0.32em 0.2em 0.28em;
+  text-align: center;
+  border-top: 2px solid #1faa6c;
+}
+
+.rel-kpi strong {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 1.45em;
+  line-height: 1;
+  color: #0b3d2e;
+}
+
+.rel-kpi span {
+  display: block;
+  margin-top: 0.1em;
+  font-size: 0.58em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5c6f66;
+}
+
+.rel-destaques {
+  margin-top: 0.75em;
+}
+
+.rel-destaques h3,
+.rel-tabela h3 {
+  margin: 0 0 0.28em;
+  font-family: var(--fonte-titulo);
+  font-size: 1em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0b3d2e;
+  border-bottom: 1.5px solid #0b3d2e;
+  padding-bottom: 0.08em;
+}
+
+.rel-chips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35em;
+}
+
+.rel-chip {
+  min-width: 0;
+  background: #f7faf8;
+  border-left: 3px solid #1faa6c;
+  border-radius: 0 8px 8px 0;
+  padding: 0.28em 0.4em 0.32em;
+}
+
+.rel-chip span {
+  display: block;
+  font-size: 0.58em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #146b4a;
+}
+
+.rel-chip strong {
+  display: block;
+  font-size: 0.92em;
+  line-height: 1.15;
+  color: #10231c;
+}
+
+.rel-chip em {
+  display: block;
+  margin-top: 0.05em;
+  font-size: 0.68em;
+  font-style: normal;
+  line-height: 1.2;
+  color: #5c6f66;
+}
+
+.rel-grade {
+  display: grid;
+  gap: 0.75em;
+  margin-top: 0.75em;
+}
+
+.rel-tabela ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rel-tabela li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: 0.22em 0;
+  border-bottom: 1px dashed rgba(16, 35, 28, 0.14);
+  font-size: 0.86em;
+  line-height: 1.2;
+}
+
+.rel-pos {
+  flex: none;
+  width: 1.15em;
+  font-weight: 700;
+  color: #1faa6c;
+}
+
+.rel-nome {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rel-tabela li strong {
+  flex: none;
+  font-weight: 700;
+  color: #0b3d2e;
+  white-space: nowrap;
+}
+
+.rel-vazio {
+  margin: 0.2em 0 0;
+  font-size: 0.8em;
+  color: #5c6f66;
+}
+
+.rel-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.rel-peladas {
+  margin-top: 0.75em;
+}
+
+.rel-rodape {
+  margin: 0.7em 0 0;
+  text-align: right;
+  font-size: 0.68em;
+  color: #5c6f66;
+}
+
+.pdf-export.relatorio-doc {
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  background: #fff;
+}
+
+.pdf-export .rel-folha {
+  font-size: 11px;
+  border-top: 3px solid #0b3d2e;
+  padding-top: 0.4em;
+}
+
+.pdf-export .rel-cabeca {
+  padding-top: 0;
+}
+
+.pdf-export .rel-kpis {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.28em;
+  margin-top: 0.45em;
+}
+
+.pdf-export .rel-kpi {
+  border-radius: 4px;
+  padding: 0.22em 0.12em 0.18em;
+}
+
+.pdf-export .rel-destaques,
+.pdf-export .rel-grade,
+.pdf-export .rel-peladas {
+  margin-top: 0.42em;
+}
+
+.pdf-export .rel-chips {
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1.1em;
+}
+
+.pdf-export .rel-chip {
+  display: grid;
+  grid-template-columns: 6.2em minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.35em;
+  background: transparent;
+  border-left: none;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(11, 61, 46, 0.14);
+  padding: 0.16em 0;
+}
+
+.pdf-export .rel-chip span {
+  font-size: 0.7em;
+}
+
+.pdf-export .rel-chip strong {
+  font-size: 1em;
+}
+
+.pdf-export .rel-chip em {
+  margin: 0;
+  font-size: 0.78em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pdf-export .rel-grade {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45em 0.85em;
+  align-items: start;
+}
+
+.pdf-export .rel-tabela {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pdf-export .rel-freq {
+  grid-column: 1 / -1;
+}
+
+.pdf-export .rel-tabela li {
+  padding: 0.06em 0;
+  font-size: 0.92em;
+  min-width: 0;
+}
+
+.pdf-export .rel-tabela li strong {
+  white-space: normal;
+  max-width: 46%;
+  line-height: 1.15;
+}
+
+.pdf-export .rel-peladas .rel-cols,
+.pdf-export .rel-folha--ano .rel-freq .rel-cols,
+.pdf-export .rel-folha--periodo .rel-freq .rel-cols {
+  grid-template-columns: 1fr 1fr;
+  gap: 0 0.7em;
+}
+
+.pdf-export .rel-folha--ano .rel-freq .rel-cols,
+.pdf-export .rel-folha--periodo .rel-freq .rel-cols {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.pdf-export .rel-rodape {
+  margin-top: 0.35em;
+}

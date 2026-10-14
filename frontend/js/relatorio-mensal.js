@@ -100,12 +100,53 @@ function paramsRelatorioAtual() {
   };
 }
 
+function relKpi(label, valor) {
+  return `<div class="rel-kpi"><strong>${escHtmlRel(valor)}</strong><span>${escHtmlRel(label)}</span></div>`;
+}
+
+function relChip(titulo, premio) {
+  const nome = premio?.nome || "—";
+  const det = premio?.detalhe || "";
+  return `<article class="rel-chip"><span>${escHtmlRel(titulo)}</span><strong>${escHtmlRel(nome)}</strong>${
+    det ? `<em>${escHtmlRel(det)}</em>` : ""
+  }</article>`;
+}
+
+function liRel(item, pos) {
+  const qtd = item.quantidade ?? item.gols ?? "";
+  const marca = pos ? `<span class="rel-pos">${pos}</span>` : "";
+  return `<li>${marca}<span class="rel-nome">${escHtmlRel(item.nome)}</span><strong>${escHtmlRel(qtd)}</strong></li>`;
+}
+
+function corpoRel(lista, vazio, cols, comPos) {
+  if (!lista.length) return `<p class="rel-vazio">${escHtmlRel(vazio)}</p>`;
+  const nCols = Math.max(1, cols || 1);
+  const porCol = Math.ceil(lista.length / nCols);
+  const blocos = [];
+  for (let c = 0; c < nCols; c++) {
+    const fatia = lista.slice(c * porCol, (c + 1) * porCol);
+    if (!fatia.length) continue;
+    const linhas = fatia
+      .map((item, i) => liRel(item, comPos ? c * porCol + i + 1 : 0))
+      .join("");
+    blocos.push(`<ol>${linhas}</ol>`);
+  }
+  return nCols > 1 ? `<div class="rel-cols">${blocos.join("")}</div>` : blocos[0];
+}
+
+function relTabela(titulo, itens, vazio, extraClass, cols) {
+  const lista = itens || [];
+  return `<section class="rel-tabela ${extraClass || ""}"><h3>${escHtmlRel(titulo)}</h3>${corpoRel(lista, vazio, cols, true)}</section>`;
+}
+
 function renderRelatorioMensal(rel) {
   const el = document.getElementById("resumo-mensal-oficial");
   if (!el || !rel) return;
   const p = rel.premios || {};
   const peladas = rel.peladasNoPeriodo ?? rel.peladasNoMes ?? 0;
   const partidas = rel.partidasNoPeriodo ?? rel.partidasNoMes ?? 0;
+  const modo = rel.modo === "ano" ? "ano" : rel.modo === "periodo" ? "periodo" : "mes";
+  const labelPeriodo = modo === "ano" ? "Anual" : modo === "periodo" ? "Período" : "Mensal";
   const gkLista = [...(rel.goleiros || [])]
     .sort((a, b) => {
       const vit = (b.vitorias ?? b.quantidade ?? 0) - (a.vitorias ?? a.quantidade ?? 0);
@@ -115,111 +156,79 @@ function renderRelatorioMensal(rel) {
     .map((g) => {
       const vit = g.vitorias ?? g.quantidade ?? 0;
       const sofridos = g.golsSofridos ?? 0;
-      const vitTxt = vit === 1 ? "1 vitória" : `${vit} vitórias`;
-      const sofTxt = sofridos === 1 ? "1 sofrido" : `${sofridos} sofridos`;
-      return { nome: g.nome, quantidade: `${vitTxt} · ${sofTxt}` };
+      return { nome: g.nome, quantidade: `${vit} vit. · ${sofridos} sofr.` };
     });
-  const labelPeriodo =
-    rel.modo === "ano" ? "do ano" : rel.modo === "periodo" ? "do período" : "do mês";
-  el.innerHTML = `
-    <header class="resumo-topo">
-      <div>
-        <p class="eyebrow">Relatório ${escHtmlRel(labelPeriodo)}</p>
-        <h2>${escHtmlRel(rel.titulo || "Relatório")}</h2>
-        ${rel.subtitulo ? `<p class="dica" style="margin:6px 0 0">${escHtmlRel(rel.subtitulo)}</p>` : ""}
-      </div>
-      <p class="resumo-data">${peladas} pelada(s)</p>
-    </header>
-    <section class="resumo-bloco">
-      <h3>Números</h3>
-      <ul class="lista-resumo">
-        <li><span>Peladas</span><strong>${peladas}</strong></li>
-        <li><span>Partidas</span><strong>${partidas}</strong></li>
-        <li><span>Vitórias (1º lugar)</span><strong>${rel.totalVitorias || 0}</strong></li>
-        <li><span>Gols</span><strong>${rel.totalGols || 0}</strong></li>
-        <li><span>Assistências</span><strong>${rel.totalAssistencias || 0}</strong></li>
-        <li><span>Amarelos</span><strong>${rel.totalAmarelos || 0}</strong></li>
-        <li><span>Vermelhos</span><strong>${rel.totalVermelhos || 0}</strong></li>
-      </ul>
-    </section>
-    <section class="resumo-bloco premios-grid">
-      <h3>Destaques</h3>
-      <div class="premios">
-        ${premioCard("Campeão", p.campeao)}
-        ${premioCard("Artilheiro", p.artilheiro)}
-        ${premioCard("Garçom", p.garcom)}
-        ${premioCard("Craque", p.craque)}
-        ${premioCard("Goleiro campeão", p.luvaDeOuro)}
-        ${premioCard("Amarelos", p.cartolaAmarela)}
-        ${premioCard("Vermelhos", p.expulsoes)}
-      </div>
-      <p class="dica" style="margin-top:10px">Campeão = time em 1º na tabela. Linha e goleiro do time levam a vitória.</p>
-    </section>
-    ${secaoFrequenciaRelatorio(rel)}
-    <section class="resumo-bloco">
-      <h3>Campeões (peladas ganhas)</h3>
-      ${listaSimples(rel.campeoes, "Nenhuma pelada com campeão ainda.")}
-    </section>
-    <section class="resumo-bloco">
-      <h3>Artilharia</h3>
-      ${listaSimples(rel.artilharia, "Nenhum gol no período.")}
-    </section>
-    <section class="resumo-bloco">
-      <h3>Assistências</h3>
-      ${listaSimples(rel.garcons, "Nenhuma assistência no período.")}
-    </section>
-    <section class="resumo-bloco">
-      <h3>Goleiros</h3>
-      <p class="dica" style="margin:0 0 8px">Mais vitórias primeiro. Empate: menos gols sofridos sobe.</p>
-      ${listaSimples(gkLista, "Nenhum goleiro no período.")}
-    </section>
-    <section class="resumo-bloco">
-      <h3>Cartões amarelos</h3>
-      ${listaSimples(rel.amarelos, "Nenhum amarelo.")}
-    </section>
-    <section class="resumo-bloco">
-      <h3>Cartões vermelhos</h3>
-      ${listaSimples(rel.vermelhos, "Nenhum vermelho.")}
-    </section>
-    ${(rel.golsContra || []).length ? `<section class="resumo-bloco"><h3>Gols contra</h3>${listaSimples(rel.golsContra, "")}</section>` : ""}
-    <section class="resumo-bloco">
-      <h3>Peladas</h3>
-      ${
-        (rel.peladas || []).length
-          ? `<ul class="lista-resumo">${rel.peladas
-              .map((x) => {
-                const camp =
-                  x.campeaoTime
-                    ? ` · 🏆 ${x.campeaoTime}${(x.campeoes || []).length ? ` (${x.campeoes.slice(0, 3).join(", ")}${(x.campeoes || []).length > 3 ? "…" : ""})` : ""}`
-                    : "";
-                return `<li><span>${x.data ? `${escHtmlRel(x.data)} · ` : ""}${escHtmlRel(x.nome)}${escHtmlRel(camp)}</span><strong>${x.partidas || 0} jog.</strong></li>`;
-              })
-              .join("")}</ul>`
-          : `<p class="vazio">Nenhuma pelada neste período.</p>`
-      }
-    </section>
-    ${typeof htmlRodapeMarcaResumo === "function" ? htmlRodapeMarcaResumo() : `<footer class="resumo-rodape">Gerado por Rei da Pelada</footer>`}
-  `;
-}
-
-function secaoFrequenciaRelatorio(rel) {
-  if (!rel || (rel.modo !== "ano" && rel.modo !== "periodo")) return "";
-  const total = rel.peladasNoPeriodo ?? rel.peladasNoMes ?? 0;
-  const itens = [...(rel.frequencia || [])]
+  const freq = [...(rel.frequencia || [])]
     .sort((a, b) => (b.peladas ?? b.quantidade ?? 0) - (a.peladas ?? a.quantidade ?? 0))
     .map((j) => {
       const n = j.peladas ?? j.quantidade ?? 0;
-      const txt = n === 1 ? "1 pelada" : `${n} peladas`;
-      return {
-        nome: j.nome,
-        quantidade: total > 0 ? `${txt} de ${total}` : txt,
-      };
+      return { nome: j.nome, quantidade: totalLabelFreq(n, peladas) };
     });
-  return `<section class="resumo-bloco">
-      <h3>Frequência</h3>
-      <p class="dica" style="margin:0 0 8px">Quem esteve na pelada conta 1. Inapto não entra.</p>
-      ${listaSimples(itens, "Nenhum jogador no período.")}
-    </section>`;
+  const peladasItens = (rel.peladas || []).map((x) => {
+    const camp = x.campeaoTime ? ` · ${x.campeaoTime}` : "";
+    return {
+      nome: `${x.data ? `${x.data} · ` : ""}${x.nome || "Pelada"}${camp}`,
+      quantidade: `${x.partidas || 0} jog.`,
+    };
+  });
+  el.classList.add("relatorio-doc");
+  el.innerHTML = `
+    <article class="rel-folha rel-folha--${modo}" data-modo="${modo}">
+      <header class="rel-cabeca">
+        <div>
+          <p class="rel-marca">Rei da Pelada</p>
+          <h2>${escHtmlRel(rel.titulo || "Relatório")}</h2>
+          ${rel.subtitulo ? `<p class="rel-sub">${escHtmlRel(rel.subtitulo)}</p>` : ""}
+        </div>
+        <div class="rel-selo">
+          <span>${escHtmlRel(labelPeriodo)}</span>
+          <strong>${peladas}</strong>
+          <em>${peladas === 1 ? "pelada" : "peladas"}</em>
+        </div>
+      </header>
+      <div class="rel-kpis">
+        ${relKpi("Peladas", peladas)}
+        ${relKpi("Partidas", partidas)}
+        ${relKpi("Vitórias", rel.totalVitorias || 0)}
+        ${relKpi("Gols", rel.totalGols || 0)}
+        ${relKpi("Assist.", rel.totalAssistencias || 0)}
+        ${relKpi("Amarelos", rel.totalAmarelos || 0)}
+        ${relKpi("Vermelhos", rel.totalVermelhos || 0)}
+      </div>
+      <section class="rel-destaques">
+        <h3>Destaques</h3>
+        <div class="rel-chips">
+          ${relChip("Campeão", p.campeao)}
+          ${relChip("Artilheiro", p.artilheiro)}
+          ${relChip("Garçom", p.garcom)}
+          ${relChip("Craque", p.craque)}
+          ${relChip("Goleiro", p.luvaDeOuro)}
+          ${relChip("Amarelos", p.cartolaAmarela)}
+          ${relChip("Vermelhos", p.expulsoes)}
+        </div>
+      </section>
+      <div class="rel-grade">
+        ${relTabela("Campeões", rel.campeoes, "Sem campeão")}
+        ${relTabela("Artilharia", rel.artilharia, "Sem gols")}
+        ${relTabela("Assistências", rel.garcons, "Sem assistência")}
+        ${relTabela("Goleiros", gkLista, "Sem goleiro")}
+        ${relTabela("Amarelos", rel.amarelos, "Nenhum")}
+        ${relTabela("Vermelhos", rel.vermelhos, "Nenhum")}
+        ${(rel.golsContra || []).length ? relTabela("Gols contra", rel.golsContra, "") : ""}
+        ${modo === "mes" ? "" : relTabela("Frequência", freq, "Sem presença", "rel-freq", 3)}
+      </div>
+      <section class="rel-tabela rel-peladas">
+        <h3>Peladas</h3>
+        ${corpoRel(peladasItens, "Nenhuma pelada neste período.", 2, false)}
+      </section>
+      <footer class="rel-rodape">Gerado por Rei da Pelada · campeão = 1º da tabela</footer>
+    </article>
+  `;
+}
+
+function totalLabelFreq(n, total) {
+  const base = n === 1 ? "1 pelada" : `${n} peladas`;
+  return total > 0 ? `${base} / ${total}` : base;
 }
 
 function escHtmlRel(s) {

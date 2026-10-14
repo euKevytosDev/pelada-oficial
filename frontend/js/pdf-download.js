@@ -103,9 +103,16 @@ async function html2pdfBlob(element, opt) {
   element.style.setProperty("min-width", "190mm", "important");
   element.style.setProperty("box-sizing", "border-box", "important");
   const soltarFotos = await encaixarFotosNosCards(element);
+  ajustarRelatorioParaCaber(element);
   try {
     return await html2pdf().set(opt).from(element).outputPdf("blob");
   } finally {
+    element.querySelector(".rel-folha")?.style.removeProperty("font-size");
+    const listaPeladas = element.querySelector(".rel-peladas");
+    if (listaPeladas) {
+      listaPeladas.style.removeProperty("break-before");
+      listaPeladas.style.removeProperty("page-break-before");
+    }
     soltarFotos();
     if (estiloEl == null) element.removeAttribute("style");
     else element.setAttribute("style", estiloEl);
@@ -187,6 +194,52 @@ function expandirPremiosNaFolha(element) {
     pares.forEach((par, i) => restaurarEstilo(par, estilosPares[i]));
     cards.forEach((card, i) => restaurarEstilo(card, estilosCards[i]));
   };
+}
+
+/** Mensal ocupa 1 folha. Anual e período tentam 1 e, se não couber, passam a lista de peladas para a 2ª. */
+function ajustarRelatorioParaCaber(element) {
+  const folha = element.querySelector(".rel-folha");
+  if (!folha) return;
+  const modo = folha.dataset.modo || "mes";
+  const pxPorMm = (element.clientWidth || 1) / 190;
+  const uma = 272 * pxPorMm;
+  const duas = 540 * pxPorMm;
+  const peladas = folha.querySelector(".rel-peladas");
+  let size = modo === "mes" ? 12.5 : 11;
+  const aplicar = (n) => {
+    size = Math.round(n * 100) / 100;
+    folha.style.fontSize = `${size}px`;
+  };
+  aplicar(size);
+
+  if (modo === "mes") {
+    while (element.scrollHeight > uma + 2 && size > 8) aplicar(size - 0.25);
+    while (size < 17 && element.scrollHeight < uma * 0.9) {
+      const antes = element.scrollHeight;
+      aplicar(size + 0.25);
+      if (element.scrollHeight > uma) {
+        aplicar(size - 0.25);
+        break;
+      }
+      if (element.scrollHeight <= antes) break;
+    }
+    return;
+  }
+
+  while (element.scrollHeight > uma + 2 && size > 8.6) aplicar(size - 0.2);
+  if (element.scrollHeight <= uma + 2) return;
+
+  aplicar(10.5);
+  if (peladas) {
+    peladas.style.breakBefore = "page";
+    peladas.style.pageBreakBefore = "always";
+  }
+  const antesDaLista = () => {
+    if (!peladas) return element.scrollHeight;
+    return peladas.getBoundingClientRect().top - element.getBoundingClientRect().top;
+  };
+  while (antesDaLista() > uma + 2 && size > 7.4) aplicar(size - 0.2);
+  while (element.scrollHeight > duas + 2 && size > 7.2) aplicar(size - 0.2);
 }
 
 function guardarEstilo(el) {
