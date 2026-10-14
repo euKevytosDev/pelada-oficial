@@ -155,6 +155,7 @@ function renderRelatorioMensal(rel) {
       </div>
       <p class="dica" style="margin-top:10px">Campeão = time em 1º na tabela. Linha e goleiro do time levam a vitória.</p>
     </section>
+    ${secaoFrequenciaRelatorio(rel)}
     <section class="resumo-bloco">
       <h3>Campeões (peladas ganhas)</h3>
       ${listaSimples(rel.campeoes, "Nenhuma pelada com campeão ainda.")}
@@ -199,6 +200,26 @@ function renderRelatorioMensal(rel) {
     </section>
     ${typeof htmlRodapeMarcaResumo === "function" ? htmlRodapeMarcaResumo() : `<footer class="resumo-rodape">Gerado por Rei da Pelada</footer>`}
   `;
+}
+
+function secaoFrequenciaRelatorio(rel) {
+  if (!rel || (rel.modo !== "ano" && rel.modo !== "periodo")) return "";
+  const total = rel.peladasNoPeriodo ?? rel.peladasNoMes ?? 0;
+  const itens = [...(rel.frequencia || [])]
+    .sort((a, b) => (b.peladas ?? b.quantidade ?? 0) - (a.peladas ?? a.quantidade ?? 0))
+    .map((j) => {
+      const n = j.peladas ?? j.quantidade ?? 0;
+      const txt = n === 1 ? "1 pelada" : `${n} peladas`;
+      return {
+        nome: j.nome,
+        quantidade: total > 0 ? `${txt} de ${total}` : txt,
+      };
+    });
+  return `<section class="resumo-bloco">
+      <h3>Frequência</h3>
+      <p class="dica" style="margin:0 0 8px">Quem esteve na pelada conta 1. Inapto não entra.</p>
+      ${listaSimples(itens, "Nenhum jogador no período.")}
+    </section>`;
 }
 
 function escHtmlRel(s) {

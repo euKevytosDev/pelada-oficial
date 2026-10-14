@@ -166,6 +166,9 @@ public class RelatorioMensalService {
         body.put("vermelhos", ranking(lista, a -> a.vermelhos, false, "quantidade"));
         body.put("golsContra", ranking(lista, a -> a.golsContra, false, "quantidade"));
         body.put("goleiros", rankingGk(lista));
+        if (!"mes".equals(periodo.modo)) {
+            body.put("frequencia", rankingFrequencia(lista, doPeriodo.size()));
+        }
         body.put("premios", premios(lista));
         return body;
     }
@@ -284,6 +287,26 @@ public class RelatorioMensalService {
                     return (asc ? c : -c) != 0 ? (asc ? c : -c) : a.nome.compareToIgnoreCase(b.nome);
                 })
                 .map(a -> linha(a.nome, get.applyAsInt(a), campo))
+                .toList();
+    }
+
+    /** Quem esteve na pelada (apto) conta 1. Mais presenças primeiro. */
+    private List<Map<String, Object>> rankingFrequencia(List<Acc> lista, int totalPeladas) {
+        return lista.stream()
+                .filter(a -> a.peladas > 0)
+                .sorted((a, b) -> {
+                    int c = Integer.compare(b.peladas, a.peladas);
+                    if (c != 0) return c;
+                    return a.nome.compareToIgnoreCase(b.nome);
+                })
+                .map(a -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("nome", a.nome);
+                    m.put("peladas", a.peladas);
+                    m.put("totalPeladas", totalPeladas);
+                    m.put("quantidade", a.peladas);
+                    return m;
+                })
                 .toList();
     }
 
