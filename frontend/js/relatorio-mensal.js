@@ -106,10 +106,19 @@ function renderRelatorioMensal(rel) {
   const p = rel.premios || {};
   const peladas = rel.peladasNoPeriodo ?? rel.peladasNoMes ?? 0;
   const partidas = rel.partidasNoPeriodo ?? rel.partidasNoMes ?? 0;
-  const gkLista = (rel.goleiros || []).map((g) => ({
-    nome: g.nome,
-    quantidade: `${g.vitorias ?? g.quantidade} vitória(s)`,
-  }));
+  const gkLista = [...(rel.goleiros || [])]
+    .sort((a, b) => {
+      const vit = (b.vitorias ?? b.quantidade ?? 0) - (a.vitorias ?? a.quantidade ?? 0);
+      if (vit !== 0) return vit;
+      return (a.golsSofridos ?? 0) - (b.golsSofridos ?? 0);
+    })
+    .map((g) => {
+      const vit = g.vitorias ?? g.quantidade ?? 0;
+      const sofridos = g.golsSofridos ?? 0;
+      const vitTxt = vit === 1 ? "1 vitória" : `${vit} vitórias`;
+      const sofTxt = sofridos === 1 ? "1 sofrido" : `${sofridos} sofridos`;
+      return { nome: g.nome, quantidade: `${vitTxt} · ${sofTxt}` };
+    });
   const labelPeriodo =
     rel.modo === "ano" ? "do ano" : rel.modo === "periodo" ? "do período" : "do mês";
   el.innerHTML = `
@@ -159,8 +168,9 @@ function renderRelatorioMensal(rel) {
       ${listaSimples(rel.garcons, "Nenhuma assistência no período.")}
     </section>
     <section class="resumo-bloco">
-      <h3>Goleiros campeões</h3>
-      ${listaSimples(gkLista, "Nenhum goleiro campeão no período.")}
+      <h3>Goleiros</h3>
+      <p class="dica" style="margin:0 0 8px">Mais vitórias primeiro. Empate: menos gols sofridos sobe.</p>
+      ${listaSimples(gkLista, "Nenhum goleiro no período.")}
     </section>
     <section class="resumo-bloco">
       <h3>Cartões amarelos</h3>

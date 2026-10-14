@@ -287,18 +287,21 @@ public class RelatorioMensalService {
                 .toList();
     }
 
-    /** Goleiros pelo número de vezes campeão (time em 1º), não por gols sofridos. */
+    /** Goleiros: mais vitórias primeiro; no empate, menos gols sofridos sobe. */
     private List<Map<String, Object>> rankingGk(List<Acc> lista) {
         return lista.stream()
-                .filter(a -> a.vitoriasGk > 0)
+                .filter(a -> a.peladasGk > 0 || a.vitoriasGk > 0 || a.golsSofridos > 0)
                 .sorted((a, b) -> {
                     int c = Integer.compare(b.vitoriasGk, a.vitoriasGk);
+                    if (c != 0) return c;
+                    c = Integer.compare(a.golsSofridos, b.golsSofridos);
                     if (c != 0) return c;
                     return a.nome.compareToIgnoreCase(b.nome);
                 })
                 .map(a -> {
                     Map<String, Object> m = linha(a.nome, a.vitoriasGk, "vitorias");
                     m.put("peladas", a.peladasGk);
+                    m.put("golsSofridos", a.golsSofridos);
                     return m;
                 })
                 .toList();
