@@ -4334,21 +4334,33 @@ html[data-theme="dark"] .partida-lances {
 }
 
 .pdf-export.relatorio-doc {
-  padding: 0;
+  padding: 0 2.5mm 0 1.5mm;
   border: none;
   box-shadow: none;
   border-radius: 0;
   background: #fff;
+  overflow: hidden;
 }
 
 .pdf-export .rel-folha {
   font-size: 11px;
   border-top: 3px solid #0b3d2e;
   padding-top: 0.4em;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pdf-export .rel-cabeca {
   padding-top: 0;
+}
+
+.pdf-export .rel-kpis,
+.pdf-export .rel-chips,
+.pdf-export .rel-cabeca,
+.pdf-export .rel-grade,
+.pdf-export .rel-peladas {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .pdf-export .rel-kpis {
@@ -4358,6 +4370,8 @@ html[data-theme="dark"] .partida-lances {
 }
 
 .pdf-export .rel-kpi {
+  min-width: 0;
+  overflow: hidden;
   border-radius: 4px;
   padding: 0.22em 0.12em 0.18em;
 }
@@ -4395,9 +4409,10 @@ html[data-theme="dark"] .partida-lances {
 
 .pdf-export .rel-chip em {
   margin: 0;
+  min-width: 0;
   font-size: 0.78em;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .pdf-export .rel-grade {

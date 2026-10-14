@@ -98,14 +98,33 @@ async function html2pdfBlob(element, opt) {
   }
   element.classList.add("pdf-export");
   const estiloEl = element.getAttribute("style");
-  element.style.setProperty("width", "190mm", "important");
-  element.style.setProperty("max-width", "none", "important");
-  element.style.setProperty("min-width", "190mm", "important");
+  const relatorio = !!element.querySelector(".rel-folha");
+  const larguraMm = relatorio ? 180 : 190;
+  element.style.setProperty("width", `${larguraMm}mm`, "important");
+  element.style.setProperty("max-width", `${larguraMm}mm`, "important");
+  element.style.setProperty("min-width", "0", "important");
   element.style.setProperty("box-sizing", "border-box", "important");
+  if (relatorio) {
+    element.style.setProperty("overflow", "hidden", "important");
+    element.style.setProperty("margin-left", "auto", "important");
+    element.style.setProperty("margin-right", "auto", "important");
+  }
   const soltarFotos = await encaixarFotosNosCards(element);
   ajustarRelatorioParaCaber(element);
+  const optPdf = relatorio
+    ? {
+        ...opt,
+        margin: [10, 12, 10, 12],
+        html2canvas: {
+          ...(opt.html2canvas || {}),
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: Math.max(window.innerWidth || 0, Math.ceil(element.scrollWidth || 0), 800),
+        },
+      }
+    : opt;
   try {
-    return await html2pdf().set(opt).from(element).outputPdf("blob");
+    return await html2pdf().set(optPdf).from(element).outputPdf("blob");
   } finally {
     element.querySelector(".rel-folha")?.style.removeProperty("font-size");
     const listaPeladas = element.querySelector(".rel-peladas");
@@ -201,7 +220,8 @@ function ajustarRelatorioParaCaber(element) {
   const folha = element.querySelector(".rel-folha");
   if (!folha) return;
   const modo = folha.dataset.modo || "mes";
-  const pxPorMm = (element.clientWidth || 1) / 190;
+  const larguraMm = parseFloat(element.style.width) || 180;
+  const pxPorMm = (element.clientWidth || 1) / larguraMm;
   const uma = 272 * pxPorMm;
   const duas = 540 * pxPorMm;
   const peladas = folha.querySelector(".rel-peladas");
