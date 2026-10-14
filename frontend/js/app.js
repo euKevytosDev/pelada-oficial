@@ -702,10 +702,18 @@ async function continuarPeladaPorId(peladaId) {
 async function apagarPeladaPorId(peladaId) {
   const pelada = (estado.historicoPeladas || []).find((p) => Number(p.id) === Number(peladaId));
   const nome = pelada?.nome || "esta pelada";
-  if (!confirm(`Apagar "${nome}"?\n\nNão dá para desfazer.`)) return;
+  if (!confirm(`Apagar "${nome}"?\n\nEla sai do histórico e do relatório. Não dá para desfazer.`)) return;
 
-  // Some da tela na hora — sync do DELETE em segundo plano
-  marcarApagarPendente(peladaId);
+  await comLoading(async () => {
+    if (getToken()) await PeladaAPI.apagar(peladaId);
+    limparApagarPendente(peladaId);
+    await tirarPeladaDaTela(peladaId);
+  }, "Apagando pelada...");
+
+  toast("Pelada apagada");
+}
+
+async function tirarPeladaDaTela(peladaId) {
   estado.historicoPeladas = (estado.historicoPeladas || []).filter(
     (p) => Number(p.id) !== Number(peladaId)
   );
@@ -722,15 +730,15 @@ async function apagarPeladaPorId(peladaId) {
     else localStorage.removeItem("pelada_ultima_id");
     estado.ultimaPelada = prox || null;
   }
+  if (estado.relatorioMensalAtual?.peladas) {
+    estado.relatorioMensalAtual = null;
+  }
 
   await atualizarHistoricoHome();
   const listaCompleta = document.getElementById("lista-historico-completo");
   if (listaCompleta && document.getElementById("tela-historico")?.classList.contains("ativa")) {
     renderHistoricoLista(listaCompleta, estado.historicoPeladas, null, { mostrarApagar: true });
   }
-
-  toast("Pelada apagada");
-  sincronizarApaguesPendentes().catch(() => {});
 }
 
 async function atualizarHistoricoHome() {

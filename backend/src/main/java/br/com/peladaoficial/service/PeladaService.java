@@ -9,8 +9,10 @@ import br.com.peladaoficial.dto.MoverJogadorRequest;
 import br.com.peladaoficial.dto.ObservacaoRequest;
 import br.com.peladaoficial.model.*;
 import br.com.peladaoficial.repository.ElencoJogadorRepository;
+import br.com.peladaoficial.repository.EventoPartidaRepository;
 import br.com.peladaoficial.repository.JogadorRepository;
 import br.com.peladaoficial.repository.ObservacaoPeladaRepository;
+import br.com.peladaoficial.repository.PartidaRepository;
 import br.com.peladaoficial.repository.PeladaRepository;
 import br.com.peladaoficial.repository.TimeRepository;
 import br.com.peladaoficial.security.AuthSupport;
@@ -38,6 +40,8 @@ public class PeladaService {
     private final PeladaRepository peladaRepository;
     private final JogadorRepository jogadorRepository;
     private final TimeRepository timeRepository;
+    private final PartidaRepository partidaRepository;
+    private final EventoPartidaRepository eventoRepository;
     private final ElencoJogadorRepository elencoRepository;
     private final ObservacaoPeladaRepository observacaoRepository;
     private final AuthSupport authSupport;
@@ -46,6 +50,8 @@ public class PeladaService {
     public PeladaService(PeladaRepository peladaRepository,
                          JogadorRepository jogadorRepository,
                          TimeRepository timeRepository,
+                         PartidaRepository partidaRepository,
+                         EventoPartidaRepository eventoRepository,
                          ElencoJogadorRepository elencoRepository,
                          ObservacaoPeladaRepository observacaoRepository,
                          AuthSupport authSupport,
@@ -53,6 +59,8 @@ public class PeladaService {
         this.peladaRepository = peladaRepository;
         this.jogadorRepository = jogadorRepository;
         this.timeRepository = timeRepository;
+        this.partidaRepository = partidaRepository;
+        this.eventoRepository = eventoRepository;
         this.elencoRepository = elencoRepository;
         this.observacaoRepository = observacaoRepository;
         this.authSupport = authSupport;
@@ -811,8 +819,7 @@ public class PeladaService {
                 }
             });
         }
-        observacaoRepository.deleteByPeladaId(id);
-        peladaRepository.delete(pelada);
+        excluirPeladaDoBanco(pelada);
     }
 
     /**
@@ -821,8 +828,47 @@ public class PeladaService {
      */
     @Transactional
     public void descartarPelada(Long id) {
-        Pelada pelada = buscar(id);
+        excluirPeladaDoBanco(buscar(id));
+    }
+
+    /**
+     * Apaga a pelada e tudo que o relatório mensal lê dela.
+     * A ordem importa: evento aponta para partida, time e jogador;
+     * partida aponta para time; jogador aponta para time.
+     * Sem isso o banco recusa o delete, a pelada some só da tela e continua no relatório.
+     */
+    private void excluirPeladaDoBanco(Pelada pelada) {
+        Long id = pelada.getId();
+
         observacaoRepository.deleteByPeladaId(id);
+        observacaoRepository.flush();
+
+        List<Partida> partidas = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(id);
+        for (Partida partida : partidas) {
+            eventoRepository.deleteAll(eventoRepository.findByPartidaIdOrderByOcorridoEmAsc(partida.getId()));
+        }
+        eventoRepository.flush();
+        partidaRepository.deleteAll(partidas);
+        partidaRepository.flush();
+
+        List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(id);
+        for (Jogador jogador : jogadores) {
+            jogador.setTime(null);
+        }
+        jogadorRepository.flush();
+
+        timeRepository.deleteAll(timeRepository.findByPeladaIdOrderByPontosDescIdAsc(id));
+        timeRepository.flush();
+
+        jogadorRepository.deleteAll(jogadores);
+        jogadorRepository.flush();
+
+        pelada.getPartidas().clear();
+        pelada.getTimes().clear();
+        pelada.getJogadores().clear();
+        peladaRepository.flush();
+
         peladaRepository.delete(pelada);
+        peladaRepository.flush();
     }
 }

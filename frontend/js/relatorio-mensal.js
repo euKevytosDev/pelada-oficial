@@ -220,6 +220,9 @@ async function carregarRelatorioMensalNaTela() {
   }
   try {
     await comLoading(async () => {
+      if (typeof sincronizarApaguesPendentes === "function") {
+        await sincronizarApaguesPendentes();
+      }
       const rel = await PeladaAPI.relatorioMensal(ano, mes, extras);
       estado.relatorioMensalAtual = rel;
       renderRelatorioMensal(rel);
