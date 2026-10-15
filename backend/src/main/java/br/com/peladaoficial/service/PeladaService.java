@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -811,6 +812,7 @@ public class PeladaService {
     @Transactional
     public void removerPelada(Long id) {
         Pelada pelada = buscar(id);
+        garantirDentroDoPrazoApagar(pelada);
         if (pelada.getStatus() != StatusPelada.AGUARDANDO) {
             buscarAtiva().ifPresent(ativa -> {
                 if (Objects.equals(ativa.getId(), pelada.getId())) {
@@ -828,7 +830,20 @@ public class PeladaService {
      */
     @Transactional
     public void descartarPelada(Long id) {
-        excluirPeladaDoBanco(buscar(id));
+        Pelada pelada = buscar(id);
+        garantirDentroDoPrazoApagar(pelada);
+        excluirPeladaDoBanco(pelada);
+    }
+
+    /** Depois de 7 dias a pelada fica no histórico e não pode mais ser apagada. */
+    private void garantirDentroDoPrazoApagar(Pelada pelada) {
+        LocalDateTime ref = pelada.getEncerradaEm() != null ? pelada.getEncerradaEm() : pelada.getCriadaEm();
+        if (ref == null) return;
+        LocalDateTime limite = LocalDateTime.now(ZoneId.of("America/Sao_Paulo")).minusDays(7);
+        if (ref.isBefore(limite)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Essa pelada já passou de uma semana e não pode ser apagada");
+        }
     }
 
     /**

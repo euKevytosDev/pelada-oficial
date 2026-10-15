@@ -128,6 +128,15 @@ function metaPeladaHistorico(pelada) {
   return data ? `Criada em ${data}` : "";
 }
 
+function peladaPodeApagar(pelada) {
+  const ref = pelada?.encerradaEm || pelada?.criadaEm;
+  if (!ref) return true;
+  const texto = String(ref).trim().replace(" ", "T");
+  const data = new Date(texto);
+  if (Number.isNaN(data.getTime())) return true;
+  return Date.now() - data.getTime() < 7 * 24 * 60 * 60 * 1000;
+}
+
 function htmlItemHistorico(pelada, opcoes = {}) {
   const badge = badgeStatusPelada(pelada);
   const meta = metaPeladaHistorico(pelada);
@@ -145,7 +154,7 @@ function htmlItemHistorico(pelada, opcoes = {}) {
       `<button type="button" class="btn-mini" data-hist-acao="sumula" data-pelada-id="${pelada.id}">Ver súmula</button>`
     );
   }
-  if (opcoes.mostrarApagar) {
+  if (opcoes.mostrarApagar && peladaPodeApagar(pelada)) {
     botoes.push(
       `<button type="button" class="btn-apagar btn-mini" data-hist-acao="apagar" data-pelada-id="${pelada.id}">Apagar</button>`
     );
@@ -448,21 +457,57 @@ function limparApagarPendente(peladaId) {
   salvarApagarPendentes(lerApagarPendentes().filter((id) => id !== String(peladaId)));
 }
 
-function lerSyncEncerrarPendente() {
+function lerFilaSyncEncerrar() {
   try {
     const raw = localStorage.getItem(SYNC_ENCERRAR_KEY);
-    if (!raw) return null;
-    const item = JSON.parse(raw);
-    if (!item || !item.payload) return null;
-    return item;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((item) => item?.payload);
+    if (parsed?.payload) return [parsed];
+    return [];
   } catch (_) {
-    return null;
+    return [];
   }
 }
 
+function salvarFilaSyncEncerrar(lista) {
+  const itens = (lista || []).filter((item) => item?.payload);
+  if (!itens.length) localStorage.removeItem(SYNC_ENCERRAR_KEY);
+  else localStorage.setItem(SYNC_ENCERRAR_KEY, JSON.stringify(itens));
+}
+
+function enfileirarSyncEncerrar(item) {
+  if (!item?.payload) return;
+  const fila = lerFilaSyncEncerrar().filter((atual) => {
+    if (item.peladaId == null || atual.peladaId == null) return true;
+    return String(atual.peladaId) !== String(item.peladaId);
+  });
+  fila.push(item);
+  salvarFilaSyncEncerrar(fila);
+}
+
+function lerSyncEncerrarPendente() {
+  return lerFilaSyncEncerrar()[0] || null;
+}
+
 function salvarSyncEncerrarPendente(item) {
-  if (!item) localStorage.removeItem(SYNC_ENCERRAR_KEY);
-  else localStorage.setItem(SYNC_ENCERRAR_KEY, JSON.stringify(item));
+  if (!item?.payload) {
+    salvarFilaSyncEncerrar([]);
+    return;
+  }
+  const fila = lerFilaSyncEncerrar();
+  if (!fila.length) {
+    salvarFilaSyncEncerrar([item]);
+    return;
+  }
+  fila[0] = item;
+  salvarFilaSyncEncerrar(fila);
+}
+
+function tirarSyncEncerrarDaFrente() {
+  const fila = lerFilaSyncEncerrar();
+  fila.shift();
+  salvarFilaSyncEncerrar(fila);
 }
 
 function limparSyncEncerrarPendente() {
@@ -510,8 +555,9 @@ function deveOcultarBoxContinuar() {
 
 function syncEncerrarPendentePara(peladaId) {
   if (peladaId == null || peladaId === "") return false;
-  const item = lerSyncEncerrarPendente();
-  return !!(item?.payload && item.peladaId != null && String(item.peladaId) === String(peladaId));
+  return lerFilaSyncEncerrar().some(
+    (item) => item?.peladaId != null && String(item.peladaId) === String(peladaId)
+  );
 }
 
 /** Pelada ainda "ativa" no servidor, mas já encerrada neste celular. */
@@ -570,78 +616,80 @@ async function sincronizarApaguesPendentes() {
   }
 }
 
-/** Envia pelada encerrada que ficou na fila (rede caiu / Render dormindo). */
+/** Envia peladas encerradas que ficaram na fila (rede caiu). Uma não apaga a outra. */
 async function sincronizarEncerrarPendente() {
   if (!getToken()) return false;
-  const item = lerSyncEncerrarPendente();
-  if (!item?.payload) return false;
+  if (!lerFilaSyncEncerrar().length) return false;
 
   atualizarStatusSyncFim("enviando");
+  let enviouAlgum = false;
 
-  try {
-    let peladaId = item.peladaId;
-    if (!peladaId) {
-      // criar() já encerra ativas anteriores sem mexer no elenco da conta
-      const criada = await PeladaAPI.criar({
-        nome: item.nome || "Minha pelada",
-        quantidadeTimes: item.quantidadeTimes || 2,
-        importarElenco: false,
-      });
-      peladaId = criada.id;
-      item.peladaId = peladaId;
-      salvarSyncEncerrarPendente(item);
+  while (lerFilaSyncEncerrar().length) {
+    const item = lerFilaSyncEncerrar()[0];
+    try {
+      let peladaId = item.peladaId;
+      if (!peladaId) {
+        const criada = await PeladaAPI.criar({
+          nome: item.nome || "Minha pelada",
+          quantidadeTimes: item.quantidadeTimes || 2,
+          importarElenco: false,
+        });
+        peladaId = criada.id;
+        item.peladaId = peladaId;
+        salvarSyncEncerrarPendente(item);
+        marcarPeladaEncerradaLocal(peladaId);
+      }
+
+      const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
+      tirarSyncEncerrarDaFrente();
       marcarPeladaEncerradaLocal(peladaId);
-    }
+      marcarOcultarContinuar();
+      localStorage.setItem("pelada_ultima_id", String(peladaId));
 
-    const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
-    limparSyncEncerrarPendente();
-    marcarPeladaEncerradaLocal(peladaId);
-    marcarOcultarContinuar();
-    localStorage.setItem("pelada_ultima_id", String(peladaId));
+      estado.peladaId = peladaId;
+      estado.peladaAtiva = null;
+      await encerrarResiduosAtivosNoServidor().catch(() => {});
+      estado.ultimaPelada = {
+        id: peladaId,
+        nome: resumo?.pelada?.nome || item.nome || "Minha pelada",
+        status: "ENCERRADA",
+        encerradaEm: resumo?.pelada?.encerradaEm,
+      };
 
-    estado.peladaId = peladaId;
-    estado.peladaAtiva = null;
-    await encerrarResiduosAtivosNoServidor().catch(() => {});
-    estado.ultimaPelada = {
-      id: peladaId,
-      nome: resumo?.pelada?.nome || item.nome || "Minha pelada",
-      status: "ENCERRADA",
-      encerradaEm: resumo?.pelada?.encerradaEm,
-    };
-
-    const telaFimAtiva = document.getElementById("tela-fim")?.classList.contains("ativa");
-    if (telaFimAtiva) {
-      estado.resumoAtual = resumo;
-      estado.sumulaManual = false;
-      renderResumoOficial(resumo);
-      const boxAtraso = document.getElementById("box-atraso-fim");
-      if (boxAtraso) boxAtraso.classList.remove("oculto");
-      await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
-    }
-    atualizarStatusSyncFim("ok");
-    return true;
-  } catch (err) {
-    const msg = String(err?.message || "").toLowerCase();
-    // Já encerrou no servidor: tira da fila e garante elenco único na conta
-    if (msg.includes("já encerrada") || msg.includes("ja encerrada")) {
+      const telaFimAtiva = document.getElementById("tela-fim")?.classList.contains("ativa");
+      if (telaFimAtiva && !lerFilaSyncEncerrar().length) {
+        estado.resumoAtual = resumo;
+        estado.sumulaManual = false;
+        renderResumoOficial(resumo);
+        const boxAtraso = document.getElementById("box-atraso-fim");
+        if (boxAtraso) boxAtraso.classList.remove("oculto");
+        await carregarObservacoes(null, "atraso-jogador-fim").catch(() => {});
+      }
+      enviouAlgum = true;
+    } catch (err) {
+      const msg = String(err?.message || "").toLowerCase();
+      if (msg.includes("já encerrada") || msg.includes("ja encerrada")) {
+        try {
+          await enviarElencoConta(elencoDoPayload(item.payload));
+        } catch (_) {
+          /* backup local já existe */
+        }
+        tirarSyncEncerrarDaFrente();
+        enviouAlgum = true;
+        continue;
+      }
       try {
         await enviarElencoConta(elencoDoPayload(item.payload));
       } catch (_) {
-        /* backup local já existe */
+        /* fica na fila */
       }
-      limparSyncEncerrarPendente();
-      atualizarStatusSyncFim("ok");
-      return true;
+      atualizarStatusSyncFim("erro");
+      return enviouAlgum;
     }
-    // Sync completo falhou: ainda assim tenta gravar só o elenco (uma vez)
-    try {
-      await enviarElencoConta(elencoDoPayload(item.payload));
-    } catch (_) {
-      /* fica na fila */
-    }
-    atualizarStatusSyncFim("erro");
-    return false;
   }
+
+  atualizarStatusSyncFim(enviouAlgum ? "ok" : null);
+  return enviouAlgum;
 }
 
 async function abrirSumulaPelada(peladaId) {
@@ -701,6 +749,10 @@ async function continuarPeladaPorId(peladaId) {
 
 async function apagarPeladaPorId(peladaId) {
   const pelada = (estado.historicoPeladas || []).find((p) => Number(p.id) === Number(peladaId));
+  if (pelada && !peladaPodeApagar(pelada)) {
+    toast("Essa pelada já passou de uma semana e não pode ser apagada");
+    return;
+  }
   const nome = pelada?.nome || "esta pelada";
   if (!confirm(`Apagar "${nome}"?\n\nEla sai do histórico e do relatório. Não dá para desfazer.`)) return;
 
@@ -2530,7 +2582,7 @@ async function encerrarPelada() {
     /* sync completo ainda tenta; backup local já ficou */
   }
 
-  salvarSyncEncerrarPendente({
+  enfileirarSyncEncerrar({
     peladaId,
     nome: local?.nome || resumo?.pelada?.nome || "Minha pelada",
     quantidadeTimes: local?.quantidadeTimes || 2,
@@ -3124,7 +3176,6 @@ function iniciarGoogleLogin() {
 
 function sairConta() {
   LocalJogo.limpar();
-  limparSyncEncerrarPendente();
   limparOcultarContinuar();
   limparSessao();
   estado.peladaId = null;
