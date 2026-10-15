@@ -198,13 +198,17 @@ function renderRelatorioMensal(rel) {
       <section class="rel-destaques">
         <h3>Destaques</h3>
         <div class="rel-chips">
-          ${relChip("Campeão", p.campeao)}
-          ${relChip("Artilheiro", p.artilheiro)}
-          ${relChip("Garçom", p.garcom)}
-          ${relChip("Craque", p.craque)}
-          ${relChip("Goleiro", p.luvaDeOuro)}
-          ${relChip("Amarelos", p.cartolaAmarela)}
-          ${relChip("Vermelhos", p.expulsoes)}
+          <div class="rel-chips-esq">
+            ${relChip("Maior campeão", p.campeao)}
+            ${relChip("Artilheiro", p.artilheiro)}
+            ${relChip("Garçom", p.garcom)}
+          </div>
+          <div class="rel-chips-dir">
+            ${relChip("Craque", p.craque)}
+            ${relChip("Goleiro", p.luvaDeOuro)}
+            ${relChip("Vermelho", p.expulsoes)}
+            ${relChip("Amarelo", p.cartolaAmarela)}
+          </div>
         </div>
       </section>
       <div class="rel-grade">

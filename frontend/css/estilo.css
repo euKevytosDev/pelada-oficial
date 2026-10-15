@@ -4231,8 +4231,17 @@ html[data-theme="dark"] .partida-lances {
 
 .rel-chips {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.35fr 0.85fr;
+  gap: 0.45em 0.7em;
+  align-items: start;
+}
+
+.rel-chips-esq,
+.rel-chips-dir {
+  display: flex;
+  flex-direction: column;
   gap: 0.35em;
+  min-width: 0;
 }
 
 .rel-chip {
@@ -4383,8 +4392,22 @@ html[data-theme="dark"] .partida-lances {
 }
 
 .pdf-export .rel-chips {
-  grid-template-columns: 1fr 1fr;
-  gap: 0 1.1em;
+  grid-template-columns: 1.45fr 0.9fr;
+  gap: 0 1em;
+  align-items: start;
+}
+
+.pdf-export .rel-chips-esq,
+.pdf-export .rel-chips-dir {
+  gap: 0;
+}
+
+.pdf-export .rel-chips-esq .rel-chip {
+  grid-template-columns: 7.6em minmax(0, 1fr) auto;
+}
+
+.pdf-export .rel-chips-dir .rel-chip {
+  grid-template-columns: 4.8em minmax(0, 1fr) auto;
 }
 
 .pdf-export .rel-chip {
