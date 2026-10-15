@@ -221,7 +221,7 @@ function renderRelatorioMensal(rel) {
         <h3>Peladas</h3>
         ${corpoRel(peladasItens, "Nenhuma pelada neste período.", 2, false)}
       </section>
-      <footer class="rel-rodape">Gerado por Rei da Pelada · campeão = 1º da tabela</footer>
+      <footer class="rel-rodape">Gerado por Rei da Pelada · campeão = 1º da tabela · goleiro = menos vazado do dia</footer>
     </article>
   `;
 }

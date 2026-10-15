@@ -93,17 +93,15 @@ public class RelatorioMensalService {
             if (campeao != null) {
                 for (Jogador j : jogadores) {
                     if (Boolean.FALSE.equals(j.getApto())) continue;
+                    if (Boolean.TRUE.equals(j.getGoleiro())) continue;
                     if (j.getTime() == null || !Objects.equals(j.getTime().getId(), campeao.getId())) continue;
                     Acc acc = porJogador.computeIfAbsent(chave(j.getNome()), k -> new Acc(j.getNome().trim()));
                     acc.nome = j.getNome().trim();
                     acc.vitorias += 1;
-                    // Goleiro do time campeão também leva a vitória (título da pelada).
-                    if (Boolean.TRUE.equals(j.getGoleiro())) {
-                        acc.vitoriasGk += 1;
-                    }
                     campeoesNomes.add(j.getNome().trim());
                 }
                 campeoesNomes.sort(String.CASE_INSENSITIVE_ORDER);
+                creditarGoleiroMenosVazado(jogadores, porJogador);
             }
 
             Map<String, Object> item = new LinkedHashMap<>();
@@ -171,6 +169,28 @@ public class RelatorioMensalService {
         }
         body.put("premios", premios(lista));
         return body;
+    }
+
+    /** Vitória de goleiro é de quem menos vazou no dia. Empate: todos com o mesmo mínimo. */
+    private void creditarGoleiroMenosVazado(List<Jogador> jogadores, Map<String, Acc> porJogador) {
+        List<Jogador> goleiros = new ArrayList<>();
+        for (Jogador j : jogadores) {
+            if (Boolean.FALSE.equals(j.getApto())) continue;
+            if (!Boolean.TRUE.equals(j.getGoleiro())) continue;
+            if (j.getNome() == null || j.getNome().isBlank()) continue;
+            goleiros.add(j);
+        }
+        if (goleiros.isEmpty()) return;
+        int min = Integer.MAX_VALUE;
+        for (Jogador j : goleiros) {
+            min = Math.min(min, n(j.getGolsSofridos()));
+        }
+        for (Jogador j : goleiros) {
+            if (n(j.getGolsSofridos()) != min) continue;
+            Acc acc = porJogador.computeIfAbsent(chave(j.getNome()), k -> new Acc(j.getNome().trim()));
+            acc.nome = j.getNome().trim();
+            acc.vitoriasGk += 1;
+        }
     }
 
     /**
