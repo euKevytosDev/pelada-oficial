@@ -3229,7 +3229,9 @@ async function abrirHistoricoCompleto(origem) {
   try {
     await comLoading(async () => {
       const peladas = await carregarHistoricoPeladas();
-      renderHistoricoLista(document.getElementById("lista-historico-completo"), peladas);
+      renderHistoricoLista(document.getElementById("lista-historico-completo"), peladas, null, {
+        mostrarApagar: true,
+      });
       mostrarTela("tela-historico");
     }, "Carregando histórico...");
   } catch (err) {
