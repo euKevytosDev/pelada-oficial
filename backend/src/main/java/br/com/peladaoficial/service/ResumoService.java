@@ -414,6 +414,7 @@ public class ResumoService {
             List<Jogador> tops = craques.stream()
                     .filter(c -> c.pontos() == maxPts)
                     .map(CraqueScore::jogador)
+                    .limit(3)
                     .collect(Collectors.toList());
             premios.put("craque", premioEmpate(tops, maxPts + " pt" + (maxPts == 1 ? "" : "s") + " (gol 2 · assistência 1 · A -1 · V -2)"));
         } else {

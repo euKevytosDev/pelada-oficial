@@ -486,7 +486,10 @@ function montarResumoDeTexto(textoBruto) {
   });
   if (scoresCraque.length) {
     const maxC = Math.max(...scoresCraque.map((x) => x.pts));
-    const tops = scoresCraque.filter((x) => x.pts === maxC);
+    const tops = scoresCraque
+      .filter((x) => x.pts === maxC)
+      .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }))
+      .slice(0, 3);
     premios.craque = {
       nome: tops.map((t) => t.nome).join(" / "),
       nomes: tops.map((t) => t.nome),
@@ -511,7 +514,16 @@ function montarResumoDeTexto(textoBruto) {
   }
   if (craqueTxt !== null) {
     const p = parsePremioTexto(craqueTxt);
-    if (p) premios.craque = { ...p, detalhe: premios.craque?.detalhe || "" };
+    if (p) {
+      const nomes = (p.nomes || []).slice(0, 3);
+      premios.craque = {
+        ...p,
+        nomes,
+        nome: nomes.join(" / "),
+        empate: nomes.length > 1,
+        detalhe: premios.craque?.detalhe || "",
+      };
+    }
   }
   if (garcomTxt !== null) {
     const p = parsePremioTexto(garcomTxt);

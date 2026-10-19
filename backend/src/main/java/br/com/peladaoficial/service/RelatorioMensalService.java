@@ -291,7 +291,7 @@ public class RelatorioMensalService {
         p.put("campeao", lider(lista, a -> a.vitorias, false, "vitória"));
         p.put("artilheiro", lider(lista, a -> a.gols, false, "gol"));
         p.put("garcom", lider(lista, a -> a.assistencias, false, "assistência"));
-        p.put("craque", lider(lista, a -> a.gols * 2 + a.assistencias - a.amarelos - a.vermelhos * 2, false, "pts"));
+        p.put("craque", lider(lista, a -> a.gols * 2 + a.assistencias - a.amarelos - a.vermelhos * 2, false, "pts", 3));
         p.put("fairPlay", liderFairPlay(lista));
         p.put("cartolaAmarela", lider(lista, a -> a.amarelos, false, "amarelo"));
         p.put("expulsoes", lider(lista, a -> a.vermelhos, false, "vermelho"));
@@ -351,12 +351,20 @@ public class RelatorioMensalService {
     }
 
     private Map<String, Object> lider(List<Acc> lista, java.util.function.ToIntFunction<Acc> get, boolean incluirZero, String unidade) {
+        return lider(lista, get, incluirZero, unidade, Integer.MAX_VALUE);
+    }
+
+    private Map<String, Object> lider(List<Acc> lista, java.util.function.ToIntFunction<Acc> get, boolean incluirZero, String unidade, int maxNomes) {
         List<Acc> cand = lista.stream()
                 .filter(a -> incluirZero || get.applyAsInt(a) > 0)
                 .toList();
         if (cand.isEmpty()) return null;
         int max = cand.stream().mapToInt(get).max().orElse(0);
-        List<Acc> tops = cand.stream().filter(a -> get.applyAsInt(a) == max).toList();
+        List<Acc> tops = cand.stream()
+                .filter(a -> get.applyAsInt(a) == max)
+                .sorted((a, b) -> a.nome.compareToIgnoreCase(b.nome))
+                .limit(Math.max(1, maxNomes))
+                .toList();
         return premioNomes(tops, max + " " + plural(unidade, max));
     }
 

@@ -938,7 +938,10 @@ const LocalJogo = (() => {
     const scores = linha.map((j) => ({ jogador: j, nome: j.nome, pts: pontuacaoCraque(j) }));
     if (scores.length) {
       const maxCraque = Math.max(...scores.map((x) => x.pts));
-      const tops = scores.filter((x) => x.pts === maxCraque);
+      const tops = scores
+        .filter((x) => x.pts === maxCraque)
+        .sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }))
+        .slice(0, 3);
       premios.craque = premioDeNomes(
         tops,
         detalheCraqueJogador(tops[0].jogador, maxCraque)
