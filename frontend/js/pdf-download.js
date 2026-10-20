@@ -17,6 +17,20 @@ function nomePdfSeguro(filename) {
   return base.endsWith(".pdf") ? base : `${base}.pdf`;
 }
 
+/** "Pelada Comercial 05/10/26" → "PeladaComercial051026.pdf" */
+function nomeArquivoPdfDaPelada(nome) {
+  const limpo = String(nome || "Pelada")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+  return `${limpo || "Pelada"}.pdf`;
+}
+
 async function salvarPdfBlob(blob, filename) {
   const safe = nomePdfSeguro(filename).replace(/[^\w.\-]+/g, "_");
   const file = new File([blob], safe, { type: "application/pdf" });

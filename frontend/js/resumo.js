@@ -629,8 +629,11 @@ async function baixarPdfResumo() {
   if (typeof FotosPremios !== "undefined") {
     await FotosPremios.aguardarImagensResumo(el);
   }
-  const nome = (estado.resumoAtual?.pelada?.nome || "pelada").replace(/\s+/g, "-").toLowerCase();
-  const opt = opcoesPdfPadrao(`resumo-${nome}.pdf`);
+  const opt = opcoesPdfPadrao(
+    typeof nomeArquivoPdfDaPelada === "function"
+      ? nomeArquivoPdfDaPelada(estado.resumoAtual?.pelada?.nome || "Pelada")
+      : "Pelada.pdf"
+  );
   const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
     await comLoading(baixar, "Gerando PDF...");
