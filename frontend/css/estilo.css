@@ -3418,6 +3418,8 @@ html[data-theme="dark"] .partida-lances {
 #tela-classificacao.classificacao-ao-vivo #dica-tabela-ao-vivo {
   display: block;
   margin-top: 8px;
+  color: var(--texto);
+  font-weight: 600;
 }
 
 .cronometros-partida {
