@@ -2456,11 +2456,52 @@ function timesComRodadaAberta() {
   return times;
 }
 
+function htmlLinhaRodadaTabela(p, aoVivo) {
+  const n = String(p.numeroRodada || "").padStart(2, "0");
+  const corA = p.timeA?.cor || "#146b4a";
+  const corB = p.timeB?.cor || "#146b4a";
+  return `<li class="partida-resumo-item">
+      <span class="rod">${n}ª</span>
+      <div class="partida-linha">
+        <span class="placar-mini">
+          <strong style="color:${corA}">${p.timeA?.nome || "Time A"}</strong>
+          <b>${Number(p.golsTimeA) || 0}</b>
+          <i>x</i>
+          <b>${Number(p.golsTimeB) || 0}</b>
+          <strong style="color:${corB}">${p.timeB?.nome || "Time B"}</strong>
+        </span>
+        ${aoVivo ? `<p class="rodada-aberta-meta">em andamento</p>` : ""}
+      </div>
+    </li>`;
+}
+
+function renderRodadasTabelaAoVivo() {
+  const el = document.getElementById("rodadas-tabela-ao-vivo");
+  if (!el) return;
+  const finalizadas = [...(LocalJogo.obter()?.rodadasFinalizadas || [])].sort(
+    (a, b) => (a.numeroRodada || 0) - (b.numeroRodada || 0)
+  );
+  const aberta =
+    estado.partidaAtual && estado.partidaAtual.status !== "FINALIZADA" ? estado.partidaAtual : null;
+  const linhas = [
+    ...finalizadas.map((p) => htmlLinhaRodadaTabela(p, false)),
+    ...(aberta ? [htmlLinhaRodadaTabela(aberta, true)] : []),
+  ];
+  el.innerHTML = `
+    <h3 class="lista-titulo">Rodadas</h3>
+    ${
+      linhas.length
+        ? `<ul class="lista-partidas">${linhas.join("")}</ul>`
+        : `<p class="vazio">Nenhuma rodada ainda.</p>`
+    }`;
+}
+
 function abrirTabelaAoVivo() {
   if (!estado.partidaAtual) return;
   estado.vendoTabelaAoVivo = true;
   document.getElementById("tela-classificacao")?.classList.add("classificacao-ao-vivo");
   renderClassificacao(timesComRodadaAberta(), "tabela-classificacao");
+  renderRodadasTabelaAoVivo();
   mostrarTela("tela-classificacao");
   const sub = document.getElementById("subtitulo-tela");
   if (sub) sub.textContent = "Tabela ao vivo";

@@ -3422,6 +3422,30 @@ html[data-theme="dark"] .partida-lances {
   font-weight: 600;
 }
 
+#rodadas-tabela-ao-vivo {
+  display: none;
+}
+
+#tela-classificacao.classificacao-ao-vivo #rodadas-tabela-ao-vivo {
+  display: block;
+  margin-top: 16px;
+}
+
+#rodadas-tabela-ao-vivo .lista-titulo {
+  margin-bottom: 8px;
+}
+
+#rodadas-tabela-ao-vivo .rod {
+  color: var(--texto);
+}
+
+#rodadas-tabela-ao-vivo .rodada-aberta-meta {
+  margin: 0;
+  color: var(--texto);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 .cronometros-partida {
   display: flex;
   flex-direction: column;
