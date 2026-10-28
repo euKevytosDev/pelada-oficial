@@ -58,9 +58,10 @@ const ConfigApp = (() => {
     const cfgNome = document.getElementById("cfg-nome-pelada");
     const cfgQtd = document.getElementById("cfg-qtd-times");
     if (nome) nome.value = p.nomePelada || prefsPadrao.nomePelada;
-    if (qtd) qtd.value = String(p.qtdTimes || prefsPadrao.qtdTimes);
+    const qtdVal = Math.min(4, Math.max(2, Number(p.qtdTimes || prefsPadrao.qtdTimes) || 2));
+    if (qtd) qtd.value = String(qtdVal);
     if (cfgNome) cfgNome.value = p.nomePelada || prefsPadrao.nomePelada;
-    if (cfgQtd) cfgQtd.value = String(p.qtdTimes || prefsPadrao.qtdTimes);
+    if (cfgQtd) cfgQtd.value = String(qtdVal);
 
     const cfgCrono1 = document.getElementById("cfg-crono1-min");
     const cfgAm = document.getElementById("cfg-cartao-amarelo-min");

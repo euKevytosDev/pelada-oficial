@@ -1887,7 +1887,7 @@ async function iniciarPartidaComEscolha() {
     return;
   }
 
-  // Sempre pergunta Time A e Time B (2 a 5 times)
+  // Sempre pergunta Time A e Time B
   const timeAId = await escolherOpcao(
     "Quem joga? Time A",
     times.map((t) => ({ id: t.id, label: t.nome })),
