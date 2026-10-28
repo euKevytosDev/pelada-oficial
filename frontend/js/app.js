@@ -2399,7 +2399,6 @@ async function finalizarPartidaAtual() {
   toast("Rodada finalizada");
 
   carregarPainelCorrecao().catch(() => {});
-  carregarObservacoes("lista-observacoes", "atraso-jogador").catch(() => {});
 }
 
 /** Aplica 3/1/0 e gols da partida atual nos times em memória (para a tela não depender da API). */
@@ -2520,7 +2519,6 @@ async function irParaClassificacao() {
   estado.times = times;
   renderClassificacao(times, "tabela-classificacao");
   await carregarPainelCorrecao();
-  await carregarObservacoes("lista-observacoes", "atraso-jogador");
   mostrarTela("tela-classificacao");
 }
 
@@ -3862,29 +3860,9 @@ document.getElementById("lista-partidas-corrigir").addEventListener("click", asy
   }
 });
 
-document.getElementById("btn-salvar-atraso").addEventListener("click", async () => {
-  try {
-    await salvarAtraso("");
-  } catch (err) {
-    toast(err.message);
-  }
-});
-
 document.getElementById("btn-salvar-atraso-fim").addEventListener("click", async () => {
   try {
     await salvarAtraso("-fim");
-  } catch (err) {
-    toast(err.message);
-  }
-});
-
-document.getElementById("lista-observacoes").addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-obs-id]");
-  if (!btn) return;
-  try {
-    LocalJogo.removerObservacaoLocal(btn.dataset.obsId);
-    await carregarObservacoes("lista-observacoes", "atraso-jogador");
-    toast("Observação removida");
   } catch (err) {
     toast(err.message);
   }
