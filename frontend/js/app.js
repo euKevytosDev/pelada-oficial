@@ -1784,11 +1784,7 @@ async function sortearTimes() {
   mostrarTela("tela-times");
   // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
-  if (typeof isAppNativo === "function" && isAppNativo()) {
-    sincronizarJogoAgora().catch(() => {});
-  } else {
-    sincronizarJogoEmBackground();
-  }
+  sincronizarJogoAgora().catch(() => {});
   const todos = LocalJogo.listarJogadores();
   const inaptos = todos.filter((j) => j.apto === false).length;
   const comGk = times.filter((t) => t.goleiro).length;
@@ -2255,26 +2251,44 @@ function aplicarLanceLocal(partidaId, contexto) {
 }
 
 let sincronizandoJogo = false;
+let syncJogoPendente = false;
 let syncJogoTimer = null;
 
-/** Backup no servidor durante o jogo — sorteio, rodada finalizada e ao sair da aba. */
+function peladaIdDoJogoLocal() {
+  const local = LocalJogo.obter();
+  return estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
+}
+
+function payloadSyncDuranteJogo() {
+  const payload = LocalJogo.montarPayloadSync({ encerrar: false });
+  if (!(payload.partidas || []).length && !(payload.times || []).length) return null;
+  return payload;
+}
+
+/** Backup no servidor: 1 envio por vez. Se chegar outro no meio, manda o snapshot mais novo em seguida. */
 async function executarSyncJogo() {
   if (!getToken()) return false;
-  const local = LocalJogo.obter();
-  const peladaId = estado.peladaId || local?.peladaId || Number(localStorage.getItem(PELADA_KEY)) || null;
+  const peladaId = peladaIdDoJogoLocal();
   if (!peladaId || !LocalJogo.temJogoLocal()) return false;
-  if (sincronizandoJogo) return false;
+  if (sincronizandoJogo) {
+    syncJogoPendente = true;
+    return false;
+  }
 
   sincronizandoJogo = true;
   try {
-    const payload = LocalJogo.montarPayloadSync({ encerrar: false });
-    if (!(payload.partidas || []).length && !(payload.times || []).length) return false;
+    const payload = payloadSyncDuranteJogo();
+    if (!payload) return false;
     await PeladaAPI.sincronizarCompleta(peladaId, payload);
     return true;
   } catch (_) {
     return false;
   } finally {
     sincronizandoJogo = false;
+    if (syncJogoPendente) {
+      syncJogoPendente = false;
+      executarSyncJogo().catch(() => {});
+    }
   }
 }
 
@@ -2288,6 +2302,28 @@ function sincronizarJogoEmBackground() {
 async function sincronizarJogoAgora() {
   clearTimeout(syncJogoTimer);
   return executarSyncJogo();
+}
+
+/** Um POST único ao fechar a aba — o fetch normal pode morrer no meio. */
+function enviarSyncKeepalive() {
+  try {
+    if (!getToken() || !LocalJogo.temJogoLocal() || sincronizandoJogo) return;
+    const peladaId = peladaIdDoJogoLocal();
+    const payload = payloadSyncDuranteJogo();
+    if (!peladaId || !payload || typeof API_BASE === "undefined") return;
+    fetch(`${API_BASE}/peladas/${peladaId}/sincronizar-completa`, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+        "X-Pelada-Client": typeof isAppNativo === "function" && isAppNativo() ? "android" : "web",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (_) {
+    /* fecha a aba mesmo assim */
+  }
 }
 
 function somaJogosTimes(times) {
@@ -2311,11 +2347,7 @@ async function finalizarPartidaAtual() {
     renderClassificacao(timesLocais, "tabela-classificacao");
   }
   LocalJogo.finalizarPartidaLocal(partida, timesLocais);
-  if (typeof isAppNativo === "function" && isAppNativo()) {
-    sincronizarJogoAgora().catch(() => {});
-  } else {
-    sincronizarJogoEmBackground();
-  }
+  sincronizarJogoAgora().catch(() => {});
 
   mostrarTela("tela-classificacao");
   toast("Rodada finalizada");
@@ -2616,12 +2648,8 @@ async function encerrarPelada() {
   mostrarTela("tela-fim");
   toast("Pelada encerrada — súmula pronta");
 
-  const enviou = await sincronizarEncerrarPendente();
-  // Fecha qualquer outra pelada ainda "ativa" na conta (fantasma de Continuar)
+  await sincronizarEncerrarPendente();
   await encerrarResiduosAtivosNoServidor().catch(() => {});
-  if (!enviou) {
-    toast("Súmula ok. Conta sincroniza quando a rede voltar.");
-  }
 }
 
 /* ---------- eventos ---------- */
@@ -3330,12 +3358,12 @@ window.addEventListener("online", () => {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
-    if (typeof isAppNativo === "function" && isAppNativo()) {
-      sincronizarJogoAgora().catch(() => {});
-    } else {
-      sincronizarJogoEmBackground();
-    }
+    sincronizarJogoAgora().catch(() => {});
   }
+});
+
+window.addEventListener("pagehide", () => {
+  enviarSyncKeepalive();
 });
 function exigirQtdTimesPro(qtd) {
   const n = Number(qtd) || 2;
