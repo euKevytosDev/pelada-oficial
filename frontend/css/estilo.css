@@ -3395,6 +3395,31 @@ html[data-theme="dark"] .partida-lances {
   flex-shrink: 0;
 }
 
+.btn-tabela-ao-vivo {
+  margin-left: auto;
+}
+
+#btn-voltar-rodada-atual,
+#dica-tabela-ao-vivo {
+  display: none;
+}
+
+#tela-classificacao.classificacao-ao-vivo #btn-voltar-times-class,
+#tela-classificacao.classificacao-ao-vivo #box-corrigir-partidas,
+#tela-classificacao.classificacao-ao-vivo #box-atraso,
+#tela-classificacao.classificacao-ao-vivo .acoes-fixas {
+  display: none !important;
+}
+
+#tela-classificacao.classificacao-ao-vivo #btn-voltar-rodada-atual {
+  display: inline-flex;
+}
+
+#tela-classificacao.classificacao-ao-vivo #dica-tabela-ao-vivo {
+  display: block;
+  margin-top: 8px;
+}
+
 .cronometros-partida {
   display: flex;
   flex-direction: column;

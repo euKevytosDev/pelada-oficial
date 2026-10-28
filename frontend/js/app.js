@@ -24,6 +24,7 @@ const estado = {
   telaAntesPlanos: "tela-configuracoes",
   telaAntesRelatorio: "tela-inicio",
   relatorioMensalAtual: null,
+  vendoTabelaAoVivo: false,
 };
 
 /** Pelada encerrada pode ser retomada por até 24h. */
@@ -32,6 +33,10 @@ const JANELA_RETOMAR_MS = 24 * 60 * 60 * 1000;
 function mostrarTela(id) {
   document.querySelectorAll(".tela").forEach((tela) => tela.classList.remove("ativa"));
   document.getElementById(id).classList.add("ativa");
+  if (id !== "tela-classificacao" || !estado.vendoTabelaAoVivo) {
+    document.getElementById("tela-classificacao")?.classList.remove("classificacao-ao-vivo");
+    if (id !== "tela-classificacao") estado.vendoTabelaAoVivo = false;
+  }
 
   const titulos = {
     "tela-auth": "Entre para salvar sua pelada",
@@ -2389,6 +2394,7 @@ async function finalizarPartidaAtual() {
   LocalJogo.finalizarPartidaLocal(partida, timesLocais);
   sincronizarJogoAgora().catch(() => {});
 
+  sairModoTabelaAoVivo();
   mostrarTela("tela-classificacao");
   toast("Rodada finalizada");
 
@@ -2436,7 +2442,39 @@ function aplicarResultadoLocalNosTimes(times, partida) {
   });
 }
 
+function sairModoTabelaAoVivo() {
+  estado.vendoTabelaAoVivo = false;
+  document.getElementById("tela-classificacao")?.classList.remove("classificacao-ao-vivo");
+}
+
+function timesComRodadaAberta() {
+  const times = LocalJogo.listarTimes();
+  const partida = estado.partidaAtual;
+  if (partida && partida.status !== "FINALIZADA" && partida.timeA && partida.timeB) {
+    return aplicarResultadoLocalNosTimes(times, partida);
+  }
+  return times;
+}
+
+function abrirTabelaAoVivo() {
+  if (!estado.partidaAtual) return;
+  estado.vendoTabelaAoVivo = true;
+  document.getElementById("tela-classificacao")?.classList.add("classificacao-ao-vivo");
+  renderClassificacao(timesComRodadaAberta(), "tabela-classificacao");
+  mostrarTela("tela-classificacao");
+  const sub = document.getElementById("subtitulo-tela");
+  if (sub) sub.textContent = "Tabela ao vivo";
+}
+
+function voltarParaRodadaAtual() {
+  sairModoTabelaAoVivo();
+  mostrarTela("tela-partida");
+  atualizarCronoNaTela();
+  garantirLoopCrono();
+}
+
 async function irParaClassificacao() {
+  sairModoTabelaAoVivo();
   const times = LocalJogo.listarTimes();
   estado.times = times;
   renderClassificacao(times, "tabela-classificacao");
@@ -3084,6 +3122,11 @@ function registrarBotaoVoltarAndroid() {
       return;
     }
 
+    if (tela === "tela-classificacao" && estado.vendoTabelaAoVivo && estado.partidaAtual) {
+      voltarParaRodadaAtual();
+      return;
+    }
+
     if (tela === "tela-times" || tela === "tela-classificacao") {
       entrarNaHome().catch(() => mostrarTela("tela-inicio"));
       return;
@@ -3648,6 +3691,14 @@ document.getElementById("btn-voltar-partida")?.addEventListener("click", async (
   } catch (err) {
     toast(err.message || "Não deu para sair da partida");
   }
+});
+
+document.getElementById("btn-tabela-ao-vivo")?.addEventListener("click", () => {
+  abrirTabelaAoVivo();
+});
+
+document.getElementById("btn-voltar-rodada-atual")?.addEventListener("click", () => {
+  voltarParaRodadaAtual();
 });
 
 document.getElementById("btn-crono-toggle")?.addEventListener("click", () => {
