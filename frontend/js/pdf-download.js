@@ -12,27 +12,23 @@ function blobParaBase64(blob) {
   });
 }
 
-function nomePdfSeguro(filename) {
-  const base = String(filename || "documento.pdf").trim() || "documento.pdf";
-  return base.endsWith(".pdf") ? base : `${base}.pdf`;
+/** Nome que o usuário colocou na pelada + .pdf (sem "resumo"/"súmula"). */
+function nomeArquivoPdfDaPelada(nome) {
+  let limpo = String(nome || "")
+    .trim()
+    .replace(/\.pdf$/i, "")
+    .trim();
+  limpo = limpo.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
+  if (!limpo) limpo = "Pelada";
+  return `${limpo}.pdf`;
 }
 
-/** "Pelada Comercial 05/10/26" → "PeladaComercial051026.pdf" */
-function nomeArquivoPdfDaPelada(nome) {
-  const limpo = String(nome || "Pelada")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join("");
-  return `${limpo || "Pelada"}.pdf`;
+function nomePdfSeguro(filename) {
+  return nomeArquivoPdfDaPelada(filename);
 }
 
 async function salvarPdfBlob(blob, filename) {
-  const safe = nomePdfSeguro(filename).replace(/[^\w.\-]+/g, "_");
+  const safe = nomeArquivoPdfDaPelada(filename);
   const file = new File([blob], safe, { type: "application/pdf" });
 
   try {

@@ -636,10 +636,16 @@ async function baixarPdfResumo() {
   if (typeof FotosPremios !== "undefined") {
     await FotosPremios.aguardarImagensResumo(el);
   }
+  const nomePelada =
+    estado.resumoAtual?.pelada?.nome ||
+    estado.ultimaPelada?.nome ||
+    (typeof LocalJogo !== "undefined" ? LocalJogo.obter()?.nome : "") ||
+    document.querySelector("#resumo-oficial h2")?.textContent ||
+    "Pelada";
   const opt = opcoesPdfPadrao(
     typeof nomeArquivoPdfDaPelada === "function"
-      ? nomeArquivoPdfDaPelada(estado.resumoAtual?.pelada?.nome || "Pelada")
-      : "Pelada.pdf"
+      ? nomeArquivoPdfDaPelada(nomePelada)
+      : `${String(nomePelada).trim() || "Pelada"}.pdf`
   );
   const baixar = () => baixarPdfHtml(el, opt);
   if (typeof comLoading === "function") {
