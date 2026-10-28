@@ -793,6 +793,34 @@ async function tirarPeladaDaTela(peladaId) {
   }
 }
 
+function aplicarRecolherHistoricoHome(temMais) {
+  const listaHome = document.getElementById("lista-historico-home");
+  const btnToggle = document.getElementById("btn-toggle-peladas-home");
+  if (!listaHome || !btnToggle) return;
+  if (temMais) {
+    listaHome.classList.add("recolhida");
+    btnToggle.classList.remove("oculto");
+    btnToggle.setAttribute("aria-expanded", "false");
+    btnToggle.setAttribute("title", "Ver peladas anteriores");
+  } else {
+    listaHome.classList.remove("recolhida");
+    btnToggle.classList.add("oculto");
+    btnToggle.setAttribute("aria-expanded", "false");
+  }
+}
+
+function configurarTogglePeladasHome() {
+  const btnToggle = document.getElementById("btn-toggle-peladas-home");
+  const listaHome = document.getElementById("lista-historico-home");
+  if (!btnToggle || !listaHome || btnToggle._toggleBound) return;
+  btnToggle._toggleBound = true;
+  btnToggle.addEventListener("click", () => {
+    const aberto = listaHome.classList.toggle("recolhida") === false;
+    btnToggle.setAttribute("aria-expanded", aberto ? "true" : "false");
+    btnToggle.setAttribute("title", aberto ? "Recolher peladas anteriores" : "Ver peladas anteriores");
+  });
+}
+
 async function atualizarHistoricoHome() {
   const boxHistorico = document.getElementById("box-historico-recente");
   const listaHome = document.getElementById("lista-historico-home");
@@ -807,10 +835,12 @@ async function atualizarHistoricoHome() {
   const recentes = peladasParaHistoricoHome(idAtiva);
   if (recentes.length) {
     renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
+    aplicarRecolherHistoricoHome(recentes.length > 1);
     boxHistorico.classList.remove("oculto");
   } else {
     boxHistorico.classList.add("oculto");
     listaHome.innerHTML = "";
+    aplicarRecolherHistoricoHome(false);
   }
 }
 
@@ -2712,6 +2742,7 @@ async function entrarNaHome() {
 
   configurarCliqueHistorico(listaHome);
   configurarCliqueHistorico(document.getElementById("lista-historico-completo"));
+  configurarTogglePeladasHome();
 
   const local = LocalJogo.obter();
   const temLocal = LocalJogo.temJogoLocal();

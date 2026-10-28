@@ -354,15 +354,22 @@ function premioCard(titulo, premio, fotoKey, resumo, modoGridFotos) {
   </article>`;
 }
 
+const BOLA_GOL_SVG =
+  '<svg class="pen-bola" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#146b4a"/><polygon points="12,6.4 15.8,9.1 14.3,13.7 9.7,13.7 8.2,9.1" fill="#fff"/><path d="M12 6.4V1.5M15.8 9.1l6.2-1.8M14.3 13.7l4.6 6.4M9.7 13.7 5.1 20.1M8.2 9.1 2 7.3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
 function listaBatidasPenaltis(batidas, vazio) {
   const itens = (batidas || []).filter((b) => b && (b.resultado === "gol" || b.resultado === "erro"));
   if (!itens.length) return `<p class="vazio">${vazio}</p>`;
   return `<ul class="lista-resumo pen-batidas-lista">${itens
     .map((b, i) => {
       const ok = b.resultado === "gol";
-      const marca = ok ? "●" : "✕";
+      const marca = ok ? BOLA_GOL_SVG : "✕";
       const cls = ok ? "pen-ok" : "pen-erro";
-      return `<li><span>${i + 1}º ${b.nome || "—"}</span><strong class="${cls}">${marca}</strong></li>`;
+      return `<li>
+        <span class="pen-kick-n">${i + 1}º</span>
+        <span class="pen-kick-nome">${b.nome || "—"}</span>
+        <span class="pen-kick-marca ${cls}">${marca}</span>
+      </li>`;
     })
     .join("")}</ul>`;
 }
@@ -385,11 +392,11 @@ function quadroPenaltisHtml(pen) {
     || (pen.batidasB || []).some((b) => b && (b.resultado === "gol" || b.resultado === "erro"));
   const batidas = temBatidas
     ? `<div class="penaltis-batidas-cols">
-        <div>
+        <div class="penaltis-batidas-col">
           <h4 class="pen-batidas-titulo">${pen.timeA}</h4>
           ${listaBatidasPenaltis(pen.batidasA, "Sem cobranças")}
         </div>
-        <div>
+        <div class="penaltis-batidas-col">
           <h4 class="pen-batidas-titulo">${pen.timeB}</h4>
           ${listaBatidasPenaltis(pen.batidasB, "Sem cobranças")}
         </div>

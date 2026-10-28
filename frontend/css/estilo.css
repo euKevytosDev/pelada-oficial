@@ -536,6 +536,42 @@ html[data-theme="dark"] .btn-cancelar-pelada:hover {
   margin-left: auto;
 }
 
+.lista-historico.recolhida > li:nth-child(n + 2) {
+  display: none;
+}
+
+.btn-toggle-peladas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 36px;
+  margin: 2px auto 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gramado);
+  cursor: pointer;
+}
+
+.btn-toggle-peladas.oculto {
+  display: none;
+}
+
+.btn-toggle-peladas-ico {
+  display: flex;
+  transition: transform 0.18s ease;
+}
+
+.btn-toggle-peladas[aria-expanded="true"] .btn-toggle-peladas-ico {
+  transform: rotate(180deg);
+}
+
+.btn-toggle-peladas:active {
+  background: var(--verde-claro);
+}
+
 .badge-status {
   display: inline-block;
   font-size: 0.68rem;
@@ -4051,9 +4087,27 @@ html[data-theme="dark"] .partida-lances {
 
 .penaltis-batidas-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
   margin-top: 8px;
+  isolation: isolate;
+}
+
+.penaltis-batidas-col {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+}
+
+.penaltis-batidas-col:first-child {
+  padding-left: 0;
+  padding-right: 10px;
+  border-right: 1px solid var(--linha);
+}
+
+.penaltis-batidas-col:last-child {
+  padding-left: 10px;
+  padding-right: 0;
 }
 
 .pen-batidas-titulo {
@@ -4063,12 +4117,50 @@ html[data-theme="dark"] .partida-lances {
   text-transform: uppercase;
 }
 
-.pen-batidas-lista li strong.pen-ok {
+.pen-batidas-lista li {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pen-kick-n {
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+  font-size: 0.78em;
+}
+
+.pen-kick-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pen-kick-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.pen-bola {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.pen-batidas-lista li .pen-ok {
   color: #146b4a;
 }
 
-.pen-batidas-lista li strong.pen-erro {
+.pen-batidas-lista li .pen-erro {
   color: #d62828;
+  font-weight: 700;
 }
 
 .pdf-export .partidas-penaltis-grid {
@@ -4085,6 +4177,7 @@ html[data-theme="dark"] .partida-lances {
 
 .pdf-export .penaltis-sumula-box {
   padding: 8px;
+  overflow: hidden;
 }
 
 .pdf-export .penaltis-resumo-linha {
@@ -4096,9 +4189,25 @@ html[data-theme="dark"] .partida-lances {
   font-size: 0.78rem;
 }
 
+.pdf-export .penaltis-batidas-col:first-child {
+  padding-right: 8px;
+}
+
+.pdf-export .penaltis-batidas-col:last-child {
+  padding-left: 8px;
+}
+
 .pdf-export .pen-batidas-lista li {
+  display: grid;
   font-size: 0.68rem;
   padding: 2px 0;
+  grid-template-columns: 1.35em minmax(0, 1fr) 14px;
+  justify-content: stretch;
+}
+
+.pdf-export .pen-bola {
+  width: 12px;
+  height: 12px;
 }
 
 /* ---- Relatório mensal / período / anual ---- */
