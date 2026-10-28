@@ -18,7 +18,7 @@
       } catch (_) { }
     })();
   </script>
-  <link rel="stylesheet" href="css/estilo.css?v=20261028c" />
+  <link rel="stylesheet" href="css/estilo.css?v=20261028d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -152,12 +152,14 @@
         <div id="box-historico-recente" class="card-form oculto">
           <h2 class="lista-titulo" style="margin-top:0">Peladas recentes</h2>
           <p class="dica">Encerradas há menos de 24h podem continuar com mais partidas.</p>
-          <ul class="lista lista-historico" id="lista-historico-home"></ul>
-          <button type="button" class="btn-toggle-peladas oculto" id="btn-toggle-peladas-home" aria-expanded="false" aria-controls="lista-historico-home" title="Ver peladas anteriores">
-            <span class="btn-toggle-peladas-ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-          </button>
+          <div class="historico-home-wrap">
+            <ul class="lista lista-historico" id="lista-historico-home"></ul>
+            <button type="button" class="btn-toggle-peladas oculto" id="btn-toggle-peladas-home" aria-expanded="false" aria-controls="lista-historico-home" title="Ver peladas anteriores">
+              <span class="btn-toggle-peladas-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </button>
+          </div>
           <button type="button" class="btn btn-secundario btn-block" id="btn-ver-historico">Ver histórico
             completo</button>
           <button type="button" class="btn btn-secundario btn-block" id="btn-relatorio-mensal" data-pro-feature>Relatório do mês</button>
@@ -708,7 +710,7 @@
   <script src="js/relatorio-mensal.js?v=20261015a"></script>
   <script src="js/sumula-manual.js?v=20261019a"></script>
   <script src="js/penaltis.js?v=20261006b"></script>
-  <script src="js/app.js?v=20261028c"></script>
+  <script src="js/app.js?v=20261028d"></script>
 </body>
 
 </html>

@@ -793,6 +793,18 @@ async function tirarPeladaDaTela(peladaId) {
   }
 }
 
+function desenharSetaHistoricoHome(aberto) {
+  const btnToggle = document.getElementById("btn-toggle-peladas-home");
+  if (!btnToggle) return;
+  const path = btnToggle.querySelector("svg path");
+  btnToggle.setAttribute("aria-expanded", aberto ? "true" : "false");
+  btnToggle.setAttribute("title", aberto ? "Recolher peladas anteriores" : "Ver peladas anteriores");
+  btnToggle.classList.toggle("aberto", !!aberto);
+  if (path) {
+    path.setAttribute("d", aberto ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6");
+  }
+}
+
 function aplicarRecolherHistoricoHome(temMais) {
   const listaHome = document.getElementById("lista-historico-home");
   const btnToggle = document.getElementById("btn-toggle-peladas-home");
@@ -800,12 +812,11 @@ function aplicarRecolherHistoricoHome(temMais) {
   if (temMais) {
     listaHome.classList.add("recolhida");
     btnToggle.classList.remove("oculto");
-    btnToggle.setAttribute("aria-expanded", "false");
-    btnToggle.setAttribute("title", "Ver peladas anteriores");
+    desenharSetaHistoricoHome(false);
   } else {
     listaHome.classList.remove("recolhida");
     btnToggle.classList.add("oculto");
-    btnToggle.setAttribute("aria-expanded", "false");
+    desenharSetaHistoricoHome(false);
   }
 }
 
@@ -816,8 +827,7 @@ function configurarTogglePeladasHome() {
   btnToggle._toggleBound = true;
   btnToggle.addEventListener("click", () => {
     const aberto = listaHome.classList.toggle("recolhida") === false;
-    btnToggle.setAttribute("aria-expanded", aberto ? "true" : "false");
-    btnToggle.setAttribute("title", aberto ? "Recolher peladas anteriores" : "Ver peladas anteriores");
+    desenharSetaHistoricoHome(aberto);
   });
 }
 
