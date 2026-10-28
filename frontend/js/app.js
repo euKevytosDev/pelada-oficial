@@ -2795,13 +2795,8 @@ async function entrarNaHome() {
     if (local.peladaId) idAtiva = local.peladaId;
   }
 
-  const peladas = await carregarHistoricoPeladas();
-  const recentes = peladasParaHistoricoHome(idAtiva);
-
-  if (recentes.length && boxHistorico && listaHome) {
-    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
-    boxHistorico.classList.remove("oculto");
-  }
+  await carregarHistoricoPeladas();
+  await atualizarHistoricoHome();
 }
 
 async function retomarPelada(pelada) {
