@@ -2200,15 +2200,19 @@ async function registrarEventoAoVivo(tipo) {
     if (!jogadorId) return;
 
     if (tipo === "GOL") {
+      // Inclui goleiros do time (e “Outro jogador”) — lançamento/saída do GK também conta
       const assistEscolhida = await escolherJogadorDoLance("Quem deu a assistência?", partida, timeId, {
         excluirId: jogadorId,
-        soLinha: true,
         incluirSem: true,
       });
       if (!assistEscolhida) return;
       if (String(assistEscolhida) !== "__sem__") {
         assistenciaId = assistEscolhida;
-        assistenciaNome = (jogadoresDoTime.find((j) => String(j.id) === String(assistenciaId)) || {}).nome || null;
+        assistenciaNome =
+          (jogadoresDoTime.find((j) => String(j.id) === String(assistenciaId)) || {}).nome ||
+          (elencoDoTimeParaLance(partida, timeId).find((j) => String(j.id) === String(assistenciaId)) || {})
+            .nome ||
+          null;
       }
 
       const timeDefensorId =
