@@ -262,28 +262,18 @@ public class PeladaService {
         return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
     }
 
-    /** Endpoint explícito: tenta recuperar elenco das peladas antigas. */
+    /**
+     * Endpoint explícito: só restaura das peladas antigas se o elenco da conta estiver vazio.
+     * Não sobrescreve elenco menor de propósito (jogador apagado pelo usuário).
+     */
     @Transactional
     public List<ElencoJogador> forcarRecuperacaoElenco() {
         Usuario dono = authSupport.usuarioAtual();
         List<ElencoJogador> atual = elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
-
-        List<Pelada> peladas = peladaRepository.findByUsuarioOrderByCriadaEmDesc(dono);
-        List<Jogador> melhor = List.of();
-        for (Pelada p : peladas) {
-            if (p == null || p.getId() == null) continue;
-            List<Jogador> js = jogadorRepository.findByPeladaIdOrderByNomeAsc(p.getId());
-            if (js != null && js.size() > melhor.size()) {
-                melhor = js;
-            }
+        if (!atual.isEmpty()) {
+            return atual;
         }
-
-        // Restaura se achar lista maior que a atual (ex.: fantasma deixou 0–2 nomes)
-        if (melhor.size() > atual.size()) {
-            substituirElenco(melhor);
-            return elencoRepository.findByUsuarioOrderByGoleiroAscNomeAsc(dono);
-        }
-        return atual;
+        return recuperarElencoDasPeladas(dono);
     }
 
     private boolean temDuplicataElenco(List<ElencoJogador> lista) {

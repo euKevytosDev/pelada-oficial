@@ -294,14 +294,11 @@ function deduplicarElencoLocal(jogadores) {
 }
 
 async function carregarElencoParaNovaPelada() {
-  // Só o backup DESTA conta (nunca o legado global de outro usuário)
+  // Só o backup DESTA conta (nunca o legado global de outro usuário).
+  // Não chama /elenco/recuperar aqui: isso trazia de volta quem o usuário apagou
+  // (pelada antiga com mais nomes sobrescrevia o elenco atual).
   const backup = lerElencoLocalBackup();
   try {
-    try {
-      await PeladaAPI.recuperarElenco();
-    } catch (_) {
-      /* endpoint pode não ter subido; listarElenco já tenta recuperar */
-    }
     const elenco = await PeladaAPI.listarElenco();
     let lista = deduplicarElencoLocal(
       (Array.isArray(elenco) ? elenco : elenco?.jogadores || []).map((j) => ({
@@ -316,7 +313,24 @@ async function carregarElencoParaNovaPelada() {
       salvarElencoLocalBackup(lista);
       return lista;
     }
-    // Servidor vazio: só restaura backup se for desta conta (já filtrado pela chave)
+    // Servidor vazio: tenta recuperar só nesse caso; senão usa backup desta conta
+    try {
+      const recuperado = await PeladaAPI.recuperarElenco();
+      lista = deduplicarElencoLocal(
+        (Array.isArray(recuperado) ? recuperado : recuperado?.jogadores || []).map((j) => ({
+          nome: j.nome,
+          estrelas: j.estrelas,
+          goleiro: !!j.goleiro,
+          apto: !(j.apto === false || j.apto === "false"),
+        }))
+      );
+      if (lista.length) {
+        salvarElencoLocalBackup(lista);
+        return lista;
+      }
+    } catch (_) {
+      /* segue para backup */
+    }
     if (backup.length) {
       try {
         await enviarElencoConta(backup);
@@ -1132,7 +1146,13 @@ async function apagarJogador(jogadorId) {
   if (!ok) return;
   LocalJogo.removerJogador(jogadorId);
   await carregarCadastro();
-  agendarSyncElencoCadastro();
+  // Sobe na hora para a próxima pelada não trazer o nome de volta
+  salvarElencoLocalBackup(LocalJogo.listarJogadores());
+  if (getToken()) {
+    enviarElencoConta(LocalJogo.listarJogadores()).catch(() => {
+      agendarSyncElencoCadastro();
+    });
+  }
   toast("Removido da lista");
 }
 
