@@ -85,6 +85,9 @@ public class SyncCompletaService {
         }
 
         limparSnapshotAnterior(peladaId);
+        // DELETE em lote limpa o persistence context — recarrega a pelada pra status gravar de verdade
+        pelada = peladaRepository.findByIdAndUsuario(peladaId, authSupport.usuarioAtual())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pelada não encontrada"));
 
         Map<String, Jogador> jogadores = criarJogadores(pelada, request.getJogadores());
         Map<String, Time> times = criarTimes(pelada, request.getTimes(), jogadores);
@@ -111,7 +114,7 @@ public class SyncCompletaService {
             pelada.setEncerradaEm(null);
         }
 
-        peladaRepository.flush();
+        peladaRepository.saveAndFlush(pelada);
         // Salvar times / sync durante o jogo: não monta súmula completa (era o maior custo)
         return encerrar ? resumoService.montar(peladaId) : respostaRapida(pelada);
     }
@@ -174,12 +177,8 @@ public class SyncCompletaService {
             String nome = obrigatorio(item.getNome(), "nome do time");
             Time time = new Time(nome, valorOuPadrao(item.getCor(), "#1B5E20"), pelada);
             time.setNomeManual(Boolean.TRUE.equals(item.getNomeManual()));
-            if (item.getPontos() != null) time.setPontos(item.getPontos());
-            if (item.getVitorias() != null) time.setVitorias(item.getVitorias());
-            if (item.getEmpates() != null) time.setEmpates(item.getEmpates());
-            if (item.getDerrotas() != null) time.setDerrotas(item.getDerrotas());
-            if (item.getGolsPro() != null) time.setGolsPro(item.getGolsPro());
-            if (item.getGolsContra() != null) time.setGolsContra(item.getGolsContra());
+            // Não copia pontos/gols do payload: criarPartidas→finalizar() já calcula.
+            // Copiar + finalizar duplicava classificação na súmula do servidor.
             loteTimes.add(time);
             clientIds.add(clientId.trim());
         }
