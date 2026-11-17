@@ -577,21 +577,20 @@ function syncEncerrarPendentePara(peladaId) {
   );
 }
 
-/** Pelada ainda "ativa" no servidor, mas já encerrada neste celular. */
+/** Só esconde Continuar da pelada que ESTE aparelho encerrou — não de uma nova. */
 function deveOcultarContinuar(peladaId) {
-  if (deveOcultarBoxContinuar()) return true;
-  return foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId);
+  if (peladaId == null || peladaId === "") return deveOcultarBoxContinuar();
+  if (foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId)) return true;
+  // Flag global só esconde a caixa se não há pelada ativa diferente das encerradas locais
+  return false;
 }
 
-/** Fecha qualquer pelada ainda aberta na conta (fantasma de Continuar).
- *  NÃO usa POST /encerrar (esse regrava elenco e pode zerar a conta). */
+/**
+ * Antes isso chamava POST /encerrar-ativas e matava pelada com times já salvos.
+ * Continuar some só na UI (flag local) — nunca encerra jogo válido no servidor.
+ */
 async function encerrarResiduosAtivosNoServidor() {
-  if (!getToken()) return;
-  try {
-    await PeladaAPI.encerrarAtivas();
-  } catch (_) {
-    /* endpoint ainda não no ar — não chama /encerrar individual (apaga elenco) */
-  }
+  /* no-op de propósito: não encerrar peladas ativas no servidor pela home */
 }
 
 function atualizarStatusSyncFim(estadoSync) {
@@ -1893,6 +1892,7 @@ async function salvarTimesTemporariamente() {
       throw new Error("Nada para salvar — sorteie os times de novo");
     }
     await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    limparOcultarContinuar();
   }, "Salvando times no servidor...");
 
   toast("Times salvos! Pode fechar o app — ao voltar o sorteio continua");
@@ -2912,22 +2912,18 @@ async function entrarNaHome() {
   const temLocal = LocalJogo.temJogoLocal();
   let idAtiva = null;
 
-  if (deveOcultarBoxContinuar()) {
-    await encerrarResiduosAtivosNoServidor().catch(() => {});
-  }
-
   try {
     const ativa = await PeladaAPI.ativa();
     if (ativa && ativa.id && deveOcultarContinuar(ativa.id)) {
-      // Já encerrada neste aparelho — não mostra Continuar
+      // Já encerrada neste aparelho — não mostra Continuar (não mata no servidor)
       estado.peladaAtiva = null;
       idAtiva = null;
-      await encerrarResiduosAtivosNoServidor().catch(() => {});
     } else if (ativa && ativa.id) {
+      limparOcultarContinuar();
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
       idAtiva = ativa.id;
-      if (box && !deveOcultarBoxContinuar()) {
+      if (box) {
         document.querySelector("#box-continuar .continuar-txt").textContent =
           "Você tem uma pelada em andamento.";
         box.classList.remove("oculto");

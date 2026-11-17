@@ -102,9 +102,12 @@ public class SyncCompletaService {
             if (!jogadores.isEmpty()) {
                 peladaService.substituirElenco(new ArrayList<>(jogadores.values()));
             }
+        } else if (!times.isEmpty() || !lista(request.getPartidas()).isEmpty()) {
+            // Jogo em andamento (Salvar times / rodadas) — reabre se um "encerrar fantasma" fechou antes
+            pelada.setStatus(StatusPelada.EM_ANDAMENTO);
+            pelada.setEncerradaEm(null);
         } else if (!jaEncerrada) {
-            // Não reabre pelada já encerrada com sync parcial (evita zerar súmula depois)
-            pelada.setStatus(times.isEmpty() ? StatusPelada.AGUARDANDO : StatusPelada.EM_ANDAMENTO);
+            pelada.setStatus(StatusPelada.AGUARDANDO);
             pelada.setEncerradaEm(null);
         }
 
