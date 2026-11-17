@@ -871,8 +871,7 @@ async function atualizarHistoricoHome() {
 
   const recentes = peladasParaHistoricoHome(idAtiva);
   if (recentes.length) {
-    // Apagar fica só no "Histórico completo"
-    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: false });
+    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
     aplicarRecolherHistoricoHome(recentes.length > 1);
     boxHistorico.classList.remove("oculto");
   } else {

@@ -465,9 +465,7 @@ function renderResumoOficial(resumo) {
     .map((t) => {
       const isCampeao =
         campeaoNome && normalizarNomeTime(t.nome) === normalizarNomeTime(campeaoNome);
-      const gk = t.goleiro
-        ? `${t.goleiro.nome} <span class="meta">(${t.goleiro.golsSofridos ?? 0} sofridos)</span>`
-        : "sem goleiro";
+      const gk = t.goleiro ? t.goleiro.nome : "sem goleiro";
       const jogadores = (t.jogadores || [])
         .map((j) => {
           const gols = j.gols || 0;
