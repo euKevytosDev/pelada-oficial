@@ -22,6 +22,10 @@ public final class SyncSnapshotGuard {
         if (partidasAtuais > 0 && novasPartidas == 0) {
             return true;
         }
+        // Times já salvos (ex.: "Salvar times") não podem sumir com sync vazio/parcial
+        if (timesAtuais > 0 && novasPartidas == 0 && novosTimes < timesAtuais) {
+            return true;
+        }
         if (timesAtuais > 0 && novosTimes == 0 && novasPartidas == 0) {
             return true;
         }

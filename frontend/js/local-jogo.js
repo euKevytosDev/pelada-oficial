@@ -471,8 +471,89 @@ const LocalJogo = (() => {
   function salvarTimes(times) {
     mutar((s) => {
       s.times = times || [];
+      if ((times || []).length) s.status = "EM_ANDAMENTO";
       return s;
     });
+  }
+
+  /**
+   * Reconstrói o jogo local a partir dos times do servidor
+   * (Continuar / outro aparelho depois de "Salvar times").
+   */
+  function hidratarTimesDoServidor({ peladaId, nome, quantidadeTimes, times: timesApi }) {
+    const times = [];
+    const jogadores = [];
+    const vistoJog = new Set();
+
+    for (const t of timesApi || []) {
+      const linha = (t.jogadores || []).map((j) => ({
+        id: j.id,
+        nome: j.nome,
+        estrelas: Number(j.estrelas) || 3,
+        goleiro: false,
+        apto: j.apto !== false,
+        timeId: t.id,
+        gols: j.gols || 0,
+        assistencias: j.assistencias || 0,
+        golsContra: j.golsContra || 0,
+        cartoesAmarelos: j.cartoesAmarelos || 0,
+        cartoesVermelhos: j.cartoesVermelhos || 0,
+        golsSofridos: 0,
+      }));
+      const gkRaw = t.goleiro || null;
+      const gk = gkRaw
+        ? {
+            id: gkRaw.id,
+            nome: gkRaw.nome,
+            estrelas: 0,
+            goleiro: true,
+            apto: gkRaw.apto !== false,
+            timeId: t.id,
+            gols: 0,
+            assistencias: 0,
+            golsContra: 0,
+            cartoesAmarelos: 0,
+            cartoesVermelhos: 0,
+            golsSofridos: gkRaw.golsSofridos || 0,
+          }
+        : null;
+
+      const membros = gk ? [...linha, gk] : [...linha];
+      for (const j of membros) {
+        if (vistoJog.has(String(j.id))) continue;
+        vistoJog.add(String(j.id));
+        jogadores.push({ ...j });
+      }
+
+      times.push({
+        id: t.id,
+        nome: t.nome || "Time",
+        cor: t.cor || "#1B5E20",
+        nomeManual: true,
+        pontos: t.pontos || 0,
+        vitorias: t.vitorias || 0,
+        empates: t.empates || 0,
+        derrotas: t.derrotas || 0,
+        golsPro: t.golsPro || 0,
+        golsContra: t.golsContra || 0,
+        jogadores: membros,
+        goleiro: gk ? { id: gk.id, nome: gk.nome, golsSofridos: gk.golsSofridos || 0 } : null,
+      });
+    }
+
+    gravar(
+      snapshotVazio({
+        peladaId: peladaId || null,
+        nome: nome || "Minha pelada",
+        quantidadeTimes: quantidadeTimes || Math.max(2, times.length),
+        status: times.length ? "EM_ANDAMENTO" : "AGUARDANDO",
+        jogadores,
+        times,
+        partida: null,
+        rodadasFinalizadas: [],
+      })
+    );
+    return listarTimes();
   }
 
   function limparPartidaAberta() {
@@ -662,19 +743,34 @@ const LocalJogo = (() => {
         goleiro: !!j.goleiro,
         apto: j.apto !== false,
       })),
-      times: (s.times || []).map((t) => ({
-        clientId: String(t.id),
-        nome: t.nome,
-        cor: t.cor,
-        nomeManual: !!t.nomeManual,
-        jogadorClientIds: (t.jogadores || []).map((j) => String(j.id)),
-        pontos: t.pontos || 0,
-        vitorias: t.vitorias || 0,
-        empates: t.empates || 0,
-        derrotas: t.derrotas || 0,
-        golsPro: t.golsPro || 0,
-        golsContra: t.golsContra || 0,
-      })),
+      times: (s.times || []).map((t) => {
+        const ids = [];
+        const visto = new Set();
+        for (const j of t.jogadores || []) {
+          const id = String(j.id);
+          if (!id || visto.has(id)) continue;
+          visto.add(id);
+          ids.push(id);
+        }
+        // Goleiro pode estar só em t.goleiro (após enriquecer / API)
+        if (t.goleiro?.id) {
+          const gid = String(t.goleiro.id);
+          if (!visto.has(gid)) ids.push(gid);
+        }
+        return {
+          clientId: String(t.id),
+          nome: t.nome,
+          cor: t.cor,
+          nomeManual: !!t.nomeManual,
+          jogadorClientIds: ids,
+          pontos: t.pontos || 0,
+          vitorias: t.vitorias || 0,
+          empates: t.empates || 0,
+          derrotas: t.derrotas || 0,
+          golsPro: t.golsPro || 0,
+          golsContra: t.golsContra || 0,
+        };
+      }),
       partidas: partidas.map((p) => ({
         clientId: String(p.id),
         numeroRodada: p.numeroRodada,
@@ -1041,6 +1137,7 @@ const LocalJogo = (() => {
     salvarPartida,
     atualizarPartida,
     salvarTimes,
+    hidratarTimesDoServidor,
     limpar,
     limparPartidaAberta,
     finalizarPartidaLocal,

@@ -23,6 +23,11 @@ class SyncSnapshotGuardTest {
     }
 
     @Test
+    void rejeitaSyncComMenosTimesSemPartidas() {
+        assertTrue(SyncSnapshotGuard.maisPobreQueSalvo(0, 4, 20, 0, 2, 20));
+    }
+
+    @Test
     void rejeitaSyncSemJogadoresNemPartidasQuandoJaHaJogadores() {
         assertTrue(SyncSnapshotGuard.maisPobreQueSalvo(0, 0, 15, 0, 0, 0));
     }

@@ -133,13 +133,11 @@ function metaPeladaHistorico(pelada) {
   return data ? `Criada em ${data}` : "";
 }
 
+/** No histórico completo: pode apagar qualquer pelada (exceto a que está em jogo). */
 function peladaPodeApagar(pelada) {
-  const ref = pelada?.encerradaEm || pelada?.criadaEm;
-  if (!ref) return true;
-  const texto = String(ref).trim().replace(" ", "T");
-  const data = new Date(texto);
-  if (Number.isNaN(data.getTime())) return true;
-  return Date.now() - data.getTime() < 7 * 24 * 60 * 60 * 1000;
+  if (!pelada?.id) return false;
+  if (pelada.status === "EM_ANDAMENTO") return false;
+  return true;
 }
 
 function htmlItemHistorico(pelada, opcoes = {}) {
@@ -773,11 +771,17 @@ async function continuarPeladaPorId(peladaId) {
 async function apagarPeladaPorId(peladaId) {
   const pelada = (estado.historicoPeladas || []).find((p) => Number(p.id) === Number(peladaId));
   if (pelada && !peladaPodeApagar(pelada)) {
-    toast("Essa pelada já passou de uma semana e não pode ser apagada");
+    toast("Encerre a pelada em andamento antes de apagar");
     return;
   }
   const nome = pelada?.nome || "esta pelada";
-  if (!confirm(`Apagar "${nome}"?\n\nEla sai do histórico e do relatório. Não dá para desfazer.`)) return;
+  if (
+    !confirm(
+      `Apagar "${nome}" do servidor?\n\nA súmula, partidas e dados desta pelada saem definitivamente do histórico e do relatório.\n\nNão dá para desfazer.`
+    )
+  ) {
+    return;
+  }
 
   await comLoading(async () => {
     if (getToken()) await PeladaAPI.apagar(peladaId);
@@ -785,7 +789,7 @@ async function apagarPeladaPorId(peladaId) {
     await tirarPeladaDaTela(peladaId);
   }, "Apagando pelada...");
 
-  toast("Pelada apagada");
+  toast("Pelada apagada do servidor");
 }
 
 async function tirarPeladaDaTela(peladaId) {
@@ -867,7 +871,8 @@ async function atualizarHistoricoHome() {
 
   const recentes = peladasParaHistoricoHome(idAtiva);
   if (recentes.length) {
-    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: true });
+    // Apagar fica só no "Histórico completo"
+    renderHistoricoLista(listaHome, recentes, 5, { mostrarApagar: false });
     aplicarRecolherHistoricoHome(recentes.length > 1);
     boxHistorico.classList.remove("oculto");
   } else {
@@ -1296,6 +1301,7 @@ async function moverJogadorParaTime(jogadorId, timeDestinoId) {
   LocalJogo.moverJogadorLocal(jogadorId, timeDestinoId);
   renderTimes(LocalJogo.listarTimes());
   toast("Jogador movido");
+  sincronizarJogoEmBackground();
 }
 
 async function escolherTimeParaMover(jogadorId, timeOrigemId) {
@@ -1853,6 +1859,7 @@ async function sortearTimes() {
   mostrarTela("tela-times");
   // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
+  // Backup silencioso; o botão "Salvar times" confirma no servidor
   sincronizarJogoAgora().catch(() => {});
   const todos = LocalJogo.listarJogadores();
   const inaptos = todos.filter((j) => j.apto === false).length;
@@ -1862,6 +1869,34 @@ async function sortearTimes() {
     : "Times sorteados! Sem goleiros cadastrados";
   if (inaptos) msg += ` · ${inaptos} inapto(s) fora`;
   toast(msg);
+}
+
+/** Depois de organizar o sorteio: grava times no servidor para Continuar em qualquer aparelho. */
+async function salvarTimesTemporariamente() {
+  if (!getToken()) {
+    toast("Entre na conta para salvar no servidor");
+    return;
+  }
+  const times = LocalJogo.listarTimes();
+  if (!times.length) {
+    toast("Sorteie os times antes de salvar");
+    return;
+  }
+  const peladaId = peladaIdDoJogoLocal();
+  if (!peladaId) {
+    toast("Pelada não encontrada — volte e abra de novo");
+    return;
+  }
+
+  await comLoading(async () => {
+    const payload = payloadSyncDuranteJogo();
+    if (!payload || !(payload.times || []).length) {
+      throw new Error("Nada para salvar — sorteie os times de novo");
+    }
+    await PeladaAPI.sincronizarCompleta(peladaId, payload);
+  }, "Salvando times no servidor...");
+
+  toast("Times salvos! Pode fechar o app — ao voltar o sorteio continua");
 }
 
 async function renomearTime(timeId) {
@@ -1877,6 +1912,7 @@ async function renomearTime(timeId) {
   renderTimes(times);
   const atualizado = times.find((t) => String(t.id) === String(timeId));
   toast(atualizado?.nomeManual ? "Nome atualizado" : "Nome automático (mais estrelas)");
+  sincronizarJogoEmBackground();
 }
 
 async function trocarGoleiroTime(timeId) {
@@ -1898,6 +1934,7 @@ async function trocarGoleiroTime(timeId) {
   const times = LocalJogo.listarTimes();
   renderTimes(times);
   toast("Goleiro definido (pode ser emprestado)");
+  sincronizarJogoEmBackground();
 }
 
 async function iniciarPartidaComEscolha() {
@@ -2985,9 +3022,16 @@ async function retomarPelada(pelada) {
       }
     }
     if (times.length) {
-      renderTimes(times);
+      const locais = LocalJogo.hidratarTimesDoServidor({
+        peladaId: pelada.id,
+        nome: pelada.nome,
+        quantidadeTimes: pelada.quantidadeTimes || times.length,
+        times,
+      });
+      estado.times = locais;
+      renderTimes(locais);
       mostrarTela("tela-times");
-      toast("Pelada retomada — times");
+      toast("Pelada retomada — times salvos");
       return;
     }
     throw new Error("Conexão oscilou. Toque de novo em Continuar.");
@@ -3076,9 +3120,16 @@ async function aplicarRetomada(payload) {
     }
 
     if ((estado.times || []).length) {
-      renderTimes(estado.times);
+      const locais = LocalJogo.hidratarTimesDoServidor({
+        peladaId: pelada.id,
+        nome: pelada.nome,
+        quantidadeTimes: pelada.quantidadeTimes || estado.times.length,
+        times: estado.times,
+      });
+      estado.times = locais;
+      renderTimes(locais);
       mostrarTela("tela-times");
-      toast("Pelada retomada — times");
+      toast("Pelada retomada — times salvos");
       return;
     }
   }
@@ -3809,6 +3860,14 @@ document.getElementById("btn-sortear").addEventListener("click", async () => {
     await comLoading(() => sortearTimes(), "Sorteando times...");
   } catch (err) {
     toast(err.message);
+  }
+});
+
+document.getElementById("btn-salvar-times")?.addEventListener("click", async () => {
+  try {
+    await salvarTimesTemporariamente();
+  } catch (err) {
+    toast(err.message || "Não deu para salvar os times");
   }
 });
 
