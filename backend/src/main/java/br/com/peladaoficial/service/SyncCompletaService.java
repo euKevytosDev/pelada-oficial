@@ -61,9 +61,9 @@ public class SyncCompletaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Snapshot da pelada é obrigatório");
         }
 
-        int partidasAtuais = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(peladaId).size();
-        int timesAtuais = timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId).size();
-        int jogadoresAtuais = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId).size();
+        int partidasAtuais = (int) partidaRepository.countByPeladaId(peladaId);
+        int timesAtuais = (int) timeRepository.countByPeladaId(peladaId);
+        int jogadoresAtuais = (int) jogadorRepository.countByPeladaId(peladaId);
         int novasPartidas = lista(request.getPartidas()).size();
         int novosTimes = lista(request.getTimes()).size();
         int novosJogadores = lista(request.getJogadores()).size();
@@ -81,7 +81,7 @@ public class SyncCompletaService {
                 pelada.setEncerradaEm(LocalDateTime.now());
                 peladaRepository.flush();
             }
-            return resumoService.montar(peladaId);
+            return encerrar ? resumoService.montar(peladaId) : respostaRapida(pelada);
         }
 
         limparSnapshotAnterior(peladaId);
@@ -112,28 +112,35 @@ public class SyncCompletaService {
         }
 
         peladaRepository.flush();
-        return resumoService.montar(peladaId);
+        // Salvar times / sync durante o jogo: não monta súmula completa (era o maior custo)
+        return encerrar ? resumoService.montar(peladaId) : respostaRapida(pelada);
+    }
+
+    private Map<String, Object> respostaRapida(Pelada pelada) {
+        Map<String, Object> out = new HashMap<>();
+        out.put("ok", true);
+        Map<String, Object> p = new HashMap<>();
+        p.put("id", pelada.getId());
+        p.put("nome", pelada.getNome());
+        p.put("status", pelada.getStatus() != null ? pelada.getStatus().name() : null);
+        out.put("pelada", p);
+        return out;
     }
 
     private void limparSnapshotAnterior(Long peladaId) {
         observacaoRepository.deleteByPeladaId(peladaId);
-
-        List<Partida> partidas = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(peladaId);
-        partidaRepository.deleteAll(partidas);
-        partidaRepository.flush();
-
-        List<Jogador> jogadores = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId);
-        jogadores.forEach(j -> j.setTime(null));
-        jogadorRepository.flush();
-
-        timeRepository.deleteAll(timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId));
-        timeRepository.flush();
-        jogadorRepository.deleteAll(jogadores);
+        eventoRepository.deleteByPeladaId(peladaId);
+        partidaRepository.deleteByPeladaId(peladaId);
+        jogadorRepository.clearTimeByPeladaId(peladaId);
+        timeRepository.deleteByPeladaId(peladaId);
+        jogadorRepository.deleteByPeladaId(peladaId);
         jogadorRepository.flush();
     }
 
     private Map<String, Jogador> criarJogadores(Pelada pelada, List<SyncCompletaRequest.JogadorSync> snapshot) {
-        Map<String, Jogador> jogadores = new HashMap<>();
+        Map<String, Jogador> jogadores = new LinkedHashMap<>();
+        List<Jogador> lote = new ArrayList<>();
+        List<String> clientIds = new ArrayList<>();
         for (SyncCompletaRequest.JogadorSync item : lista(snapshot)) {
             String clientId = obrigatorio(item.getClientId(), "clientId do jogador");
             String nome = obrigatorio(item.getNome(), "nome do jogador");
@@ -144,8 +151,12 @@ public class SyncCompletaService {
 
             Jogador jogador = new Jogador(nome, goleiro ? 0 : item.getEstrelas(), goleiro, pelada);
             jogador.setApto(!Boolean.FALSE.equals(item.getApto()));
-            jogador = jogadorRepository.save(jogador);
-            adicionarUnico(jogadores, clientId, jogador, "jogador");
+            lote.add(jogador);
+            clientIds.add(clientId.trim());
+        }
+        List<Jogador> salvos = jogadorRepository.saveAll(lote);
+        for (int i = 0; i < salvos.size(); i++) {
+            adicionarUnico(jogadores, clientIds.get(i), salvos.get(i), "jogador");
         }
         return jogadores;
     }
@@ -153,19 +164,31 @@ public class SyncCompletaService {
     private Map<String, Time> criarTimes(Pelada pelada,
                                          List<SyncCompletaRequest.TimeSync> snapshot,
                                          Map<String, Jogador> jogadores) {
-        Map<String, Time> times = new HashMap<>();
+        Map<String, Time> times = new LinkedHashMap<>();
         List<SyncCompletaRequest.TimeSync> itens = lista(snapshot);
+        List<Time> loteTimes = new ArrayList<>();
+        List<String> clientIds = new ArrayList<>();
 
-        for (int i = 0; i < itens.size(); i++) {
-            SyncCompletaRequest.TimeSync item = itens.get(i);
+        for (SyncCompletaRequest.TimeSync item : itens) {
             String clientId = obrigatorio(item.getClientId(), "clientId do time");
             String nome = obrigatorio(item.getNome(), "nome do time");
             Time time = new Time(nome, valorOuPadrao(item.getCor(), "#1B5E20"), pelada);
             time.setNomeManual(Boolean.TRUE.equals(item.getNomeManual()));
-            time = timeRepository.save(time);
-            adicionarUnico(times, clientId, time, "time");
+            if (item.getPontos() != null) time.setPontos(item.getPontos());
+            if (item.getVitorias() != null) time.setVitorias(item.getVitorias());
+            if (item.getEmpates() != null) time.setEmpates(item.getEmpates());
+            if (item.getDerrotas() != null) time.setDerrotas(item.getDerrotas());
+            if (item.getGolsPro() != null) time.setGolsPro(item.getGolsPro());
+            if (item.getGolsContra() != null) time.setGolsContra(item.getGolsContra());
+            loteTimes.add(time);
+            clientIds.add(clientId.trim());
+        }
+        List<Time> salvos = timeRepository.saveAll(loteTimes);
+        for (int i = 0; i < salvos.size(); i++) {
+            adicionarUnico(times, clientIds.get(i), salvos.get(i), "time");
         }
 
+        List<Jogador> paraAtualizar = new ArrayList<>();
         for (SyncCompletaRequest.TimeSync item : itens) {
             Time time = times.get(item.getClientId().trim());
             for (String jogadorClientId : lista(item.getJogadorClientIds())) {
@@ -175,10 +198,14 @@ public class SyncCompletaService {
                 }
                 jogador.setTime(time);
                 time.getJogadores().add(jogador);
+                paraAtualizar.add(jogador);
             }
             if (!Boolean.TRUE.equals(time.getNomeManual())) {
                 time.atualizarNomeAutomaticoSePreciso();
             }
+        }
+        if (!paraAtualizar.isEmpty()) {
+            jogadorRepository.saveAll(paraAtualizar);
         }
         return times;
     }

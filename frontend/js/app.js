@@ -1857,8 +1857,7 @@ async function sortearTimes() {
   mostrarTela("tela-times");
   // Elenco da conta = snapshot deste momento (inclui apto/inapto)
   sincronizarElencoNoSorteio();
-  // Backup silencioso; o botão "Salvar times" confirma no servidor
-  sincronizarJogoAgora().catch(() => {});
+  // Times: só sobem no "Salvar times" (evita sync pesado duplicado e demora)
   const todos = LocalJogo.listarJogadores();
   const inaptos = todos.filter((j) => j.apto === false).length;
   const comGk = times.filter((t) => t.goleiro).length;
@@ -1886,16 +1885,35 @@ async function salvarTimesTemporariamente() {
     return;
   }
 
-  await comLoading(async () => {
+  const btn = document.getElementById("btn-salvar-times");
+  if (btn) btn.disabled = true;
+  clearTimeout(syncJogoTimer);
+  toast("Salvando times…");
+  try {
+    // Se já tem sync em andamento, espera terminar pra não duplicar trabalho
+    const limite = Date.now() + 8000;
+    while (sincronizandoJogo && Date.now() < limite) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
     const payload = payloadSyncDuranteJogo();
     if (!payload || !(payload.times || []).length) {
       throw new Error("Nada para salvar — sorteie os times de novo");
     }
-    await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    sincronizandoJogo = true;
+    try {
+      await PeladaAPI.sincronizarCompleta(peladaId, payload);
+    } finally {
+      sincronizandoJogo = false;
+      if (syncJogoPendente) {
+        syncJogoPendente = false;
+        sincronizarJogoEmBackground();
+      }
+    }
     limparOcultarContinuar();
-  }, "Salvando times no servidor...");
-
-  toast("Times salvos! Pode fechar o app — ao voltar o sorteio continua");
+    toast("Times salvos! Pode fechar o app");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function renomearTime(timeId) {
