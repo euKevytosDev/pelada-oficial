@@ -61,6 +61,31 @@ public class SyncCompletaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Snapshot da pelada é obrigatório");
         }
 
+        int partidasAtuais = partidaRepository.findByPeladaIdOrderByNumeroRodadaDesc(peladaId).size();
+        int timesAtuais = timeRepository.findByPeladaIdOrderByPontosDescIdAsc(peladaId).size();
+        int jogadoresAtuais = jogadorRepository.findByPeladaIdOrderByNomeAsc(peladaId).size();
+        int novasPartidas = lista(request.getPartidas()).size();
+        int novosTimes = lista(request.getTimes()).size();
+        int novosJogadores = lista(request.getJogadores()).size();
+        boolean encerrar = Boolean.TRUE.equals(request.getEncerrar());
+        boolean jaEncerrada = pelada.getStatus() == StatusPelada.ENCERRADA;
+
+        // Sync mais pobre que o já salvo NÃO pode apagar súmula/partidas.
+        boolean maisPobre =
+                (partidasAtuais > 0 && novasPartidas < partidasAtuais)
+                        || (partidasAtuais > 0 && novasPartidas == 0)
+                        || (timesAtuais > 0 && novosTimes == 0 && novasPartidas == 0)
+                        || (jogadoresAtuais > 0 && novosJogadores == 0 && novasPartidas == 0);
+
+        if (maisPobre) {
+            if (encerrar && !jaEncerrada) {
+                pelada.setStatus(StatusPelada.ENCERRADA);
+                pelada.setEncerradaEm(LocalDateTime.now());
+                peladaRepository.flush();
+            }
+            return resumoService.montar(peladaId);
+        }
+
         limparSnapshotAnterior(peladaId);
 
         Map<String, Jogador> jogadores = criarJogadores(pelada, request.getJogadores());
@@ -70,14 +95,17 @@ public class SyncCompletaService {
 
         jogadorRepository.flush();
 
-        if (Boolean.TRUE.equals(request.getEncerrar())) {
+        if (encerrar) {
             pelada.setStatus(StatusPelada.ENCERRADA);
-            pelada.setEncerradaEm(LocalDateTime.now());
+            if (pelada.getEncerradaEm() == null) {
+                pelada.setEncerradaEm(LocalDateTime.now());
+            }
             // Só grava elenco se o snapshot trouxe jogadores (não zera a conta)
             if (!jogadores.isEmpty()) {
                 peladaService.substituirElenco(new ArrayList<>(jogadores.values()));
             }
-        } else {
+        } else if (!jaEncerrada) {
+            // Não reabre pelada já encerrada com sync parcial (evita zerar súmula depois)
             pelada.setStatus(times.isEmpty() ? StatusPelada.AGUARDANDO : StatusPelada.EM_ANDAMENTO);
             pelada.setEncerradaEm(null);
         }

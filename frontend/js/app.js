@@ -659,6 +659,10 @@ async function sincronizarEncerrarPendente() {
         marcarPeladaEncerradaLocal(peladaId);
       }
 
+      if (!payloadSyncEncerrarValido(item.payload)) {
+        tirarSyncEncerrarDaFrente();
+        continue;
+      }
       const resumo = await PeladaAPI.sincronizarCompleta(peladaId, item.payload);
       tirarSyncEncerrarDaFrente();
       marcarPeladaEncerradaLocal(peladaId);
@@ -2330,8 +2334,17 @@ function peladaIdDoJogoLocal() {
 
 function payloadSyncDuranteJogo() {
   const payload = LocalJogo.montarPayloadSync({ encerrar: false });
+  // Sem times e sem rodadas: não manda — sync vazio apagava súmula no servidor
   if (!(payload.partidas || []).length && !(payload.times || []).length) return null;
+  if (!(payload.jogadores || []).length) return null;
   return payload;
+}
+
+function payloadSyncEncerrarValido(payload) {
+  if (!payload) return false;
+  if (!(payload.jogadores || []).length) return false;
+  if (!(payload.times || []).length && !(payload.partidas || []).length) return false;
+  return true;
 }
 
 /** Backup no servidor: 1 envio por vez. Se chegar outro no meio, manda o snapshot mais novo em seguida. */
@@ -2747,6 +2760,10 @@ async function encerrarPelada() {
   const resumo = LocalJogo.montarResumoLocal();
   const payload = LocalJogo.montarPayloadSync();
   const peladaId = estado.peladaId || local?.peladaId || null;
+  if (!payloadSyncEncerrarValido(payload)) {
+    toast("Não deu para montar a súmula para enviar. Não feche o app — tente Finalizar de novo.");
+    return;
+  }
   // Backup local; elenco final (com apto/inapto) grava na conta antes do sync pesado
   salvarElencoLocalBackup(elencoDoPayload(payload));
   try {
