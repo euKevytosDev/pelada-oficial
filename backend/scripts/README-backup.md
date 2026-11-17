@@ -1,13 +1,16 @@
-# Backup semanal — Postgres (VM Oracle)
+# Backup semanal — Postgres de produção (Supabase)
 
-Automatiza dump do banco `pelada_oficial` no container `pelada-db`.
+Automatiza dump do banco apontado por `/home/ubuntu/pelada/spring.env`
+(`SPRING_DATASOURCE_*`), hoje o pooler Supabase.
 
 ## O que faz
 
-- Roda `pg_dump` via Docker, comprime com `.gz`
-- Salva em `/home/ubuntu/pelada/backups/`
-- Mantém os **8 backups mais recentes** (~2 meses)
+- Roda `pg_dump` via Docker (`postgres:16-alpine` + `--network host`)
+- Comprime em `.gz` e salva em `/home/ubuntu/pelada/backups/`
+- Mantém os **8 backups mais recentes**
 - Registra em `backups/backup.log`
+
+> Não usa mais o container local `pelada-db` (legado / vazio).
 
 ## Agendamento
 
@@ -28,11 +31,6 @@ tail -20 /home/ubuntu/pelada/backups/backup.log
 
 # Listar backups
 ls -lh /home/ubuntu/pelada/backups/pelada_oficial-*.sql.gz
-
-# Restaurar (cuidado: sobrescreve dados atuais)
-gunzip -c /home/ubuntu/pelada/backups/pelada_oficial-YYYYMMDD-HHMMSS.sql.gz | \
-  docker exec -i -e PGPASSWORD="$(cat /home/ubuntu/pelada/.dbpass)" pelada-db \
-  psql -U pelada -d pelada_oficial
 ```
 
 ## Copiar backup pro Mac (opcional)
@@ -43,4 +41,4 @@ scp -i ~/Downloads/ssh-key-2026-08-12.key \
   ~/Backups/pelada/
 ```
 
-Recomendado: baixar 1 backup por mês pro seu computador ou nuvem (Drive/iCloud).
+Recomendado: baixar 1 backup por mês pro computador ou nuvem (Drive/iCloud).

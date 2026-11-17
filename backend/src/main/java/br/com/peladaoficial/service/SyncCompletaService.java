@@ -71,11 +71,9 @@ public class SyncCompletaService {
         boolean jaEncerrada = pelada.getStatus() == StatusPelada.ENCERRADA;
 
         // Sync mais pobre que o já salvo NÃO pode apagar súmula/partidas.
-        boolean maisPobre =
-                (partidasAtuais > 0 && novasPartidas < partidasAtuais)
-                        || (partidasAtuais > 0 && novasPartidas == 0)
-                        || (timesAtuais > 0 && novosTimes == 0 && novasPartidas == 0)
-                        || (jogadoresAtuais > 0 && novosJogadores == 0 && novasPartidas == 0);
+        boolean maisPobre = SyncSnapshotGuard.maisPobreQueSalvo(
+                partidasAtuais, timesAtuais, jogadoresAtuais,
+                novasPartidas, novosTimes, novosJogadores);
 
         if (maisPobre) {
             if (encerrar && !jaEncerrada) {
