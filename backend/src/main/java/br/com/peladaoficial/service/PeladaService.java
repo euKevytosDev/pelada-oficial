@@ -92,6 +92,7 @@ public class PeladaService {
         return encerrarAtivasDoUsuario(authSupport.usuarioAtual());
     }
 
+    /** Ao criar nova pelada / limpar fantasmas: encerra AGUARDANDO e EM_ANDAMENTO. */
     private int encerrarAtivasDoUsuario(Usuario dono) {
         List<Pelada> ativas = peladaRepository.findByUsuarioAndStatusInOrderByCriadaEmDesc(
                 dono,
