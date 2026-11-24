@@ -553,6 +553,13 @@ function marcarPeladaEncerradaLocal(peladaId) {
   localStorage.setItem(ENCERRADAS_LOCAL_KEY, JSON.stringify(ids.slice(-80)));
 }
 
+function limparEncerradaLocal(peladaId) {
+  if (peladaId == null || peladaId === "") return;
+  const id = String(peladaId);
+  const ids = lerIdsEncerradasLocal().filter((x) => x !== id);
+  localStorage.setItem(ENCERRADAS_LOCAL_KEY, JSON.stringify(ids));
+}
+
 function foiEncerradaNesteAparelho(peladaId) {
   if (peladaId == null || peladaId === "") return false;
   return lerIdsEncerradasLocal().includes(String(peladaId));
@@ -2932,18 +2939,21 @@ async function entrarNaHome() {
 
   try {
     const ativa = await PeladaAPI.ativa();
-    if (ativa && ativa.id && deveOcultarContinuar(ativa.id)) {
-      // Já encerrada neste aparelho — não mostra Continuar (não mata no servidor)
-      estado.peladaAtiva = null;
-      idAtiva = null;
-    } else if (ativa && ativa.id) {
+    if (ativa && ativa.id) {
+      // Fonte da verdade = servidor. Se ainda está AGUARDANDO/EM_ANDAMENTO,
+      // Continuar TEM que aparecer — mesmo se o celular marcou "encerrada"
+      // (ex.: Finalizar abriu a súmula mas o sync não concluiu).
+      limparEncerradaLocal(ativa.id);
       limparOcultarContinuar();
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
       idAtiva = ativa.id;
       if (box) {
-        document.querySelector("#box-continuar .continuar-txt").textContent =
-          "Você tem uma pelada em andamento.";
+        const statusTxt =
+          ativa.status === "AGUARDANDO"
+            ? "Você tem uma pelada em preparação."
+            : "Você tem uma pelada em andamento.";
+        document.querySelector("#box-continuar .continuar-txt").textContent = statusTxt;
         box.classList.remove("oculto");
       }
     } else {
@@ -2954,8 +2964,8 @@ async function entrarNaHome() {
     /* API oscilando */
   }
 
-  // Jogo local só mostra Continuar se o usuário não acabou de encerrar
-  if (temLocal && box && !deveOcultarBoxContinuar()) {
+  // Jogo local: mostra Continuar se o servidor não trouxe ativa (offline / 502)
+  if (temLocal && box && !idAtiva && !deveOcultarBoxContinuar()) {
     limparOcultarContinuar();
     box.classList.remove("oculto");
     document.querySelector("#box-continuar .continuar-txt").textContent =
