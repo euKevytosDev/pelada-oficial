@@ -98,58 +98,71 @@ function msDesdeEncerramento(pelada) {
   return Number.isNaN(d.getTime()) ? Infinity : Date.now() - d.getTime();
 }
 
+/** Já finalizou neste aparelho (viu súmula) — mesmo se o sync ainda não marcou ENCERRADA. */
+function peladaJaFinalizadaLocal(peladaId) {
+  return foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId);
+}
+
+/** Para UI: se finalizou localmente, trata como encerrada na lista. */
+function peladaParaExibicao(pelada) {
+  if (!pelada?.id) return pelada;
+  if (!peladaJaFinalizadaLocal(pelada.id)) return pelada;
+  if (pelada.status === "ENCERRADA") return pelada;
+  return {
+    ...pelada,
+    status: "ENCERRADA",
+    encerradaEm: pelada.encerradaEm || pelada.criadaEm || new Date().toISOString(),
+  };
+}
+
+/** Continuar = só jogo interrompido no meio das rodadas (não após Finalizar). */
 function podeContinuarPelada(pelada) {
   if (!pelada?.id) return false;
-  if (pelada.status === "EM_ANDAMENTO" || pelada.status === "AGUARDANDO") return true;
-  if (pelada.status === "ENCERRADA") return msDesdeEncerramento(pelada) < JANELA_RETOMAR_MS;
-  return false;
+  if (peladaJaFinalizadaLocal(pelada.id)) return false;
+  return pelada.status === "EM_ANDAMENTO" || pelada.status === "AGUARDANDO";
 }
 
 function podeVerSumula(pelada) {
-  return pelada?.status === "ENCERRADA" || pelada?.status === "EM_ANDAMENTO";
+  if (!pelada?.id) return false;
+  if (peladaJaFinalizadaLocal(pelada.id)) return true;
+  return pelada.status === "ENCERRADA" || pelada.status === "EM_ANDAMENTO";
 }
 
 function badgeStatusPelada(pelada) {
-  if (pelada.status === "EM_ANDAMENTO") return { cls: "", txt: "Ao vivo" };
-  if (pelada.status === "AGUARDANDO") return { cls: "", txt: "Preparando" };
-  if (pelada.status === "ENCERRADA" && podeContinuarPelada(pelada)) {
-    const restante = JANELA_RETOMAR_MS - msDesdeEncerramento(pelada);
-    const horas = Math.max(1, Math.ceil(restante / 3600000));
-    return { cls: "retomar", txt: `Retomar · ${horas}h` };
-  }
+  const p = peladaParaExibicao(pelada);
+  if (p.status === "EM_ANDAMENTO") return { cls: "", txt: "Ao vivo" };
+  if (p.status === "AGUARDANDO") return { cls: "", txt: "Preparando" };
   return { cls: "encerrada", txt: "Encerrada" };
 }
 
 function metaPeladaHistorico(pelada) {
-  const quando = pelada.encerradaEm || pelada.criadaEm;
+  const p = peladaParaExibicao(pelada);
+  const quando = p.encerradaEm || p.criadaEm;
   const data = quando ? formatarDataBr(quando) : "";
-  if (pelada.status === "ENCERRADA" && podeContinuarPelada(pelada)) {
-    return `${data} · pode continuar com mais partidas`;
-  }
-  if (pelada.status === "ENCERRADA") {
+  if (p.status === "ENCERRADA") {
     return data ? `Encerrada em ${data}` : "Encerrada";
   }
-  if (pelada.status === "EM_ANDAMENTO") return "Pelada em andamento";
+  if (p.status === "EM_ANDAMENTO") return "Pelada em andamento";
   return data ? `Criada em ${data}` : "";
 }
 
-/** No histórico completo: pode apagar qualquer pelada (exceto a que está em jogo). */
+/** No histórico: pode apagar encerradas (e as que já finalizou neste aparelho). */
 function peladaPodeApagar(pelada) {
   if (!pelada?.id) return false;
+  if (peladaJaFinalizadaLocal(pelada.id)) return true;
   if (pelada.status === "EM_ANDAMENTO") return false;
   return true;
 }
 
 function htmlItemHistorico(pelada, opcoes = {}) {
-  const badge = badgeStatusPelada(pelada);
-  const meta = metaPeladaHistorico(pelada);
+  const p = peladaParaExibicao(pelada);
+  const badge = badgeStatusPelada(p);
+  const meta = metaPeladaHistorico(p);
   const botoes = [];
 
   if (podeContinuarPelada(pelada)) {
-    const label =
-      pelada.status === "ENCERRADA" ? "Continuar partidas" : "Abrir pelada";
     botoes.push(
-      `<button type="button" class="btn-mini" data-hist-acao="continuar" data-pelada-id="${pelada.id}">${label}</button>`
+      `<button type="button" class="btn-mini" data-hist-acao="continuar" data-pelada-id="${pelada.id}">Abrir pelada</button>`
     );
   }
   if (podeVerSumula(pelada)) {
@@ -584,12 +597,30 @@ function syncEncerrarPendentePara(peladaId) {
   );
 }
 
-/** Só esconde Continuar da pelada que ESTE aparelho encerrou — não de uma nova. */
+/** Esconde Continuar se já Finalizou neste aparelho (viu súmula). */
 function deveOcultarContinuar(peladaId) {
   if (peladaId == null || peladaId === "") return deveOcultarBoxContinuar();
-  if (foiEncerradaNesteAparelho(peladaId) || syncEncerrarPendentePara(peladaId)) return true;
-  // Flag global só esconde a caixa se não há pelada ativa diferente das encerradas locais
-  return false;
+  return peladaJaFinalizadaLocal(peladaId);
+}
+
+/**
+ * Se Finalizou aqui mas o servidor ainda está EM_ANDAMENTO (sync perdeu o payload),
+ * marca ENCERRADA sem apagar partidas (sync pobre + encerrar=true).
+ */
+async function garantirEncerradaNoServidor(peladaId) {
+  if (!getToken() || peladaId == null) return false;
+  try {
+    await PeladaAPI.sincronizarCompleta(peladaId, {
+      encerrar: true,
+      jogadores: [],
+      times: [],
+      partidas: [],
+      observacoes: [],
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 /**
@@ -790,8 +821,13 @@ async function apagarPeladaPorId(peladaId) {
   }
 
   await comLoading(async () => {
+    // Se ainda está EM_ANDAMENTO no servidor mas já finalizou aqui, encerra antes de apagar
+    if (getToken() && peladaJaFinalizadaLocal(peladaId) && pelada?.status === "EM_ANDAMENTO") {
+      await garantirEncerradaNoServidor(peladaId);
+    }
     if (getToken()) await PeladaAPI.apagar(peladaId);
     limparApagarPendente(peladaId);
+    limparEncerradaLocal(peladaId);
     await tirarPeladaDaTela(peladaId);
   }, "Apagando pelada...");
 
@@ -2903,7 +2939,8 @@ async function entrarNaHome() {
   if (typeof PlanoApp !== "undefined") await PlanoApp.sincronizar();
   mostrarTela("tela-inicio");
   sincronizarApaguesPendentes().catch(() => {});
-  sincronizarEncerrarPendente().catch(() => {});
+  // Espera a fila de Finalizar: se concluiu, some Continuar e vira súmula no histórico
+  await sincronizarEncerrarPendente().catch(() => {});
   // Cadastro local em andamento: sobe o elenco para outro celular poder Continuar
   const localCadastro = LocalJogo.obter();
   if (
@@ -2939,11 +2976,16 @@ async function entrarNaHome() {
 
   try {
     const ativa = await PeladaAPI.ativa();
-    if (ativa && ativa.id) {
-      // Fonte da verdade = servidor. Se ainda está AGUARDANDO/EM_ANDAMENTO,
-      // Continuar TEM que aparecer — mesmo se o celular marcou "encerrada"
-      // (ex.: Finalizar abriu a súmula mas o sync não concluiu).
-      limparEncerradaLocal(ativa.id);
+    if (ativa && ativa.id && deveOcultarContinuar(ativa.id)) {
+      // Já Finalizou neste aparelho → NÃO é Continuar; é súmula no histórico
+      estado.peladaAtiva = null;
+      idAtiva = null;
+      // Garante ENCERRADA no servidor se a fila perdeu o payload
+      if (!syncEncerrarPendentePara(ativa.id)) {
+        await garantirEncerradaNoServidor(ativa.id);
+      }
+    } else if (ativa && ativa.id) {
+      // Jogo no meio das rodadas → Continuar
       limparOcultarContinuar();
       estado.peladaAtiva = ativa;
       estado.ultimaPelada = ativa;
@@ -2964,13 +3006,20 @@ async function entrarNaHome() {
     /* API oscilando */
   }
 
-  // Jogo local: mostra Continuar se o servidor não trouxe ativa (offline / 502)
-  if (temLocal && box && !idAtiva && !deveOcultarBoxContinuar()) {
+  // Jogo local interrompido (sem Finalizar): Continuar neste celular
+  if (
+    temLocal &&
+    box &&
+    !idAtiva &&
+    local?.peladaId &&
+    !deveOcultarContinuar(local.peladaId) &&
+    !deveOcultarBoxContinuar()
+  ) {
     limparOcultarContinuar();
     box.classList.remove("oculto");
     document.querySelector("#box-continuar .continuar-txt").textContent =
       "Você tem uma pelada salva neste celular.";
-    if (local.peladaId) idAtiva = local.peladaId;
+    idAtiva = local.peladaId;
   }
 
   await carregarHistoricoPeladas();
